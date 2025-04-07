@@ -3,7 +3,7 @@ USE park_guide_management;
 
 -- ==============================================
 -- Table: User
-CREATE TABLE Users IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS Users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE Users IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Park Guides
-CREATE TABLE ParkGuides IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS ParkGuides (
   guide_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL UNIQUE,
   certification_status ENUM('pending', 'certified', 'expired') DEFAULT 'pending',
@@ -27,7 +27,7 @@ CREATE TABLE ParkGuides IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Training Modules Table
-CREATE TABLE TrainingModules IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS TrainingModules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
   module_name VARCHAR(255) NOT NULL,
   description TEXT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE TrainingModules IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Guide Training Progress Table
-CREATE TABLE GuideTrainingProgress IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS GuideTrainingProgress (
   progress_id INT AUTO_INCREMENT PRIMARY KEY,
   guide_id INT NOT NULL,
   module_id INT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE GuideTrainingProgress IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Multi-License Training Exemptions Table
-CREATE TABLE MultiLicenseTrainingExemptions IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS MultiLicenseTrainingExemptions (
   exemption_id INT AUTO_INCREMENT PRIMARY KEY,
   guide_id INT NOT NULL,
   training_id INT NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE MultiLicenseTrainingExemptions IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Certifications Table
-CREATE TABLE Certifications IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS Certifications (
   cert_id INT AUTO_INCREMENT PRIMARY KEY,
   guide_id INT NOT NULL,
   module_id INT NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE Certifications IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Parks Table
-CREATE TABLE Parks IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS Parks (
   park_id INT AUTO_INCREMENT PRIMARY KEY,
   park_name VARCHAR(255) NOT NULL,
   location TEXT NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE Parks IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Guidebook Table
-CREATE TABLE Guidebook IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS Guidebook (
   guidebook_id INT AUTO_INCREMENT PRIMARY KEY,
   park_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE Guidebook IF NOT EXISTS (
 
 -- ==============================================
 -- Table: IoT Monitoring Table
-CREATE TABLE IoTMonitoring IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS IoTMonitoring (
     sensor_id INT AUTO_INCREMENT PRIMARY KEY,
     park_id INT NOT NULL,
     sensor_type ENUM('temperature', 'humidity', 'motion') NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE IoTMonitoring IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Visitor Feedback Table
-CREATE TABLE VisitorFeedback IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS VisitorFeedback (
     feedback_id INT AUTO_INCREMENT PRIMARY KEY,
     visitor_id INT NOT NULL,
     guide_id INT NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE VisitorFeedback IF NOT EXISTS (
 
 -- ==============================================
 -- Table: Payment Transactions Table
-CREATE TABLE PaymentTransactions IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS PaymentTransactions (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
