@@ -8,14 +8,16 @@ const PORT = 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Example route for an API endpoint
-app.get('/api/user', (req, res) => {
+app.get('/api/:id', (req, res) => {
   res.json({ name: 'Park Guide', role: 'Admin' });
 });
 
-// Fallback route (for client-side routing if needed)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'parkguidedashboard.html'));
+// Handle the root URL ("/")
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'parkguideDashboard.html'));
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
