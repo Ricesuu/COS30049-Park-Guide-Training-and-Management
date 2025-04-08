@@ -8,9 +8,9 @@
     <title>Park Guide Dashboard</title>
 </head>
 <body class="bg-light">
-    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-        <div class="sidebar d-flex flex-column justify-content-center align-items-center">
-            
+    <div class="d-flex" style="height: 100vh;">
+        <!-- Sidebar -->
+        <div class="sidebar d-flex flex-column justify-content-start align-items-center">
             <img src="images/SFC_LOGO_small.jpg" alt="SFC Logo" class="sidebar-logo mb-4">
             
             <!-- Buttons -->
@@ -39,6 +39,17 @@
                 Logout
             </button>
         </div>
+
+        <!-- Main Content -->
+        <div class="main-content d-flex flex-grow-1">
+            <!-- Left Column -->
+            <div class="left-column d-flex flex-column flex-grow-1">
+                <div class="box box1"><h2 class="boxtitle">Performance</h2></div>
+                <div class="box box2"><h2 class="boxtitle">Alert</h2></div>
+            </div>
+            <!-- Right Column -->
+            <div class="right-column box"><h2 class="boxtitle">Certification & Licensing</h2></div>
+        </div>
     </div>
 
     <script>
@@ -46,7 +57,6 @@
             window.location.href = page;
         }
     </script>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
