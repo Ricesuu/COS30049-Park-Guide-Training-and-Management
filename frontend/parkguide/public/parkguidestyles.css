@@ -51,11 +51,9 @@ body, html {
 .left-column {
     display: flex;
     flex-direction: column;
-    flex-grow: 3;
 }
 
 .right-column {
-    flex-grow: 1;
     background-color: #f0f0f0;
     display: flex;
     justify-content: center;
