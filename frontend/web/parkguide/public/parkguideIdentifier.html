@@ -46,7 +46,7 @@
             <div class="left-column flex flex-col w-full md:w-1/4 mt-1">
                 <!-- Upload Box -->
                 <div class="bg-white p-4 m-2 rounded shadow flex-none">
-                    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-300 pb-2">Upload Image</h2>
+                    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-300 pb-2 text-center">Upload Image</h2>
                     <input type="file" id="imageInput" accept="image/*" class="mb-4">
                     <button class="btn bg-blue-500 text-white py-2 px-4 rounded w-full" onclick="uploadToSystem()">Upload</button>
                 </div>
@@ -59,15 +59,14 @@
 
             <!-- Right Column -->
             <div class="right-column bg-white p-4 m-3 rounded shadow w-full md:w-3/4 relative flex flex-col">
-                <!-- Title Box -->
-                <div class=" p-2 rounded-t text-center sticky top-0 z-10">
-                    <h2 class="text-lg font-bold text-gray-800">Information</h2>
-                </div>
-                <!-- Content Area -->
-                <div class="p-4">
-                    <p class="text-gray-700 text-base">This is where the information content will go.</p>
-                    <p class="text-gray-700 text-base">You can add more details about the identifier here.</p>
-                    <p class="text-gray-700 text-base">Feel free to customize this section as needed.</p>
+                <div class="flex flex-col h-full">
+                    <h2 class="text-lg font-bold mb-4 text-center">Information</h2>
+                    <!-- Content Area -->
+                    <div class="flex-grow p-4 text-left">
+                        <p class="text-gray-700 text-base">Plant Name: Lorem Ipsum.</p>
+                        <p class="text-gray-700 text-base">You can add more details about the identifier here.</p>
+                        <p class="text-gray-700 text-base">Feel free to customize this section as needed.</p>
+                    </div>
                 </div>
             </div>
         </div>
