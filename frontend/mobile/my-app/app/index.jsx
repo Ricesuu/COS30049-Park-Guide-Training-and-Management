@@ -4,6 +4,10 @@ import { AntDesign, Entypo, MaterialIcons } from "@expo/vector-icons";
 
 import ".././global.css";
 
+// This is the main page of the app, which serves as the admin dashboard.
+// It includes sections for pending approvals, IoT monitoring parameters, and transaction approvals.
+// The page is styled using mixture of Tailwind CSS and React Native styles.
+// The page also includes animated icons for the IoT monitoring parameters, which scale down when pressed.
 const HomePage = () => {
     return (
         <View className="p-7">
@@ -27,10 +31,13 @@ const HomePage = () => {
             </View>
 
             {/* IoT Monitoring Section */}
+            {/* This section displays various IoT parameters such as temperature, humidity, and light status. */}
             <View className="mb-5 p-1">
                 <Text className="text-lg font-bold mb-2">
                     IoT Monitoring Parameters
                 </Text>
+
+                {/* Animated IoT Monitoring Parameters */}
                 <View className="flex-row justify-between">
                     {[
                         {
@@ -63,8 +70,10 @@ const HomePage = () => {
                             value: "Normal",
                         },
                     ].map((item, index) => {
+                        // Using Animated API to create a scaling effect on press
                         const scaleAnim = useRef(new Animated.Value(1)).current;
 
+                        // Function to handle press in event
                         const handlePressIn = () => {
                             Animated.spring(scaleAnim, {
                                 toValue: 0.95,
@@ -72,6 +81,7 @@ const HomePage = () => {
                             }).start();
                         };
 
+                        // Function to handle press out event
                         const handlePressOut = () => {
                             Animated.spring(scaleAnim, {
                                 toValue: 1,
@@ -79,6 +89,7 @@ const HomePage = () => {
                             }).start();
                         };
 
+                        // Render each IoT monitoring parameter with an animated scaling effect
                         return (
                             <Animated.View
                                 key={index}
@@ -87,10 +98,12 @@ const HomePage = () => {
                                 }}
                                 className="bg-gray-300 rounded-lg p-3 flex-1 mx-1 items-center"
                             >
+                                {/* Pressable component to handle press events */}
                                 <Pressable
                                     onPressIn={handlePressIn}
                                     onPressOut={handlePressOut}
                                 >
+                                    {/* Icon, label, and value for each IoT parameter */}
                                     <View className="items-center">
                                         {item.icon}
                                     </View>
@@ -108,6 +121,7 @@ const HomePage = () => {
             </View>
 
             {/* Transaction Approvals Section */}
+            {/* This section displays transaction approvals. */}
             <View className="mb-5 bg-gray-200 rounded-lg p-3">
                 <Text className="text-lg font-bold mb-2">
                     Transaction Approvals
