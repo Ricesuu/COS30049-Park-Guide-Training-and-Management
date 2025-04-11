@@ -1,11 +1,27 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
-import React from "react";
+import { View, Text, Pressable, StyleSheet, Animated } from "react-native";
+import React, { useRef } from "react";
 import { AntDesign, Entypo, MaterialIcons } from "@expo/vector-icons";
 
+/**
+ * Custom TabBar component for rendering a bottom navigation bar with animated icons and labels.
+ *
+ * @param {Object} props - The props object.
+ * @param {Object} props.state - The navigation state object containing the current route index and routes.
+ * @param {Array} props.state.routes - Array of route objects in the navigation state.
+ * @param {number} props.state.index - The index of the currently focused route.
+ * @param {Object} props.descriptors - An object containing descriptors for each route, including options like labels and titles.
+ * @param {Object} props.navigation - The navigation object used to handle navigation actions.
+ *
+ * @returns {JSX.Element} A custom tab bar component with animated icons and labels.
+ */
+
+// This is the custom TabBar component that will be used in the app's layout.
 const TabBar = ({ state, descriptors, navigation }) => {
+    // Define the colors for active and inactive tabs
     const activeColour = "green";
     const inactiveColour = "gray";
 
+    // Define the icons for each tab using a mapping object
     const icons = {
         index: (props) => (
             <AntDesign name="home" size={24} color={props.color} />
@@ -28,8 +44,8 @@ const TabBar = ({ state, descriptors, navigation }) => {
         ),
     };
 
+    // Render the tab bar
     return (
-        // TabBar container
         <View style={styles.tabBar}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
@@ -45,6 +61,9 @@ const TabBar = ({ state, descriptors, navigation }) => {
                 if (["_sitemap", "+not-found"].includes(route.name))
                     return null;
 
+                // Animation setup
+                const scaleAnim = useRef(new Animated.Value(1)).current;
+
                 const onPress = () => {
                     const event = navigation.emit({
                         type: "tabPress",
@@ -55,6 +74,20 @@ const TabBar = ({ state, descriptors, navigation }) => {
                     if (!isFocused && !event.defaultPrevented) {
                         navigation.navigate(route.name, route.params);
                     }
+
+                    // Trigger scale animation
+                    Animated.sequence([
+                        Animated.timing(scaleAnim, {
+                            toValue: 1.2,
+                            duration: 100,
+                            useNativeDriver: true,
+                        }),
+                        Animated.timing(scaleAnim, {
+                            toValue: 1,
+                            duration: 100,
+                            useNativeDriver: true,
+                        }),
+                    ]).start();
                 };
 
                 const onLongPress = () => {
@@ -65,8 +98,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
                 };
 
                 // Render each tab item
-                // This is the individual tab item in the TabBar
-                // It includes the label and handles press events
+                // Use Pressable to handle press events and apply animations
                 return (
                     <Pressable
                         key={route.name}
@@ -77,20 +109,30 @@ const TabBar = ({ state, descriptors, navigation }) => {
                         onPress={onPress}
                         onLongPress={onLongPress}
                     >
-                        {icons[route.name]({
-                            color: isFocused ? activeColour : inactiveColour,
-                        })}
-                        <Text
+                        {/* Animated icon and label for each tab item */}
+                        <Animated.View
                             style={{
+                                transform: [{ scale: scaleAnim }],
+                                alignItems: "center",
+                            }}
+                        >
+                            {icons[route.name]({
                                 color: isFocused
                                     ? activeColour
                                     : inactiveColour,
-                                fontWeight: isFocused ? "bold" : "normal",
-                                fontSize: 12,
-                            }}
-                        >
-                            {label}
-                        </Text>
+                            })}
+                            <Text
+                                style={{
+                                    color: isFocused
+                                        ? activeColour
+                                        : inactiveColour,
+                                    fontWeight: isFocused ? "bold" : "normal",
+                                    fontSize: 12,
+                                }}
+                            >
+                                {label}
+                            </Text>
+                        </Animated.View>
                     </Pressable>
                 );
             })}
@@ -100,6 +142,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
 
 // Styles for the TabBar component
 const styles = StyleSheet.create({
+    // Style for the tab bar container
     tabBar: {
         position: "absolute",
         bottom: 25,
@@ -114,6 +157,7 @@ const styles = StyleSheet.create({
         elevation: 5, // Adds shadow on Android
     },
 
+    // Style for each tab item
     TabBarItem: {
         flex: 1,
         alignItems: "center",
