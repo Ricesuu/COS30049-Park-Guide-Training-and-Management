@@ -10,7 +10,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
     />
   </head>
-  <body>
+  <body class="home-page">
     <!-- SECTION 1: VIDEO HERO SECTION -->
     <section class="hero">
       <div class="video-container">
@@ -22,7 +22,7 @@
           <div class="logo">SFC</div>
           <ul class="nav-links">
             <li><a href="#">Home</a></li>
-            <li><a href="#">About Us</a></li>
+            <li><a href="about.html">About Us</a></li>
             <li><a href="#">Info</a></li>
           </ul>
         </div>
@@ -31,7 +31,12 @@
             <i class="fas fa-search"></i>
           </div>
           <button class="login-btn">Log In</button>
-          <button class="contact-btn">Contact</button>
+          <button
+            class="contact-btn"
+            onclick="window.location.href='contact.html'"
+          >
+            Contact
+          </button>
         </div>
       </nav>
 
@@ -155,40 +160,42 @@
     <!-- SECTION 4: FOOTER -->
     <footer>
       <div class="footer-container">
-        <div class="footer-column">
-          <div class="logo">PARKGUIDE</div>
+        <div class="footer-left">
+          <div class="logo">SFC</div>
           <div class="contact-info">
-            <p><i class="fas fa-envelope"></i> info@parkguide.com</p>
+            <p><i class="fas fa-envelope"></i> lorem@ipsum.com</p>
             <p><i class="fas fa-phone"></i> +1 (123) 456-7890</p>
             <p>
-              <i class="fas fa-map-marker-alt"></i> 123 Park Avenue, Nature City
+              <i class="fas fa-map-marker-alt"></i> Lorem ipsum dolor sit amet
             </p>
           </div>
         </div>
-        <div class="footer-column">
-          <h3>Navigation</h3>
-          <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">About</a></li>
-            <li><a href="#">Info</a></li>
-            <li><a href="#">Services</a></li>
-          </ul>
-        </div>
-        <div class="footer-column">
-          <h3>Social Media</h3>
-          <div class="social-icons">
-            <a href="#"><i class="fab fa-instagram"></i></a>
-            <a href="#"><i class="fab fa-facebook"></i></a>
-            <a href="#"><i class="fab fa-linkedin"></i></a>
+        <div class="footer-right">
+          <div class="footer-column">
+            <h3>Navigation</h3>
+            <ul>
+              <li><a href="index.html">Home</a></li>
+              <li><a href="about.html">About</a></li>
+              <li><a href="#">Info</a></li>
+              <li><a href="#">Services</a></li>
+            </ul>
           </div>
-          <div class="legal-links">
-            <a href="#">Terms and Conditions</a>
-            <a href="#">Privacy Policy</a>
+          <div class="footer-column">
+            <h3>Social Media</h3>
+            <div class="social-icons">
+              <a href="#"><i class="fab fa-instagram"></i></a>
+              <a href="#"><i class="fab fa-facebook"></i></a>
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+            </div>
+            <div class="legal-links">
+              <a href="#">Terms and Conditions</a>
+              <a href="#">Privacy Policy</a>
+            </div>
           </div>
         </div>
       </div>
       <div class="copyright">
-        <p>&copy; 2023 PARKGUIDE. All rights reserved.</p>
+        <p>&copy; 2025 SFC. All rights reserved.</p>
       </div>
     </footer>
 

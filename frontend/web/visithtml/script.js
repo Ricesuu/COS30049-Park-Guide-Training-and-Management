@@ -10,7 +10,7 @@ let youtubePlayer;
 // Initialize YouTube player when API is ready
 function onYouTubeIframeAPIReady() {
   youtubePlayer = new YT.Player("youtube-player", {
-    videoId: "2VAKcz9W4WM", // Replace with your YouTube video ID
+    videoId: "THrCxzbjaYM",
     playerVars: {
       autoplay: 1,
       loop: 1,
@@ -21,7 +21,7 @@ function onYouTubeIframeAPIReady() {
       iv_load_policy: 3,
       modestbranding: 1,
       playsinline: 1,
-      playlist: "2VAKcz9W4WM", // Must repeat the videoId for looping
+      playlist: "THrCxzbjaYM", // Must repeat the videoId for looping
       disablekb: 1,
     },
     events: {
@@ -82,9 +82,8 @@ function resizeYouTubePlayer() {
   }
 }
 
-// Testimonial Slider Functionality
 document.addEventListener("DOMContentLoaded", function () {
-  // Demo testimonials data
+  // Testimonial Slider Functionality
   const testimonials = [
     {
       text: '"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."',
