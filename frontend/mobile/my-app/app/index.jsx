@@ -129,7 +129,10 @@ const HomePage = () => {
                                         <View className="items-center">
                                             {item.icon}
                                         </View>
-                                        <Text className="text-center">
+                                        <Text
+                                            className="text-center"
+                                            style={{ fontSize: 12 }}
+                                        >
                                             {item.label}
                                         </Text>
                                         <Text className="text-center">

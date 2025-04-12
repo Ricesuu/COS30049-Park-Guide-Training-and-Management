@@ -14,8 +14,9 @@ const _layout = () => {
             screenOptions={{ headerShown: false }}
         >
             {/* Each screen corresponds to a different tab in the tab bar */}
-            <Tabs.Screen name="index" options={{ title: "Home" }} />
             <Tabs.Screen name="approvals" options={{ title: "Approvals" }} />
+            <Tabs.Screen name="index" options={{ title: "Home" }} />
+
             <Tabs.Screen name="manage" options={{ title: "Manage" }} />
             <Tabs.Screen name="monitor" options={{ title: "Monitor" }} />
             <Tabs.Screen name="profile" options={{ title: "Profile" }} />

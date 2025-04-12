@@ -18,8 +18,8 @@ import { AntDesign, Entypo, MaterialIcons } from "@expo/vector-icons";
 // This is the custom TabBar component that will be used in the app's layout.
 const MainTabBar = ({ state, descriptors, navigation }) => {
     // Define the colors for active and inactive tabs
-    const activeColour = "green";
-    const inactiveColour = "gray";
+    const activeColour = "rgb(22 163 74)";
+    const inactiveColour = "rgb(156 163 175)";
 
     // Define the icons for each tab using a mapping object
     const icons = {
