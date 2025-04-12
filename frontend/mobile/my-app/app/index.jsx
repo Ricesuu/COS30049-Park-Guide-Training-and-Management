@@ -1,30 +1,39 @@
-import React, { useRef } from "react";
-import { View, Text, Pressable, Animated } from "react-native";
-import { AntDesign, Entypo, MaterialIcons } from "@expo/vector-icons";
+import React, { useState, useEffect } from "react";
+import { View, Text, Pressable } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
-import ".././global.css";
-
-/**
- * HomePage component renders the Admin Dashboard interface.
- *
- * This component includes:
- * - A header section with a welcome message for the admin.
- * - A dashboard section containing:
- *   - Pending approvals information.
- *   - IoT monitoring parameters with animated icons for temperature, humidity, and light.
- *   - Transaction approvals information.
- *
- * The IoT monitoring parameters are interactive, with animations triggered on press events.
- *
- * @component
- * @returns {JSX.Element} The rendered Admin Dashboard interface.
- */
-
-// HomePage component renders the Admin Dashboard interface
-// This component includes a header section with a welcome message for the admin and a dashboard section
-// containing pending approvals information, IoT monitoring parameters, and transaction approvals information.
-// The IoT monitoring parameters are interactive, with animations triggered on press events.
 const HomePage = () => {
+    const navigation = useNavigation();
+
+    const [parkGuideCount, setParkGuideCount] = useState(0);
+    const [transactionCount, setTransactionCount] = useState(0);
+
+    // Function to fetch Park Guide Approvals
+    const fetchParkGuideApprovals = async () => {
+        // Simulate fetching data (replace with API call if needed)
+        const data = [
+            { id: "1", name: "John Doe" },
+            { id: "2", name: "Jane Smith" },
+        ];
+        setParkGuideCount(data.length);
+    };
+
+    // Function to fetch Transaction Approvals
+    const fetchTransactionApprovals = async () => {
+        // Simulate fetching data (replace with API call if needed)
+        const data = [
+            { id: "1", name: "John Doe" },
+            { id: "2", name: "Jane Smith" },
+        ];
+        setTransactionCount(data.length);
+    };
+
+    // Fetch data when the component mounts
+    useEffect(() => {
+        fetchParkGuideApprovals();
+        fetchTransactionApprovals();
+    }, []);
+
     return (
         <View className="bg-green-600 flex-1">
             {/* Admin Dashboard Header */}
@@ -46,110 +55,149 @@ const HomePage = () => {
                     borderTopRightRadius: 30,
                 }}
             >
-                {/* Pending Approvals Section */}
-                <View className="mb-5 bg-gray-200 rounded-lg p-3">
-                    <Text className="text-lg font-bold mb-2">
-                        Pending Approvals
-                    </Text>
-                    <Text>No pending approvals at the moment.</Text>
+                {/* Approvals Section */}
+                <Text className="text-2xl font-bold mb-3 text-gray-700">
+                    Pending Approvals
+                </Text>
+                <View className="flex-row justify-between mb-5 gap-2">
+                    {/* Pending Park Guide Approvals Section */}
+                    <Pressable
+                        className="mb-5 bg-gray-200 rounded-lg p-7 flex-1 flex-column items-center justify-between"
+                        onPress={() =>
+                            navigation.navigate("approvals", {
+                                initialTab: "parkGuide",
+                            })
+                        }
+                    >
+                        <Text
+                            style={{
+                                fontSize: 30,
+                                fontWeight: "900",
+                                textAlign: "center",
+                                color: "#333",
+                            }}
+                        >
+                            {parkGuideCount}
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 16,
+                                textAlign: "center",
+                                marginTop: 8,
+                                color: "#666",
+                            }}
+                        >
+                            Park Guides Left
+                        </Text>
+                    </Pressable>
+
+                    {/* Pending Transaction Approvals Section */}
+                    <Pressable
+                        className="mb-5 bg-gray-200 rounded-lg p-7 flex-1 flex-column items-center justify-between"
+                        onPress={() =>
+                            navigation.navigate("approvals", {
+                                initialTab: "transaction",
+                            })
+                        }
+                    >
+                        <Text
+                            style={{
+                                fontSize: 30,
+                                fontWeight: "900",
+                                textAlign: "center",
+                                color: "#333",
+                            }}
+                        >
+                            {transactionCount}
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 16,
+                                textAlign: "center",
+                                marginTop: 8,
+                                color: "#666",
+                            }}
+                        >
+                            Transactions Left
+                        </Text>
+                    </Pressable>
                 </View>
+
                 {/* IoT Monitoring Section */}
-                <View className="mb-5 p-1">
-                    <Text className="text-lg font-bold mb-2">
-                        IoT Monitoring Parameters
-                    </Text>
+                <Text className="text-2xl font-bold mb-3 text-gray-700">
+                    IoT Monitoring
+                </Text>
+                <View className="flex-row justify-between mb-2 gap-2">
+                    {/* Temperature */}
+                    <View className="bg-gray-200 rounded-lg p-5 flex-1 items-center">
+                        <Text
+                            style={{
+                                fontSize: 20,
+                                fontWeight: "700",
+                                color: "#333",
+                            }}
+                        >
+                            Temperature
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 16,
+                                marginTop: 8,
+                                color: "#666",
+                            }}
+                        >
+                            22°C
+                        </Text>
+                    </View>
 
-                    {/* Animated IoT Monitoring Parameters */}
-                    <View className="flex-row justify-between">
-                        {[
-                            {
-                                icon: (
-                                    <MaterialIcons
-                                        name="thermostat"
-                                        size={24}
-                                        color="black"
-                                    />
-                                ),
-                                label: "Temperature:",
-                                value: "25°C",
-                            },
-                            {
-                                icon: (
-                                    <Entypo
-                                        name="drop"
-                                        size={24}
-                                        color="black"
-                                    />
-                                ),
-                                label: "Humidity:",
-                                value: "60%",
-                            },
-                            {
-                                icon: (
-                                    <AntDesign
-                                        name="bulb1"
-                                        size={24}
-                                        color="black"
-                                    />
-                                ),
-                                label: "Light:",
-                                value: "Normal",
-                            },
-                        ].map((item, index) => {
-                            const scaleAnim = useRef(
-                                new Animated.Value(1)
-                            ).current;
-
-                            const handlePressIn = () => {
-                                Animated.spring(scaleAnim, {
-                                    toValue: 0.95,
-                                    useNativeDriver: true,
-                                }).start();
-                            };
-
-                            const handlePressOut = () => {
-                                Animated.spring(scaleAnim, {
-                                    toValue: 1,
-                                    useNativeDriver: true,
-                                }).start();
-                            };
-
-                            return (
-                                <Animated.View
-                                    key={index}
-                                    style={{
-                                        transform: [{ scale: scaleAnim }],
-                                    }}
-                                    className="bg-gray-300 rounded-lg p-3 flex-1 mx-1 items-center"
-                                >
-                                    <Pressable
-                                        onPressIn={handlePressIn}
-                                        onPressOut={handlePressOut}
-                                    >
-                                        <View className="items-center">
-                                            {item.icon}
-                                        </View>
-                                        <Text
-                                            className="text-center"
-                                            style={{ fontSize: 12 }}
-                                        >
-                                            {item.label}
-                                        </Text>
-                                        <Text className="text-center">
-                                            {item.value}
-                                        </Text>
-                                    </Pressable>
-                                </Animated.View>
-                            );
-                        })}
+                    {/* Humidity */}
+                    <View className="bg-gray-200 rounded-lg p-5 flex-1 items-center">
+                        <Text
+                            style={{
+                                fontSize: 20,
+                                fontWeight: "700",
+                                color: "#333",
+                            }}
+                        >
+                            Humidity
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 16,
+                                marginTop: 8,
+                                color: "#666",
+                            }}
+                        >
+                            45%
+                        </Text>
                     </View>
                 </View>
-                {/* Transaction Approvals Section */}
-                <View className="mb-5 bg-gray-200 rounded-lg p-3">
-                    <Text className="text-lg font-bold mb-2">
-                        Transaction Approvals
-                    </Text>
-                    <Text>No transactions awaiting approval.</Text>
+
+                {/* Soil Quality */}
+                <View
+                    className="flex-row justify-between gap-2"
+                    style={{ marginBottom: 35 }}
+                >
+                    <View className="bg-gray-200 rounded-lg p-5 flex-1 items-center">
+                        <Text
+                            style={{
+                                fontSize: 20,
+                                fontWeight: "700",
+                                color: "#333",
+                            }}
+                        >
+                            Soil Quality
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 16,
+                                marginTop: 8,
+                                color: "#666",
+                            }}
+                        >
+                            Good
+                        </Text>
+                    </View>
                 </View>
             </View>
         </View>
