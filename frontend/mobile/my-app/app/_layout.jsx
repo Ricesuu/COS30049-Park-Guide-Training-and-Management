@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Tabs } from "expo-router";
-import TabBar from "../components/TabBar";
+import TabBar from "../components/MainTabBar";
 
 // This is the main layout for the app. It uses the Tabs component from expo-router to create a tabbed navigation system.
 // Each tab corresponds to a different screen in the app.
