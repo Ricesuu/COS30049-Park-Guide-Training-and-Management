@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList } from "react-native";
 
+import "../global.css"; // Import global styles
+
 const ParkGuideApproval = () => {
     const [applicants, setApplicants] = useState([]);
 
