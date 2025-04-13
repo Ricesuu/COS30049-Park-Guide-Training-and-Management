@@ -1,55 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList } from "react-native";
 
-import "../global.css"; // Import global styles
+import "../../global.css"; // Import global CSS styles
 
-const TransactionApproval = () => {
-    const [transactions, setTransactions] = useState([]);
+const ParkGuideApproval = () => {
+    const [applicants, setApplicants] = useState([]);
 
-    // Function to fetch transaction data
-    const fetchTransactions = async () => {
+    // Function to fetch applicant data
+    const fetchApplicants = async () => {
         // Simulate fetching data (replace this with an API call if needed)
         const data = [
             {
                 id: "1",
                 name: "John Doe",
-                email: "john.doe@example.com",
-                transactionId: "123456789",
-                amount: "RM200",
-                date: "2023-10-01",
+                email: "john@gmail.com",
+                appliedFor: "Park Guide",
+                location: "Bako National Park",
             },
             {
                 id: "2",
-                name: "Jane Smith",
-                email: "jane.smith@example.com",
-                transactionId: "987654321",
-                amount: "RM500",
-                date: "2023-10-02",
+                name: "John Xina",
+                email: "johnxina@gmail.com",
+                appliedFor: "Park Guide",
+                location: "Bako National Park",
             },
         ];
-        setTransactions(data);
+        setApplicants(data);
     };
 
-    // Fetch transactions when the component mounts
+    // Fetch applicants when the component mounts
     useEffect(() => {
-        fetchTransactions();
+        fetchApplicants();
     }, []);
 
     // Handle approve and reject actions
     const handleApprove = (id) => {
-        setTransactions((prev) =>
-            prev.filter((transaction) => transaction.id !== id)
+        setApplicants((prev) =>
+            prev.filter((applicant) => applicant.id !== id)
         );
     };
 
     const handleReject = (id) => {
-        setTransactions((prev) =>
-            prev.filter((transaction) => transaction.id !== id)
+        setApplicants((prev) =>
+            prev.filter((applicant) => applicant.id !== id)
         );
     };
 
-    // Render each transaction
-    const renderTransaction = ({ item }) => (
+    // Render each applicant
+    const renderApplicant = ({ item }) => (
         <View className="bg-white p-4 flex-row justify-between items-center border-y-2 border-gray-200">
             <View>
                 <View className="mb-2">
@@ -58,17 +56,12 @@ const TransactionApproval = () => {
                 </View>
                 <View>
                     <Text className="text-sm text-gray-600">
-                        Transaction ID:{" "}
-                        <Text className="font-medium">
-                            {item.transactionId}
-                        </Text>
+                        Applied for:{" "}
+                        <Text className="font-medium">{item.appliedFor}</Text>
                     </Text>
                     <Text className="text-sm text-gray-600">
-                        Amount:{" "}
-                        <Text className="font-medium">{item.amount}</Text>
-                    </Text>
-                    <Text className="text-sm text-gray-600">
-                        Date: <Text className="font-medium">{item.date}</Text>
+                        Location:{" "}
+                        <Text className="font-medium">{item.location}</Text>
                     </Text>
                 </View>
             </View>
@@ -92,17 +85,26 @@ const TransactionApproval = () => {
     );
 
     return (
-        <View className="flex-1 pt-5 bg-gray-100">
-            <Text className="text-2xl font-bold text-center mb-5">
-                Transaction Approvals
+        <View style={{ flex: 1, paddingTop: 20, backgroundColor: "#F5F5F5" }}>
+            <Text
+                style={{
+                    fontSize: 20,
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    marginBottom: 10,
+                    shadowColor: "#000",
+                    elevation: 10,
+                }}
+            >
+                Pending Approvals
             </Text>
             <FlatList
-                data={transactions}
+                data={applicants}
                 keyExtractor={(item) => item.id}
-                renderItem={renderTransaction}
+                renderItem={renderApplicant}
                 ListEmptyComponent={
                     <Text className="text-center text-gray-500 mt-5">
-                        No pending transactions.
+                        No pending approvals.
                     </Text>
                 }
                 contentContainerStyle={{
@@ -113,4 +115,4 @@ const TransactionApproval = () => {
     );
 };
 
-export default TransactionApproval;
+export default ParkGuideApproval;

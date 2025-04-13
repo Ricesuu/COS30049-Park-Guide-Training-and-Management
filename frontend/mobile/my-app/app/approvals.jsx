@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Dimensions } from "react-native";
 import { TabView, SceneMap } from "react-native-tab-view";
 import { useRoute } from "@react-navigation/native"; // Import useRoute
-import CustomTabBar from "../components/ApprovalsTabBar";
-import ParkGuideApproval from "../components/ParkGuideApproval";
-import TransactionApproval from "../components/TransactionApproval";
+import CustomTabBar from "../components/AdminDashboardApprovals/ApprovalsTabBar";
+import ParkGuideApproval from "../components/AdminDashboardApprovals/ParkGuideApproval";
+import TransactionApproval from "../components/AdminDashboardApprovals/TransactionApproval";
 
 const approvals = () => {
     const route = useRoute(); // Get route parameters
