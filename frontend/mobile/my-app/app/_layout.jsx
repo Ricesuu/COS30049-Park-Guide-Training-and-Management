@@ -15,10 +15,10 @@ const _layout = () => {
             style={{ zIndex: 999 }}
         >
             {/* Each screen corresponds to a different tab in the tab bar */}{" "}
-            <Tabs.Screen name="manage" options={{ title: "Manage" }} />
+            <Tabs.Screen name="monitor" options={{ title: "Monitor" }} />
             <Tabs.Screen name="index" options={{ title: "Home" }} />
             <Tabs.Screen name="approvals" options={{ title: "Approvals" }} />
-            <Tabs.Screen name="monitor" options={{ title: "Monitor" }} />
+            <Tabs.Screen name="manage" options={{ title: "Manage" }} />
             <Tabs.Screen name="profile" options={{ title: "Profile" }} />
         </Tabs>
     );
