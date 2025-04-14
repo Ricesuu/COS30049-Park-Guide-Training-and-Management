@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
-const AlertCard = ({ message, onRemove }) => {
+const AlertCard = ({ title, description, onRemove }) => {
     return (
         <View
             style={{
@@ -25,10 +25,10 @@ const AlertCard = ({ message, onRemove }) => {
                         fontWeight: "bold",
                     }}
                 >
-                    Alert
+                    {title}
                 </Text>
                 <Text style={{ fontSize: 14, color: "#333", marginTop: 5 }}>
-                    {message}
+                    {description}
                 </Text>
             </View>
             <Text
