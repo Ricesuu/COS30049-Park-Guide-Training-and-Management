@@ -44,6 +44,7 @@ const ProfilePage = () => {
                     borderRadius: 10,
                     elevation: 5,
                     shadowColor: "#000",
+                    alignItems: "center",
                 }}
             >
                 <Text
@@ -73,6 +74,7 @@ const ProfilePage = () => {
                         padding: 15,
                         borderRadius: 10,
                         marginBottom: 10,
+                        width: "80%",
                     }}
                     onPress={handleChangeDetails}
                 >
@@ -94,6 +96,7 @@ const ProfilePage = () => {
                         padding: 15,
                         borderRadius: 10,
                         marginBottom: 10,
+                        width: "80%",
                     }}
                     onPress={handleChangePassword}
                 >
@@ -114,6 +117,7 @@ const ProfilePage = () => {
                         backgroundColor: "rgb(220, 38, 38)",
                         padding: 15,
                         borderRadius: 10,
+                        width: "80%",
                     }}
                     onPress={handleLogout}
                 >
