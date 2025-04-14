@@ -40,31 +40,31 @@
             </button>
         </div>
 
+        <!-- Main Content -->
         <div class="main-content flex flex-grow p-4">
             <!-- Main Box -->
             <div class="bg-white p-6 rounded shadow w-full h-full">
                 <h2 class="text-lg font-bold mb-4 text-center">Certification & Licensing</h2>
                 <!-- Grid of Small Boxes -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    <!-- Small Box 1 -->
-                    <div class="bg-gray-100 border border-gray-300 rounded flex flex-col items-center justify-between p-4 shadow cursor-pointer hover:bg-gray-200" onclick="showCertDetails('Semenggoh Park Guide', '2025-12-31')">
-                        <img src="images/cert1.png" alt="Semenggoh Park Guide" class="w-16 h-16 mb-2">
-                        <p class="text-base font-semibold text-gray-800 mb-2">Semenggoh Park Guide</p>
+                    <!-- Small Box 1 (Full Progress Bar) -->
+                    <div class="cert-box" onclick="showCertDetails('Semenggoh Park Guide', '2025-12-31', true)">
+                        <img src="images/cert1.png" alt="Semenggoh Park Guide" class="cert-image">
+                        <p class="cert-title">Semenggoh Park Guide</p>
                         <!-- Horizontal Progress Bar -->
-                        <div class="w-full h-4 bg-gray-200 rounded mt-2 relative">
-                            <div class="bg-green-500 h-full rounded" style="width: 100%;"></div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar bg-green-500" style="width: 100%;"></div>
                         </div>
-                        <p class="text-sm text-gray-600 mt-2">Expiry: 2025-12-31</p>
+                        <p class="cert-expiry">Expiry: 2025-12-31</p>
                     </div>
-                    <!-- Small Box 2 -->
-                    <div class="bg-gray-100 border border-gray-300 rounded flex flex-col items-center justify-between p-4 shadow cursor-pointer hover:bg-gray-200" onclick="showCertDetails('Certification 2', '2026-06-30')">
-                        <img src="images/cert2.png" alt="Certification 2" class="w-16 h-16 mb-2">
-                        <p class="text-base font-semibold text-gray-800 mb-2">Certification 2</p>
+                    <!-- Small Box 2 (Incomplete Progress Bar) -->
+                    <div class="cert-box" onclick="showCertDetails('Certification 2', '', false)">
+                        <img src="images/cert2.png" alt="Certification 2" class="cert-image">
+                        <p class="cert-title">Certification 2</p>
                         <!-- Horizontal Progress Bar -->
-                        <div class="w-full h-4 bg-gray-200 rounded mt-2 relative">
-                            <div class="bg-green-500 h-full rounded" style="width: 50%;"></div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar bg-green-500" style="width: 50%;"></div>
                         </div>
-                        <p class="text-sm text-gray-600 mt-2">Expiry: 2026-06-30</p>
                     </div>
                     <!-- Add more small boxes as needed -->
                 </div>
@@ -72,13 +72,20 @@
         </div>
     </div>
 
+
     <script>
         function navigateTo(page) {
             window.location.href = page;
         }
 
-        function showCertDetails(certName, expiryDate) {
-            alert(`Certification: ${certName}\nExpiry Date: ${expiryDate}`);
+        function showCertDetails(certName, expiryDate, isComplete) {
+            if (isComplete) {
+                // Show alert with certification details if the progress bar is full
+                alert(`Certification: ${certName}\nExpiry Date: ${expiryDate}`);
+            } else {
+                // Redirect to parkguideQuiz.html if the progress bar is incomplete
+                window.location.href = 'parkguideQuiz.html';
+            }
         }
     </script>
 </body>
