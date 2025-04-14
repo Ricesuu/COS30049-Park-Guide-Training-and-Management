@@ -7,11 +7,32 @@ const Stack = createNativeStackNavigator();
 
 const MonitorStack = () => {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator>
             {/* Default screen for the monitor tab */}
-            <Stack.Screen name="IoTMonitoring" component={IoTMonitoringPage} />
+            <Stack.Screen
+                name="IoTMonitoring"
+                component={IoTMonitoringPage}
+                options={{ headerShown: false }}
+            />
             {/* Historical Trends page */}
-            <Stack.Screen name="Trends" component={TrendsPage} />
+            <Stack.Screen
+                name="Trends"
+                component={TrendsPage}
+                options={{
+                    headerShown: true,
+                    headerStyle: {
+                        backgroundColor: "rgb(22, 163, 74)",
+                    },
+                    headerTitleStyle: {
+                        fontSize: 24,
+                        color: "white",
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        paddingVertical: 20,
+                    },
+                    headerTintColor: "white", // Set back button color to white
+                }}
+            />
         </Stack.Navigator>
     );
 };
