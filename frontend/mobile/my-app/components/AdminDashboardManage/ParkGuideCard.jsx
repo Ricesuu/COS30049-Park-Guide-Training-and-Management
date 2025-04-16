@@ -1,0 +1,86 @@
+import React from "react";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
+
+const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
+    const handleDelete = () => {
+        Alert.alert(
+            "Confirm Delete",
+            `Are you sure you want to delete ${guide.name}?`,
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => onDelete(guide.id),
+                },
+            ]
+        );
+    };
+
+    return (
+        <View
+            className="bg-white p-4 rounded-lg shadow mb-3"
+            style={{
+                elevation: 5,
+                flexDirection: "row",
+                justifyContent: "space-between",
+            }}
+        >
+            {/* Guide details */}
+            <View className="flex-1 justify-center">
+                <Text className="text-lg font-bold">{guide.name}</Text>
+                <Text className="text-gray-600">Role: {guide.role}</Text>
+                <Text className="text-gray-600">Status: {guide.status}</Text>
+                <Text className="text-gray-600">Park: {guide.park}</Text>
+            </View>
+
+            {/* Action buttons */}
+            <View className="flex-column space-y-2 gap-2 justify-center">
+                {/* Edit button */}
+                <TouchableOpacity
+                    className="bg-blue-100 px-4 py-2 rounded-lg"
+                    onPress={() => onEdit(guide)}
+                >
+                    <Text className="text-blue-600 font-semibold text-center">
+                        Edit
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Suspend/Activate button */}
+                <TouchableOpacity
+                    className={`${
+                        guide.status === "Active"
+                            ? "bg-red-100"
+                            : "bg-green-100"
+                    } px-4 py-2 rounded-lg`}
+                    onPress={() => onSuspend(guide.id)}
+                >
+                    <Text
+                        className={`${
+                            guide.status === "Active"
+                                ? "text-red-600"
+                                : "text-green-600"
+                        } font-semibold text-center`}
+                    >
+                        {guide.status === "Active" ? "Suspend" : "Activate"}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Delete button */}
+                <TouchableOpacity
+                    className="bg-red-600 px-4 py-2 rounded-lg"
+                    onPress={handleDelete}
+                >
+                    <Text className="text-white font-semibold text-center">
+                        Delete
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
+
+export default ParkGuideCard;
