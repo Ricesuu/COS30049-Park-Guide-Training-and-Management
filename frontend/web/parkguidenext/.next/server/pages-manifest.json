@@ -1,0 +1,9 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/parkguideCert": "pages/parkguideCert.js",
+  "/parkguidePlantInfo": "pages/parkguidePlantInfo.js",
+  "/parkguideQuiz": "pages/parkguideQuiz.js",
+  "/parkguideTraining": "pages/parkguideTraining.js"
+}

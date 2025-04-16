@@ -1,13 +1,17 @@
 {
   "name": "parkguide",
-  "role": "Admin",
   "version": "1.0.0",
+  "description": "Park Guide dashboard and backend server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "mysql2": "^3.14.0",
     "parkguide": "file:"
   }
 }
