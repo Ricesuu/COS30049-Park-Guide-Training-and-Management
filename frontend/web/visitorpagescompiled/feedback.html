@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feedback - Park Guide Training and Management</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+  </head>
+  <body class="about-page">
+    <!-- SECTION 1: NAVIGATION BAR -->
+    <nav class="navbar">
+      <div class="nav-left">
+        <div class="logo">SFC</div>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="info.html">Info</a></li>
+          <li><a href="map.html">Map</a></li>
+          <li><a href="feedback.html" class="active">Feedback</a></li>
+        </ul>
+      </div>
+      <div class="nav-right">
+        <div class="search-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <button class="login-btn">Log In</button>
+        <button
+          class="contact-btn"
+          onclick="window.location.href='contact.html'"
+        >
+          Contact
+        </button>
+      </div>
+    </nav>
+
+    <!-- SECTION 2: HERO SECTION -->
+
+    <section class="feedback-main">
+      <div class="feedback-container">
+        <!-- Left Side-->
+        <div class="feedback-desc">
+          <h3 class="subheading">Feedback</h3>
+          <h1>We value your feedback!</h1>
+          <p>
+            Here, you can provide feedback on your experience during your visit.
+            You may include details on aspects such as the park you visited, the
+            services you used, the park guide assigned to you, and so on.
+          </p>
+          <p>
+            Your response is greatly appreciated! Our team will review your
+            feedback and use it to improve our services.
+          </p>
+        </div>
+
+        <!-- Right Side-->
+        <div class="feedback-form-container">
+          <h2>Feedback Form</h2>
+          <form class="feedback-form">
+            <h3 class="subheading">Personal Information</h3>
+            <hr />
+            <div class="form-row">
+              <div class="form-input">
+                <label for="name">First Name</label>
+                <input type="text" id="name" name="name" required />
+              </div>
+              <div class="form-input">
+                <label for="surname">Last Name</label>
+                <input type="text" id="surname" name="surname" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-input">
+                <label for="telephone">Telephone</label>
+                <input
+                  type="tel"
+                  id="telephone"
+                  name="telephone"
+                  placeholder="+60XXXXXXXXX"
+                  required
+                />
+              </div>
+              <div class="form-input">
+                <label for="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="someone@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <h3 class="subheading">Visit Information</h3>
+            <hr />
+
+            <div class="form-input">
+              <label for="ticket-no">Ticket Number</label>
+              <input type="text" id="ticket-no" name="ticket-no" required />
+            </div>
+
+            <div class="form-input">
+              <label for="park-name">Park Name</label>
+              <input type="text" id="park-name" name="park-name" required />
+            </div>
+
+            <div class="form-input">
+              <label for="visit-date">Visit Date</label>
+              <input type="date" id="visit-date" />
+            </div>
+
+            <h3 class="subheading">Feedback</h3>
+            <hr />
+
+            <div class="form-input">
+              <label for="guide-name">Park Guide Name</label>
+              <input type="text" id="guide-name" name="guide-name" required />
+            </div>
+
+            <div class="form-input">
+              <label for="guide-number">Park Guide Number</label>
+              <input
+                type="text"
+                id="guide-number"
+                name="guide-number"
+                required
+              />
+            </div>
+
+            <div class="form-input-rate">
+              <p>Park Guide Rating</p>
+              <div class="ratings">
+                <input value="5" name="guide-rating" id="star-1" type="radio" />
+                <label for="star-1">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                      pathLength="360"
+                    ></path>
+                  </svg>
+                </label>
+                <input value="4" name="guide-rating" id="star-2" type="radio" />
+                <label for="star-2">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                      pathLength="360"
+                    ></path>
+                  </svg>
+                </label>
+                <input value="3" name="guide-rating" id="star-3" type="radio" />
+                <label for="star-3">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                      pathLength="360"
+                    ></path>
+                  </svg>
+                </label>
+                <input value="2" name="guide-rating" id="star-4" type="radio" />
+                <label for="star-4">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                      pathLength="360"
+                    ></path>
+                  </svg>
+                </label>
+                <input value="1" name="guide-rating" id="star-5" type="radio" />
+                <label for="star-5">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"
+                      pathLength="360"
+                    ></path>
+                  </svg>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-input">
+              <label for="feedback">Feedback</label>
+              <textarea
+                id="feedback"
+                name="feedback"
+                rows="5"
+                required
+                placeholder="Here, you may type out your feedback, whether it is regarding the park, the facilities, or the park guide."
+              ></textarea>
+            </div>
+            <button type="submit" class="send-btn">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: FOOTER -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-left">
+          <div class="logo">SFC</div>
+          <div class="contact-info">
+            <p><i class="fas fa-envelope"></i> lorem@ipsum.com</p>
+            <p><i class="fas fa-phone"></i> +1 (123) 456-7890</p>
+            <p>
+              <i class="fas fa-map-marker-alt"></i> Lorem ipsum dolor sit amet
+            </p>
+          </div>
+        </div>
+        <div class="footer-right">
+          <div class="footer-column">
+            <h3>Navigation</h3>
+            <ul>
+              <li><a href="index.html">Home</a></li>
+              <li><a href="about.html">About</a></li>
+              <li><a href="info.html">Info</a></li>
+              <li><a href="map.html">Map</a></li>
+              <li><a href="feedback.html">Feedback</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Social Media</h3>
+            <div class="social-icons">
+              <a href="#"><i class="fab fa-instagram"></i></a>
+              <a href="#"><i class="fab fa-facebook"></i></a>
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+            </div>
+            <div class="legal-links">
+              <a href="#">Terms and Conditions</a>
+              <a href="#">Privacy Policy</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        <p>&copy; 2025 SFC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
