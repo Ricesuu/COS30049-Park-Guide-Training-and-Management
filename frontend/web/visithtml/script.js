@@ -51,24 +51,30 @@ function onPlayerStateChange(event) {
 
 // Function to resize the YouTube player to maintain aspect ratio
 function resizeYouTubePlayer() {
-  const videoContainer = document.querySelector(".video-container");
+  const videoContainer = document.querySelector(".index-video-container");
+  if (!videoContainer) return; // Exit if not on the home page
+
   const containerWidth = videoContainer.offsetWidth;
   const containerHeight = videoContainer.offsetHeight;
 
-  // Calculate dimensions to maintain 16:9 aspect ratio and cover the container
+  // Calculate dimensions to maintain aspect ratio and fully cover the container
   let width, height;
   const containerRatio = containerWidth / containerHeight;
   const videoRatio = 16 / 9;
 
-  if (containerRatio > videoRatio) {
-    // Container is wider than the video
+  if (containerRatio < videoRatio) {
+    // Container is taller than the video ratio allows, so we need to be wider
     width = containerWidth;
     height = containerWidth / videoRatio;
   } else {
-    // Container is taller than the video
+    // Container is wider than the video ratio allows, so we need to be taller
     height = containerHeight;
     width = containerHeight * videoRatio;
   }
+
+  // Add extra size to eliminate any potential gaps
+  width = width * 1.2;
+  height = height * 1.2;
 
   // Apply styles if player exists
   if (youtubePlayer && youtubePlayer.getIframe) {
@@ -79,6 +85,7 @@ function resizeYouTubePlayer() {
     iframe.style.top = "50%";
     iframe.style.left = "50%";
     iframe.style.transform = "translate(-50%, -50%)";
+    iframe.style.objectFit = "cover";
   }
 }
 
