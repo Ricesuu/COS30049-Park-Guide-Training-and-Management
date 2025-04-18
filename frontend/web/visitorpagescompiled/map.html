@@ -11,13 +11,17 @@
     />
 
     <!-- Map Scripts-->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""></script>
-
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
   </head>
   <body class="about-page">
     <!-- SECTION 1: NAVIGATION BAR -->
@@ -25,9 +29,9 @@
       <div class="nav-left">
         <div class="logo">SFC</div>
         <ul class="nav-links">
-          <li><a href="../visithtml/index.html">Home</a></li>
-          <li><a href="../visithtml/about.html">About Us</a></li>
-          <li><a href="info.html">Info</a></li>         
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="info.html">Info</a></li>
           <li><a href="map.html">Map</a></li>
           <li><a href="feedback.html">Feedback</a></li>
         </ul>
@@ -51,46 +55,86 @@
       <div class="map-container">
         <h3 class="subheading">Map</h3>
         <h1>Semenggoh Wildlife Reserve</h1>
-        <p>Discover the beauty of our wildlife reserve through our interactive map.</p>
+        <p>
+          Discover the beauty of our wildlife reserve through our interactive
+          map.
+        </p>
 
         <!-- Map Container -->
-        <div id="map" style ></div>
+        <div id="map" style></div>
 
         <script>
           // Initialize the map
-          var map = L.map('map', {
+          var map = L.map("map", {
             crs: L.CRS.Simple,
             minZoom: -2,
             maxZoom: 0.5,
-          })
-          var bounds = [[0, 0], [2529, 4873]]
-          var image = L.imageOverlay('images/map.jpg', bounds).addTo(map)
-          map.fitBounds(bounds)
+          });
+          var bounds = [
+            [0, 0],
+            [2529, 4873],
+          ];
+          var image = L.imageOverlay("images/map.jpg", bounds).addTo(map);
+          map.fitBounds(bounds);
 
           // Map markers
-          var marker1 = L.marker([1066, 224]).addTo(map)
-          var marker2 = L.marker([690, 600]).addTo(map)
-          var marker3 = L.marker([996, 315]).addTo(map)
-          var marker4 = L.marker([1056, 450]).addTo(map)
-          var marker5 = L.marker([1700, 1100]).addTo(map)
-          var marker6 = L.marker([1160, 1037]).addTo(map)
-          var marker7 = L.marker([800, 1120]).addTo(map)
-          var marker8 = L.marker([1050, 1450]).addTo(map)
-          var marker9 = L.marker([560, 2250]).addTo(map)
+          var marker1 = L.marker([1066, 224]).addTo(map);
+          var marker2 = L.marker([690, 600]).addTo(map);
+          var marker3 = L.marker([996, 315]).addTo(map);
+          var marker4 = L.marker([1056, 450]).addTo(map);
+          var marker5 = L.marker([1700, 1100]).addTo(map);
+          var marker6 = L.marker([1160, 1037]).addTo(map);
+          var marker7 = L.marker([800, 1120]).addTo(map);
+          var marker8 = L.marker([1050, 1450]).addTo(map);
+          var marker9 = L.marker([560, 2250]).addTo(map);
 
           // Marker popups
-          marker1.bindPopup("<b>Regional Office</b><br>The administration office can be found here").openPopup()
-          marker2.bindPopup("<b>Mixed Planting Garden</b><br>A variety of plants can be found here").openPopup()
-          marker3.bindPopup("<b>Nephentes Garden</b><br>Nephentes plants are cultivated here").openPopup()
-          marker4.bindPopup("<b>Wild Orchid Garden</b><br>wildin' <br> <img src = 'images/mhm.jpg' height='150px'>").openPopup()
-          marker5.bindPopup("<b>Arboretum</b><br>Various trees and shrubs may be found here").openPopup()
-          marker6.bindPopup("<b>Ethnobotanical Garden</b><br>Culturally-related plants and native trees are cultivated here").openPopup()
-          marker7.bindPopup("<b>Ferns and Aroids Garden</b><br>A myriad of ferns and arums can be found here").openPopup()
-          marker8.bindPopup("<b>Bamboo and Fiscus Garden</b><br>A variety of bamboos can be found here").openPopup()
-          marker9.bindPopup("<b>Wild Fruits Garden</b><br>GYAAAAATTTTTT <img src = 'images/yes.jpg' height='150px'>").openPopup()
-
+          marker1
+            .bindPopup(
+              "<b>Regional Office</b><br>The administration office can be found here"
+            )
+            .openPopup();
+          marker2
+            .bindPopup(
+              "<b>Mixed Planting Garden</b><br>A variety of plants can be found here"
+            )
+            .openPopup();
+          marker3
+            .bindPopup(
+              "<b>Nephentes Garden</b><br>Nephentes plants are cultivated here"
+            )
+            .openPopup();
+          marker4
+            .bindPopup(
+              "<b>Wild Orchid Garden</b><br>wildin' <br> <img src = 'images/mhm.jpg' height='150px'>"
+            )
+            .openPopup();
+          marker5
+            .bindPopup(
+              "<b>Arboretum</b><br>Various trees and shrubs may be found here"
+            )
+            .openPopup();
+          marker6
+            .bindPopup(
+              "<b>Ethnobotanical Garden</b><br>Culturally-related plants and native trees are cultivated here"
+            )
+            .openPopup();
+          marker7
+            .bindPopup(
+              "<b>Ferns and Aroids Garden</b><br>A myriad of ferns and arums can be found here"
+            )
+            .openPopup();
+          marker8
+            .bindPopup(
+              "<b>Bamboo and Fiscus Garden</b><br>A variety of bamboos can be found here"
+            )
+            .openPopup();
+          marker9
+            .bindPopup(
+              "<b>Wild Fruits Garden</b><br>GYAAAAATTTTTT <img src = 'images/yes.jpg' height='150px'>"
+            )
+            .openPopup();
         </script>
-
       </div>
     </section>
 

@@ -785,6 +785,331 @@ footer {
 }
 
 /*---------------------------------*/
+/* INFO PAGE STYLING              */
+/*---------------------------------*/
+
+.info-main {
+  padding: 8rem 3rem;
+  background: #f4f4f4;
+}
+
+.info-container {
+  max-width: 80%;
+  margin: 0 auto;
+}
+
+.info-container h3.subheading,
+.map-container h3.subheading,
+.feedback-desc h3.subheading {
+  font-size: 1.3rem;
+  color: #4caf50;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.info-container h1,
+.map-container h1,
+.feedback-desc h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.3;
+  color: #333;
+}
+
+.info-container > p,
+.map-container > p,
+.feedback-desc > p {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.info-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 5rem;
+  max-width: 100%;
+  margin: 2em auto;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #333;
+  padding: 2rem;
+  background-color: #ddd;
+  border-radius: 10px;
+  transition: all 0.3s ease-in-out;
+}
+
+.item-container-left,
+.item-container-right {
+  flex: 1; /* Allow both containers to take equal space */
+  max-width: 45%; /* Limit the width of each container */
+}
+
+.item-info dt {
+  color: #3d8b40;
+}
+
+.item-info dd {
+  margin-bottom: 1.5rem; /* Indent the list */
+}
+
+.item-desc {
+  margin-bottom: 0rem; /* Add spacing between paragraphs */
+}
+
+.item-image {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  max-height: 500px;
+}
+
+.info-content:hover {
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/*---------------------------------*/
+/* FEEDBACK PAGE STYLING          */
+/*---------------------------------*/
+
+.feedback-main {
+  padding: 8rem 3rem;
+  background: #f4f4f4;
+}
+
+.feedback-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 5rem;
+  max-width: 90%;
+  margin: 2em auto;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #333;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.feedback-desc h3.subheading {
+  font-size: 1.3rem;
+  color: #4caf50;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.feedback-desc h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.3;
+  color: #333;
+}
+
+.feedback-desc,
+.feedback-form-container {
+  flex: 1; /* Allow both containers to take equal space */
+  max-width: 45%; /* Limit the width of each container */
+}
+
+/* Feedback Form Styling */
+.feedback-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* Add spacing between form elements */
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 10px;
+  transition: all 0.3s ease-in-out;
+}
+
+.feedback-form-container hr {
+  margin-bottom: 1em;
+}
+
+.feedback-form-container h3.subheading {
+  font-size: 1.3rem;
+  color: #4caf50;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form-input {
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.form-input label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+  color: #444;
+}
+
+.form-input input,
+.form-input textarea {
+  width: 90%;
+  padding: 0.6rem;
+  border: 0px;
+  border-bottom: 1px solid #ddd;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-input input:focus,
+.form-input textarea:focus {
+  transition: all 0.3s ease-in-out;
+  border-color: #4caf50;
+  outline: none;
+}
+
+.form-input-rate {
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+  color: #444;
+}
+
+.send-btn {
+  background: #4caf50;
+  color: white;
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  border: none;
+  font-weight: bold;
+}
+
+.send-btn:hover {
+  background: #3d8b40;
+}
+
+/* Star Ratings */
+.ratings {
+  width: 60%;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.3rem;
+  --stroke: #666;
+  --fill: #ffc73a;
+  margin: 0 auto;
+  margin-top: 25px;
+}
+.ratings input {
+  appearance: unset;
+}
+.ratings label {
+  cursor: pointer;
+}
+.ratings svg {
+  width: 60%;
+  height: 60%;
+  overflow: visible;
+  fill: transparent;
+  stroke: var(--stroke);
+  stroke-linejoin: bevel;
+  stroke-dasharray: 12;
+  animation: idle 4s linear infinite;
+  transition: stroke 0.2s, fill 0.5s;
+}
+@keyframes idle {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+.ratings label:hover svg {
+  stroke: var(--fill);
+}
+.ratings input:checked ~ label svg {
+  transition: 0s;
+  animation: idle 4s linear infinite, yippee 0.75s backwards;
+  fill: var(--fill);
+  stroke: var(--fill);
+  stroke-opacity: 0;
+  stroke-dasharray: 0;
+  stroke-linejoin: miter;
+  stroke-width: 8px;
+}
+@keyframes yippee {
+  0% {
+    transform: scale(1);
+    fill: var(--fill);
+    fill-opacity: 0;
+    stroke-opacity: 1;
+    stroke: var(--stroke);
+    stroke-dasharray: 10;
+    stroke-width: 1px;
+    stroke-linejoin: bevel;
+  }
+
+  30% {
+    transform: scale(0);
+    fill: var(--fill);
+    fill-opacity: 0;
+    stroke-opacity: 1;
+    stroke: var(--stroke);
+    stroke-dasharray: 10;
+    stroke-width: 1px;
+    stroke-linejoin: bevel;
+  }
+
+  30.1% {
+    stroke: var(--fill);
+    stroke-dasharray: 0;
+    stroke-linejoin: miter;
+    stroke-width: 8px;
+  }
+
+  60% {
+    transform: scale(1.2);
+    fill: var(--fill);
+  }
+}
+
+/*---------------------------------*/
+/* MAP PAGE STYLING               */
+/*---------------------------------*/
+
+.map-main {
+  padding: 8rem 3rem;
+  background: #f4f4f4;
+}
+
+.map-container {
+  display: block;
+  max-width: 90%;
+  margin: 2em auto;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #333;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+#map {
+  width: 85%;
+  height: 650px;
+  margin: 2rem auto;
+  border: 1px solid #ccc;
+  z-index: 0;
+}
+
+/*---------------------------------*/
 /* RESPONSIVE STYLES              */
 /*---------------------------------*/
 
@@ -995,6 +1320,22 @@ footer {
 
   .contact-form {
     padding: 1.5rem;
+  }
+}
+
+/* Responsive - Info & Feedback */
+@media (max-width: 768px) {
+  .info-content,
+  .feedback-container {
+    flex-direction: column; /* Stack the containers vertically */
+    gap: 2rem; /* Reduce the gap between stacked containers */
+  }
+
+  .item-container-left,
+  .item-container-right,
+  .feedback-desc,
+  .feedback-form-container {
+    max-width: 100%; /* Allow containers to take full width */
   }
 }
 
