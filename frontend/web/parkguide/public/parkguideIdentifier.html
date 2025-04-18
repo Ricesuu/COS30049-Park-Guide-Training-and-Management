@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="parkguidestyles.css" rel="stylesheet" type="text/css">
+    <title>Park Guide Identifier</title>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar flex flex-col justify-start items-center w-72 p-5">
+            <img src="images/SFC_LOGO_small.jpg" alt="SFC Logo" class="w-1/2 mb-6">
+            
+            <!-- Buttons -->
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguidedashboard.html')">
+                Dashboard
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguideTraining.html')">
+                Training Module
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguideCert.html')">
+                Certification & Licensing
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguideIdentifier.html')">
+                Identifier
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguideMonitoring.html')">
+                Monitoring
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguidePerformance.html')">
+                Performance
+            </button>
+            <button class="btn w-4/5 bg-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('parkguidePlantInfo.html')">
+                Plant Info
+            </button>
+            <button class="btn w-4/5 bg-red-500 text-white text-center py-2 mb-3 rounded shadow" onclick="navigateTo('logout.html')">
+                Logout
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex flex-grow">
+            <!-- Left Column -->
+            <div class="left-column flex flex-col flex-grow">
+                <!-- Upload Box -->
+                <div class="box bg-white p-4 m-2 rounded shadow">
+                    <h2 class="text-lg font-bold mb-4">Upload Image</h2>
+                    <input type="file" id="imageInput" accept="image/*" class="mb-4">
+                    <div id="imagePreview" class="w-full h-40 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
+                        <span class="text-gray-500">No image uploaded</span>
+                    </div>
+                </div>
+
+                <!-- Upload Button Box -->
+                <div class="box bg-white p-4 m-2 rounded shadow">
+                    <button class="btn bg-blue-500 text-white py-2 px-4 rounded w-full" onclick="uploadToSystem()">Upload</button>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column bg-white p-4 m-2 rounded shadow flex-grow-2 border border-black">
+                <div class="flex flex-col justify-between h-full">
+                    <h2 class="text-lg font-bold mb-4">Information</h2>
+                    <!-- Add additional content here if needed -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+
+        // Display the uploaded image in the preview box
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Uploaded Image" class="w-full h-full object-cover rounded">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.innerHTML = `<span class="text-gray-500">No image uploaded</span>`;
+            }
+        });
+
+        // Placeholder function for uploading to the system
+        function uploadToSystem() {
+            alert('Upload to system functionality is not implemented yet.');
+        }
+    </script>
+</body>
+</html>
