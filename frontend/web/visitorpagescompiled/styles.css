@@ -1011,8 +1011,11 @@ footer {
 }
 
 /* Star Ratings */
+.form-input-rate {
+  display: block;
+}
 .ratings {
-  width: 60%;
+  width: 80%;
   display: flex;
   flex-direction: row-reverse;
   gap: 0.3rem;
