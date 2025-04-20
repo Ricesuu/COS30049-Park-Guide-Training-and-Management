@@ -2,7 +2,7 @@
   "name": "parkguidenext",
   "version": "1.0.0",
   "description": "Park Guide Dashboard for training and management",
-  "main": "pages/parkguidedashboard.js",
+  "main": "pages/parkguideDashboard.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,10 +15,10 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.4",
     "chart.js": "^4.4.9",
-    "next": "latest",
+    "next": "^15.3.1",
     "parkguidenext": "file:",
-    "react": "latest",
-    "react-dom": "latest"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
@@ -26,5 +26,8 @@
     "eslint-config-next": "latest",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4"
+  },
+  "directories": {
+    "lib": "lib"
   }
 }

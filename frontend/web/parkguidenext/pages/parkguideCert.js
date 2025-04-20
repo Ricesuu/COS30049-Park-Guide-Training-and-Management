@@ -57,7 +57,7 @@ const Certification = () => {
                             className="cert-box bg-gray-100 border border-gray-300 rounded flex flex-col items-center justify-between p-4 shadow cursor-pointer hover:bg-gray-200"
                             onClick={() => showCertDetails('Semenggoh Park Guide', '2025-12-31', true)}
                         >
-                            <img src="/images/cert1.png" alt="Semenggoh Park Guide" className="w-16 h-16 mb-2" />
+                            <img src="images/Semenggoh.jpg" alt="Semenggoh Park Guide" className="w-16 h-16 mb-2" />
                             <p className="text-base font-semibold text-gray-800 mb-2">Semenggoh Park Guide</p>
                             {/* Horizontal Progress Bar */}
                             <div className="w-full h-4 bg-gray-200 rounded mt-2 relative">
