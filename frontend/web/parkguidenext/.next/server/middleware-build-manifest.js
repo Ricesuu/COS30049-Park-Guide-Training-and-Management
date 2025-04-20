@@ -25,6 +25,26 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/parkguideCert.js"
     ],
+    "/parkguideIdentifier": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/parkguideIdentifier.js"
+    ],
+    "/parkguideModule": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/parkguideModule.js"
+    ],
+    "/parkguideMonitoring": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/parkguideMonitoring.js"
+    ],
+    "/parkguidePerformance": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/parkguidePerformance.js"
+    ],
     "/parkguidePlantInfo": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
