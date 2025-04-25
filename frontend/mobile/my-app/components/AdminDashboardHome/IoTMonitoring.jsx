@@ -1,33 +1,56 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import React, {
+    useState,
+    useEffect,
+    forwardRef,
+    useImperativeHandle,
+} from "react";
+import {
+    View,
+    Text,
+    ActivityIndicator,
+    StyleSheet,
+    ScrollView,
+    RefreshControl,
+} from "react-native";
 import { fetchData } from "../../src/api/api";
 
-const IoTMonitoring = () => {
+const IoTMonitoring = forwardRef((props, ref) => {
     const [iotData, setIoTData] = useState([]); // Initialize as an array
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // For initial loading
+    const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const loadIoTData = async () => {
-            try {
-                const data = await fetchData("/iot-monitoring");
-                setIoTData(data); // Store the fetched array
-                setError(null); // Clear any previous errors
-            } catch (err) {
-                setError("Failed to load IoT data");
-                console.error(err);
-            } finally {
-                setLoading(false);
+    const loadIoTData = async (isRefreshing = false) => {
+        try {
+            console.log("Fetching IoT data...");
+            const data = await fetchData("/iot-monitoring");
+            console.log("Fetched data:", data);
+            setIoTData(data); // Store the fetched array
+            setError(null); // Clear any previous errors
+        } catch (err) {
+            setError("Failed to load IoT data");
+            console.error(err);
+        } finally {
+            if (isRefreshing) {
+                setRefreshing(false); // Stop pull-to-refresh
+            } else {
+                setLoading(false); // Stop initial loading
             }
-        };
+        }
+    };
 
+    useImperativeHandle(ref, () => ({
+        refreshIoTData: () => loadIoTData(true), // Expose this function to the parent
+    }));
+
+    useEffect(() => {
         // Initial data load
         loadIoTData();
 
         // Set up polling every 10 seconds
         const interval = setInterval(() => {
             loadIoTData();
-        }, 10000); // 10,000 ms = 10 seconds
+        }, 60000); // 60,000 ms = 60 seconds
 
         // Cleanup interval on component unmount
         return () => clearInterval(interval);
@@ -51,61 +74,62 @@ const IoTMonitoring = () => {
     }
 
     return (
-        <View>
-            <Text style={styles.title}>IoT Monitoring</Text>
-            <View style={styles.row}>
-                <View style={styles.card}>
-                    <Text style={[styles.value, { fontSize: 28 }]}>
-                        {iotData.find(
-                            (sensor) => sensor.sensor_type === "temperature"
-                        )?.recorded_value || "N/A"}
-                        °C
-                    </Text>
-                    <Text style={[styles.label, { fontSize: 14 }]}>
-                        Temperature
-                    </Text>
+        <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => loadIoTData(true)}
+                />
+            }
+        >
+            <View>
+                <Text style={styles.title}>IoT Monitoring</Text>
+                <View style={styles.row}>
+                    <View style={styles.card}>
+                        <Text style={styles.value}>
+                            {iotData.find(
+                                (sensor) => sensor.sensor_type === "temperature"
+                            )?.recorded_value || "N/A"}
+                            °C
+                        </Text>
+                        <Text style={styles.label}>Temperature</Text>
+                    </View>
+
+                    <View style={styles.card}>
+                        <Text style={styles.value}>
+                            {iotData.find(
+                                (sensor) => sensor.sensor_type === "humidity"
+                            )?.recorded_value || "N/A"}
+                        </Text>
+                        <Text style={styles.label}>Humidity</Text>
+                    </View>
                 </View>
 
-                <View style={styles.card}>
-                    <Text style={[styles.value, { fontSize: 28 }]}>
-                        {iotData.find(
-                            (sensor) => sensor.sensor_type === "humidity"
-                        )?.recorded_value || "N/A"}
-                    </Text>
-                    <Text style={[styles.label, { fontSize: 14 }]}>
-                        Humidity
-                    </Text>
-                </View>
-            </View>
+                <View style={styles.row}>
+                    <View style={styles.card}>
+                        <Text style={styles.value}>
+                            {iotData.find(
+                                (sensor) =>
+                                    sensor.sensor_type === "soil moisture"
+                            )?.recorded_value || "N/A"}
+                        </Text>
+                        <Text style={styles.label}>Soil Moisture</Text>
+                    </View>
 
-            <View style={styles.row}>
-                <View style={styles.card}>
-                    <Text style={[styles.value, { fontSize: 28 }]}>
-                        {iotData.find(
-                            (sensor) => sensor.sensor_type === "soil moisture"
-                        )?.recorded_value || "N/A"}
-                    </Text>
-                    <Text style={[styles.label, { fontSize: 14 }]}>
-                        Soil Moisture
-                    </Text>
-                </View>
-
-                <View style={styles.card}>
-                    <Text style={[styles.value, { fontSize: 28 }]}>
-                        {
-                            iotData.filter(
+                    <View style={styles.card}>
+                        <Text style={styles.value}>
+                            {iotData.filter(
                                 (sensor) => sensor.sensor_type === "motion"
-                            ).length
-                        }
-                    </Text>
-                    <Text style={[styles.label, { fontSize: 14 }]}>
-                        Motion Detected
-                    </Text>
+                            ).length || 0}
+                        </Text>
+                        <Text style={styles.label}>Motion Detected</Text>
+                    </View>
                 </View>
             </View>
-        </View>
+        </ScrollView>
     );
-};
+});
 
 const styles = StyleSheet.create({
     title: {
