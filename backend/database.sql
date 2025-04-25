@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
     feedback_id INT AUTO_INCREMENT PRIMARY KEY,
     visitor_id INT NOT NULL,
     guide_id INT NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
+    rating INT NOT NULL, -- Removed CHECK constraint
     comment TEXT,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (visitor_id) REFERENCES Users(user_id),
