@@ -23,9 +23,10 @@ const IoTMonitoring = forwardRef((props, ref) => {
     const loadIoTData = async (isRefreshing = false) => {
         try {
             console.log("Fetching IoT data...");
-            const data = await fetchData("/iot-monitoring");
-            console.log("Fetched data:", data);
-            setIoTData(data); // Store the fetched array
+            const response = await fetchData("/iot-monitoring"); // Fetch data from the API
+
+            // Update the state with the fetched data
+            setIoTData(response || []); // Use the response directly or fallback to an empty array
             setError(null); // Clear any previous errors
         } catch (err) {
             setError("Failed to load IoT data");

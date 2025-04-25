@@ -7,17 +7,15 @@ import RecentActivities from "../components/AdminDashboardHome/RecentActivities"
 
 const HomePage = () => {
     const [refreshing, setRefreshing] = useState(false); // State to track refresh status
-    const [parkGuideCount, setParkGuideCount] = useState(0); // State for park guide approvals
-    const [transactionCount, setTransactionCount] = useState(0); // State for transaction approvals
     const iotMonitoringRef = useRef(null); // Reference to IoTMonitoring component
+    const pendingApprovalsRef = useRef(null); // Reference to PendingApprovals component
 
     const handleRefresh = async () => {
         setRefreshing(true); // Start refreshing
         try {
             // Call your data-fetching functions here
             await Promise.all([
-                fetchParkGuideApprovals(),
-                fetchTransactionApprovals(),
+                pendingApprovalsRef.current?.refreshPendingApprovals(), // Trigger Pending Approvals refresh
                 iotMonitoringRef.current?.refreshIoTData(), // Trigger IoT data refresh
             ]);
         } catch (error) {
@@ -26,30 +24,6 @@ const HomePage = () => {
             setRefreshing(false); // Stop refreshing
         }
     };
-
-    const fetchParkGuideApprovals = async () => {
-        // Simulate fetching data
-        const data = [
-            { id: "1", name: "John Doe" },
-            { id: "2", name: "Jane Smith" },
-        ];
-        setParkGuideCount(data.length); // Update park guide count
-    };
-
-    const fetchTransactionApprovals = async () => {
-        // Simulate fetching data
-        const data = [
-            { id: "1", name: "Transaction 1" },
-            { id: "2", name: "Transaction 2" },
-        ];
-        setTransactionCount(data.length); // Update transaction count
-    };
-
-    useEffect(() => {
-        // Initial data load
-        fetchParkGuideApprovals();
-        fetchTransactionApprovals();
-    }, []);
 
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
@@ -81,10 +55,7 @@ const HomePage = () => {
                     }}
                 >
                     {/* Pending Approvals */}
-                    <PendingApprovals
-                        parkGuideCount={parkGuideCount}
-                        transactionCount={transactionCount}
-                    />
+                    <PendingApprovals ref={pendingApprovalsRef} />
 
                     {/* IoT Monitoring */}
                     <IoTMonitoring ref={iotMonitoringRef} />
