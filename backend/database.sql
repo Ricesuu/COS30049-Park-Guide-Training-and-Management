@@ -95,12 +95,12 @@ CREATE TABLE IF NOT EXISTS Guidebook (
 -- ==============================================
 -- Table: IoT Monitoring Table
 CREATE TABLE IF NOT EXISTS IoTMonitoring (
-    sensor_id INT AUTO_INCREMENT PRIMARY KEY,
-    park_id INT NOT NULL,
-    sensor_type ENUM('temperature', 'humidity', 'motion') NOT NULL,
-    recorded_value VARCHAR(255) NOT NULL,
-    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (park_id) REFERENCES Parks(park_id)
+  sensor_id INT AUTO_INCREMENT PRIMARY KEY,
+  park_id INT NOT NULL,
+  sensor_type ENUM('temperature', 'humidity', 'soil moisture', 'motion') NOT NULL,
+  recorded_value VARCHAR(255) NOT NULL,
+  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (park_id) REFERENCES Parks(park_id)
 );
 
 -- ==============================================
@@ -261,8 +261,12 @@ INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VA
 ((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '29.5', '2025-04-07 08:00:00'),
 ((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', '2025-04-07 10:15:00'),
 
--- Humidity sensors in Semenggoh Wildlife Centre
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '70%', '2025-04-07 09:30:00');
+-- Humidity and soil moisture sensors in Semenggoh Wildlife Centre
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '70%', '2025-04-07 09:30:00'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '45%', '2025-04-07 11:00:00'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', '2025-04-07 13:30:00'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', '2025-04-07 13:45:00');
+
 SELECT * from IoTMonitoring;
 
 
