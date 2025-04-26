@@ -1,102 +1,76 @@
-// app/api/users/[id]/route.js
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { getConnection } from "@/lib/db";
 
 export async function GET(request, { params }) {
-    const { id } = params;
+    console.log("GET request received for /api/users/[id]");
+
+    const { id } = await params; // Destructure `id` directly from `params`
     let connection;
+
     try {
+        console.log(`Fetching user with ID ${id}`);
         connection = await getConnection();
         const [rows] = await connection.execute(
             "SELECT * FROM Users WHERE user_id = ?",
             [id]
         );
+
         if (rows.length === 0) {
             return NextResponse.json(
                 { error: "User not found" },
-                { status: 404 }
+                {
+                    status: 404,
+                    headers: {
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods": "GET, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type",
+                    },
+                }
             );
         }
-        return NextResponse.json(rows[0]);
+
+        console.log(`User with ID ${id} fetched successfully`);
+        return NextResponse.json(rows[0], {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
+        });
     } catch (error) {
         console.error(`Error fetching user with ID ${id}:`, error);
         return NextResponse.json(
             { error: `Failed to fetch user with ID ${id}` },
-            { status: 500 }
+            {
+                status: 500,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type",
+                },
+            }
         );
     } finally {
-        if (connection) connection.release();
+        if (connection) {
+            if (connection.release) {
+                connection.release();
+            } else {
+                connection.end();
+            }
+        }
     }
 }
 
-export async function PUT(request, { params }) {
-    const { id } = params;
-    try {
-        const body = await request.json();
-        const {
-            first_name,
-            last_name,
-            email,
-            password_hash,
-            role,
-            phone_number,
-        } = body;
-        const connection = await getConnection();
-        const [result] = await connection.execute(
-            "UPDATE Users SET first_name = ?, last_name = ?, email = ?, password_hash = ?, role = ?, phone_number = ? WHERE user_id = ?",
-            [
-                first_name,
-                last_name,
-                email,
-                password_hash,
-                role,
-                phone_number,
-                id,
-            ]
-        );
-        if (result.affectedRows === 0) {
-            return NextResponse.json(
-                { error: "User not found" },
-                { status: 404 }
-            );
+// OPTIONS method remains the same
+export async function OPTIONS(request) {
+    return NextResponse.json(
+        {},
+        {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
         }
-        return NextResponse.json({
-            message: `User with ID ${id} updated successfully`,
-        });
-    } catch (error) {
-        console.error(`Error updating user with ID ${id}:`, error);
-        return NextResponse.json(
-            { error: `Failed to update user with ID ${id}` },
-            { status: 500 }
-        );
-    }
-}
-
-export async function DELETE(request, { params }) {
-    const { id } = params;
-    let connection;
-    try {
-        connection = await getConnection();
-        const [result] = await connection.execute(
-            "DELETE FROM Users WHERE user_id = ?",
-            [id]
-        );
-        if (result.affectedRows === 0) {
-            return NextResponse.json(
-                { error: "User not found" },
-                { status: 404 }
-            );
-        }
-        return NextResponse.json({
-            message: `User with ID ${id} deleted successfully`,
-        });
-    } catch (error) {
-        console.error(`Error deleting user with ID ${id}:`, error);
-        return NextResponse.json(
-            { error: `Failed to delete user with ID ${id}` },
-            { status: 500 }
-        );
-    } finally {
-        if (connection) connection.release();
-    }
+    );
 }
