@@ -18,25 +18,32 @@ const ProfileView = ({ fullName, userId, profilePicture }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: "90%", // Smaller width
+    alignSelf: "center", // Center horizontally
     alignItems: "center",
-    justifyContent: "center",
     padding: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
+    borderRadius: 10, // Rounded corners
+    shadowColor: "#000", // Shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5, // Shadow for Android
+    marginVertical: 10, // Space around the container
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-  },
-  fullName: {
-    fontSize: 24,
-    fontWeight: "bold",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 10,
   },
+  fullName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
   userId: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#555",
   },
 });
