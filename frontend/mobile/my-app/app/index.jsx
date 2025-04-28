@@ -1,48 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import React, { useRef, useState } from "react";
+import { View, ScrollView, RefreshControl } from "react-native";
+import { useNavigation } from "@react-navigation/native"; // Import useNavigation
 import Header from "../components/AdminDashboardHome/Header";
 import PendingApprovals from "../components/AdminDashboardHome/PendingApprovals";
 import IoTMonitoring from "../components/AdminDashboardHome/IoTMonitoring";
 import RecentActivities from "../components/AdminDashboardHome/RecentActivities";
 
 const HomePage = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation(); // Use the navigation hook
+    const [refreshing, setRefreshing] = useState(false); // State to track refresh status
+    const pendingApprovalsRef = useRef(null);
+    const iotMonitoringRef = useRef(null);
 
-    const [parkGuideCount, setParkGuideCount] = useState(0);
-    const [transactionCount, setTransactionCount] = useState(0);
-
-    const fetchParkGuideApprovals = async () => {
-        const data = [
-            { id: "1", name: "John Doe" },
-            { id: "2", name: "Jane Smith" },
-        ];
-        setParkGuideCount(data.length);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                pendingApprovalsRef.current?.refreshPendingApprovals(),
+                iotMonitoringRef.current?.refreshIoTData(),
+            ]);
+        } catch (error) {
+            console.error("Error refreshing data:", error);
+        } finally {
+            setRefreshing(false);
+        }
     };
-
-    const fetchTransactionApprovals = async () => {
-        const data = [
-            { id: "1", name: "John Doe" },
-            { id: "2", name: "Jane Smith" },
-        ];
-        setTransactionCount(data.length);
-    };
-
-    useEffect(() => {
-        fetchParkGuideApprovals();
-        fetchTransactionApprovals();
-    }, []);
 
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                    />
+                }
                 showsVerticalScrollIndicator={false}
             >
-                {/* Header */}
                 <Header />
-
-                {/* Dashboard Section */}
                 <View
                     style={{
                         backgroundColor: "white",
@@ -56,17 +52,11 @@ const HomePage = () => {
                         flex: 1,
                     }}
                 >
-                    {/* Pending Approvals */}
                     <PendingApprovals
-                        parkGuideCount={parkGuideCount}
-                        transactionCount={transactionCount}
-                        navigation={navigation}
+                        ref={pendingApprovalsRef}
+                        navigation={navigation} // Pass navigation to PendingApprovals
                     />
-
-                    {/* IoT Monitoring */}
-                    <IoTMonitoring />
-
-                    {/* Recent Activities */}
+                    <IoTMonitoring ref={iotMonitoringRef} />
                     <RecentActivities />
                 </View>
             </ScrollView>

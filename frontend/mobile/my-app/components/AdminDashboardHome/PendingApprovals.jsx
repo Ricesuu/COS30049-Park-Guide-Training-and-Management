@@ -1,102 +1,136 @@
-import React from "react";
-import { View, Text, Pressable } from "react-native";
+import React, {
+    useState,
+    useEffect,
+    forwardRef,
+    useImperativeHandle,
+} from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { fetchData } from "../../src/api/api"; // Assuming fetchData is a utility function to make API calls
 
-const PendingApprovals = ({ parkGuideCount, transactionCount, navigation }) => {
+const PendingApprovals = forwardRef(({ navigation }, ref) => {
+    const [parkGuideCount, setParkGuideCount] = useState(0);
+    const [transactionCount, setTransactionCount] = useState(0);
+
+    const loadPendingApprovals = async () => {
+        try {
+            console.log("Fetching pending approvals...");
+
+            // Fetch data from the ParkGuides table
+            const parkGuidesResponse = await fetchData("/park-guides");
+
+            // Use the response directly as the data array
+            const parkGuidesData = parkGuidesResponse || [];
+
+            // Filter guides with certification_status 'pending'
+            const pendingParkGuides = parkGuidesData.filter(
+                (guide) =>
+                    guide.certification_status &&
+                    guide.certification_status.toLowerCase() === "pending"
+            );
+
+            setParkGuideCount(pendingParkGuides.length);
+
+            // Fetch data from the PaymentTransactions table
+            const transactionsResponse = await fetchData(
+                "/payment-transactions"
+            );
+
+            // Use the response directly as the data array
+            const transactionsData = transactionsResponse || [];
+
+            // Filter transactions with payment_status 'pending'
+            const pendingTransactions = transactionsData.filter(
+                (transaction) =>
+                    transaction.payment_status &&
+                    transaction.payment_status.toLowerCase() === "pending"
+            );
+
+            setTransactionCount(pendingTransactions.length);
+        } catch (error) {
+            console.error("Error fetching pending approvals:", error);
+        }
+    };
+
+    useImperativeHandle(ref, () => ({
+        refreshPendingApprovals: loadPendingApprovals,
+    }));
+
+    useEffect(() => {
+        loadPendingApprovals();
+
+        // Set up polling every 60 seconds
+        const interval = setInterval(() => {
+            loadPendingApprovals();
+        }, 60000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <View>
-            <Text
-                style={{
-                    fontSize: 24,
-                    fontWeight: "bold",
-                    marginBottom: 10,
-                    color: "#333",
-                }}
-            >
-                Pending Approvals
-            </Text>
-            <View
-                style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginBottom: 20,
-                }}
-            >
+            <Text style={styles.title}>Pending Approvals</Text>
+            <View style={styles.row}>
                 {/* Park Guide Approvals */}
                 <Pressable
-                    style={{
-                        backgroundColor: "#f0f0f0",
-                        borderRadius: 10,
-                        padding: 20,
-                        flex: 1,
-                        marginRight: 10,
-                        alignItems: "center",
-                        elevation: 5,
-                    }}
+                    style={styles.card}
                     onPress={() =>
                         navigation.navigate("approvals", {
                             initialTab: "parkGuide",
                         })
                     }
                 >
-                    <Text
-                        style={{
-                            fontSize: 30,
-                            fontWeight: "bold",
-                            color: "#333",
-                        }}
-                    >
-                        {parkGuideCount}
-                    </Text>
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            color: "#666",
-                            marginTop: 5,
-                        }}
-                    >
-                        Park Guides Left
-                    </Text>
+                    <Text style={styles.value}>{parkGuideCount}</Text>
+                    <Text style={styles.label}>Park Guides Left</Text>
                 </Pressable>
 
                 {/* Transaction Approvals */}
                 <Pressable
-                    style={{
-                        backgroundColor: "#f0f0f0",
-                        borderRadius: 10,
-                        padding: 20,
-                        flex: 1,
-                        marginLeft: 10,
-                        alignItems: "center",
-                        elevation: 5,
-                    }}
+                    style={styles.card}
                     onPress={() =>
                         navigation.navigate("approvals", {
                             initialTab: "transaction",
                         })
                     }
                 >
-                    <Text
-                        style={{
-                            fontSize: 30,
-                            fontWeight: "bold",
-                            color: "#333",
-                        }}
-                    >
-                        {transactionCount}
-                    </Text>
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            color: "#666",
-                            marginTop: 5,
-                        }}
-                    >
-                        Transactions Left
-                    </Text>
+                    <Text style={styles.value}>{transactionCount}</Text>
+                    <Text style={styles.label}>Transactions Left</Text>
                 </Pressable>
             </View>
         </View>
     );
-};
+});
+
+const styles = StyleSheet.create({
+    title: {
+        fontSize: 24,
+        fontWeight: "bold",
+        marginBottom: 10,
+        color: "#333",
+    },
+    row: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 20,
+    },
+    card: {
+        backgroundColor: "#f0f0f0",
+        borderRadius: 10,
+        padding: 20,
+        flex: 1,
+        marginHorizontal: 5,
+        alignItems: "center",
+        elevation: 5,
+    },
+    value: {
+        fontSize: 30,
+        fontWeight: "bold",
+        color: "#333",
+    },
+    label: {
+        fontSize: 16,
+        color: "#666",
+        marginTop: 5,
+    },
+});
 
 export default PendingApprovals;
