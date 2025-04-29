@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import Header from "../components/PGDashboardHome/Header";
+import Header from "../../components/PGDashboardHome/Header";
 
-const Certificate = () => {
+const Module = () => {
     
+
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
@@ -35,4 +36,4 @@ const Certificate = () => {
     );
 };
 
-export default Certificate;
+export default Module;
