@@ -8,6 +8,10 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "permissions": [
+      "CAMERA",
+      "MEDIA_LIBRARY"
+    ],
     "ios": {
       "supportsTablet": true
     },
