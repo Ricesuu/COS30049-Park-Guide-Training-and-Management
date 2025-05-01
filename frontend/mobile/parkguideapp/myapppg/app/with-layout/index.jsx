@@ -21,19 +21,26 @@ const HomePage = () => {
         },
     ];
 
-    // Example announcements data
     const announcements = [
         {
-            title: "Park Closure",
-            date: "2025-05-01",
-            description: "The park will be closed for maintenance on May 5th.",
+          title: "System Maintenance",
+          date: "2025-05-02",
+          description: "The system will be down for maintenance from 2 AM to 4 AM.",
+          priority: "high", // Red circle
         },
         {
-            title: "New Training Module",
-            date: "2025-04-28",
-            description: "A new training module on wildlife safety is now available.",
+          title: "New Feature Release",
+          date: "2025-05-01",
+          description: "We are excited to announce a new feature coming soon!",
+          priority: "mid", // Orange circle
         },
-    ];
+        {
+          title: "Weekly Update",
+          date: "2025-04-30",
+          description: "Here is your weekly update on system performance.",
+          priority: "low", // Green circle
+        },
+      ];
 
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>

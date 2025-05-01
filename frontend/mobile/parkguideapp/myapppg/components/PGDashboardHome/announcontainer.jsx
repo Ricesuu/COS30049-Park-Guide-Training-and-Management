@@ -1,29 +1,36 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+
 
 const AnnounContainer = ({ announcements }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Announcements</Text>
-      <FlatList
-        data={announcements}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.announcementItem}>
-            <Text style={styles.announcementTitle}>{item.title}</Text>
-            <Text style={styles.announcementDate}>{item.date}</Text>
-            <Text style={styles.announcementDescription}>{item.description}</Text>
+      {announcements.map((announcement, index) => (
+        <View key={index} style={styles.announcementItem}>
+          {/* Priority Circle */}
+          <View
+            style={[
+              styles.priorityCircle,
+              announcement.priority === "low" && styles.lowPriority,
+              announcement.priority === "mid" && styles.midPriority,
+              announcement.priority === "high" && styles.highPriority,
+            ]}
+          />
+          <View style={styles.announcementDetails}>
+            <Text style={styles.announcementTitle}>{announcement.title}</Text>
+            <Text style={styles.announcementDate}>{announcement.date}</Text>
+            <Text style={styles.announcementDescription}>{announcement.description}</Text>
           </View>
-        )}
-        nestedScrollEnabled={true} // Enable nested scrolling
-      />
+        </View>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center", // Center content
+    alignItems: "center",
     padding: 20,
     backgroundColor: "white",
     borderRadius: 10,
@@ -33,28 +40,47 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     marginVertical: 10,
-    width: "100%", // Match the width of ProfileView
+    width: "100%",
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
+    textAlign: "center",
     color: "black",
-    textAlign: "center", // Centered the title
-    
   },
   announcementItem: {
-    marginBottom: 15,
+    flexDirection: "row", // Align priority circle and details horizontally
+    alignItems: "center",
+    marginBottom: 10,
     padding: 10,
     backgroundColor: "#f9f9f9",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ddd",
   },
+  priorityCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10, // Makes it a circle
+    marginRight: 10,
+  },
+  lowPriority: {
+    backgroundColor: "green",
+  },
+  midPriority: {
+    backgroundColor: "orange",
+  },
+  highPriority: {
+    backgroundColor: "red",
+  },
+  announcementDetails: {
+    flex: 1, // Allow details to take up remaining space
+  },
   announcementTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#555", // Changed to black
+    color: "#555",
   },
   announcementDate: {
     fontSize: 14,
