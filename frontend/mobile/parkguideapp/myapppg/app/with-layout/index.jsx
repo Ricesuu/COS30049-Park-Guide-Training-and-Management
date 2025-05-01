@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import Header from "../../components/PGDashboardHome/Header";
 import ProfileView from "../../components/PGDashboardHome/ProfileView"; // Import ProfileView
 import CertContainer from "../../components/PGDashboardHome/certcontainer"; // Import CertContainer
+import AnnounContainer from "../../components/PGDashboardHome/announcontainer"; // Import AnnounContainer
 
 const HomePage = () => {
     // Example certifications data
@@ -17,6 +18,20 @@ const HomePage = () => {
             name: "Semenggoh Wildlife Centre Certification",
             expiryDate: "2026-06-30",
             image: require("../../assets/images/Semenggoh.jpeg"), // Use require for local images
+        },
+    ];
+
+    // Example announcements data
+    const announcements = [
+        {
+            title: "Park Closure",
+            date: "2025-05-01",
+            description: "The park will be closed for maintenance on May 5th.",
+        },
+        {
+            title: "New Training Module",
+            date: "2025-04-28",
+            description: "A new training module on wildlife safety is now available.",
         },
     ];
 
@@ -52,6 +67,9 @@ const HomePage = () => {
 
                     {/* Certifications Container */}
                     <CertContainer certifications={certifications} />
+
+                    {/* Announcements Container */}
+                    <AnnounContainer announcements={announcements} />
                 </View>
             </ScrollView>
         </View>

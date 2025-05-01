@@ -16,53 +16,89 @@ const Identification = () => {
   const [loading, setLoading] = useState(false);
   const [cameraPermission, setCameraPermission] = useState(null);
 
-  // Request camera permissions
   const requestCameraPermission = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    setCameraPermission(status === "granted");
+    const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+    const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    console.log("Camera Permission:", cameraStatus);
+    console.log("Media Library Permission:", mediaLibraryStatus);
+
+    if (cameraStatus !== "granted" || mediaLibraryStatus !== "granted") {
+      Alert.alert("Permission Denied", "Camera and media library access are required.");
+      return false;
+    }
+
+    setCameraPermission(true);
+    return true;
+  };
+
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission Denied", "Camera access is required to take pictures.");
+      Alert.alert("Permission Denied", "Media library access is required.");
+      return false;
     }
+    return true;
   };
 
-  // Open the camera to take a picture
   const takePicture = async () => {
-    await requestCameraPermission();
-    if (cameraPermission) {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaType.IMAGE, // Updated here
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setImage(result.uri);
-      }
+    console.log("Take Picture button pressed");
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      console.log("Camera permission not granted");
+      return;
     }
-  };
 
-  // Open the image picker to upload an image
-  const uploadImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.IMAGE, // Updated here
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
 
+    console.log("Camera result:", result);
+
     if (!result.canceled) {
-      setImage(result.uri);
+      setImage(result.uri || result.assets?.[0]?.uri);
+      console.log("Image URI:", result.uri || result.assets?.[0]?.uri);
+    } else {
+      console.log("Camera action canceled");
     }
   };
 
-  // Send the image to the API for identification
-  const identifyOrchid = async () => {
-    if (!image) {
-      Alert.alert("No Image", "Please take or upload an image first.");
+  const uploadImage = async () => {
+    console.log("Upload Image button pressed");
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) {
+      console.log("Media library permission not granted");
       return;
     }
 
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log("Image picker result:", result);
+
+    if (!result.canceled) {
+      setImage(result.uri || result.assets?.[0]?.uri);
+      console.log("Image URI:", result.uri || result.assets?.[0]?.uri);
+    } else {
+      console.log("Image picker action canceled");
+    }
+  };
+
+  const identifyOrchid = async () => {
+    if (!image) {
+      Alert.alert("No Image", "Please take or upload an image first.");
+      console.log("No image selected");
+      return;
+    }
+
+    console.log("Identifying orchid for image:", image);
     setLoading(true);
 
     try {
@@ -72,6 +108,8 @@ const Identification = () => {
         name: "orchid.jpg",
         type: "image/jpeg",
       });
+
+      console.log("FormData:", formData);
 
       const response = await fetch("https://your-api-endpoint.com/identify", {
         method: "POST",
@@ -84,6 +122,8 @@ const Identification = () => {
       const data = await response.json();
       setLoading(false);
 
+      console.log("API Response:", data);
+
       if (response.ok) {
         Alert.alert("Identification Result", `This orchid is: ${data.orchidType}`);
       } else {
@@ -91,6 +131,7 @@ const Identification = () => {
       }
     } catch (error) {
       setLoading(false);
+      console.log("Error:", error);
       Alert.alert("Error", "An error occurred while identifying the orchid.");
     }
   };
@@ -117,12 +158,18 @@ const Identification = () => {
       </View>
 
       <TouchableOpacity
-        style={[styles.identifyButton, !image && styles.disabledButton]}
+        style={[
+          styles.identifyButton,
+          (!image || loading) && styles.disabledButton, // Disable button when no image or loading
+        ]}
         onPress={identifyOrchid}
-        disabled={!image || loading}
+        disabled={!image || loading} // Disable button when no image or loading
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#fff" />
+            <Text style={styles.loadingText}>Identifying...</Text>
+          </View>
         ) : (
           <Text style={styles.buttonText}>Identify Orchid</Text>
         )}
@@ -134,7 +181,7 @@ const Identification = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "rgb(22, 163, 74)",
+    backgroundColor: "white", // Changed to white for consistency
     padding: 20,
     justifyContent: "center",
     alignItems: "center",
@@ -142,7 +189,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "white",
+    color: "rgb(22, 163, 74)", // Updated to match the theme
     marginBottom: 20,
   },
   imageContainer: {
@@ -187,15 +234,30 @@ const styles = StyleSheet.create({
   },
   identifyButton: {
     marginTop: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: "rgb(22, 163, 74)",
-    borderRadius: 5,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Adds shadow for Android
   },
   disabledButton: {
     backgroundColor: "#ccc",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginLeft: 8,
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
 
