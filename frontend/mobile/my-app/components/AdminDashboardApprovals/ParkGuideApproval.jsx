@@ -7,7 +7,7 @@ import {
     RefreshControl,
 } from "react-native";
 import { fetchData } from "../../src/api/api"; // Import fetchData utility
-import { API_URL } from "../../src/config/constants"; // Import API_URL
+import { API_URL } from "../../src/constants/constants"; // Import API_URL
 
 const ParkGuideApproval = () => {
     const [applicants, setApplicants] = useState([]);

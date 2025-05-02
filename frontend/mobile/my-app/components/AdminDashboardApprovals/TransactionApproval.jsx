@@ -7,7 +7,7 @@ import {
     RefreshControl,
 } from "react-native";
 import { fetchData } from "../../src/api/api";
-import { API_URL } from "../../src/config/constants";
+import { API_URL } from "../../src/constants/constants";
 
 import "../../global.css";
 
