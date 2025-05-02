@@ -1,54 +1,204 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    FlatList,
+    RefreshControl,
+} from "react-native";
+import { fetchData } from "../../src/api/api";
+import { API_URL } from "../../src/config/constants";
 
-import "../../global.css"; // Import global CSS styles
+import "../../global.css";
 
 const TransactionApproval = () => {
     const [transactions, setTransactions] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // Function to fetch transaction data
-    const fetchTransactions = async () => {
-        // Simulate fetching data (replace this with an API call if needed)
-        const data = [
-            {
-                id: "1",
-                name: "John Doe",
-                email: "john.doe@example.com",
-                transactionId: "123456789",
-                amount: "RM200",
-                date: "2023-10-01",
-            },
-            {
-                id: "2",
-                name: "Jane Smith",
-                email: "jane.smith@example.com",
-                transactionId: "987654321",
-                amount: "RM500",
-                date: "2023-10-02",
-            },
-        ];
-        setTransactions(data);
+    const fetchTransactions = async (isRefreshing = false) => {
+        try {
+            console.log("Fetching payment transactions...");
+            const transactionsResponse = await fetchData(
+                "/payment-transactions"
+            );
+
+            // Filter transactions with payment_status 'pending'
+            const pendingTransactions = transactionsResponse.filter(
+                (transaction) =>
+                    transaction.payment_status &&
+                    transaction.payment_status.toLowerCase() === "pending"
+            );
+
+            // Fetch user details for each pending transaction
+            const userDetailsPromises = pendingTransactions.map((transaction) =>
+                fetchData(`/users/${transaction.user_id}`)
+            );
+
+            const userDetails = await Promise.all(userDetailsPromises);
+
+            // Combine transaction and user details
+            const combinedData = pendingTransactions.map(
+                (transaction, index) => ({
+                    ...transaction,
+                    ...userDetails[index], // Merge user details into the transaction object
+                })
+            );
+
+            // Map the combined data to the format needed for display
+            setTransactions(
+                combinedData.map((transaction) => ({
+                    id: transaction.payment_id?.toString() || "N/A",
+                    name: `${transaction.first_name || "Unknown"} ${
+                        transaction.last_name || "Unknown"
+                    }`,
+                    email: transaction.email || "No email provided",
+                    amount: transaction.amount
+                        ? `RM${transaction.amount}`
+                        : "N/A",
+                    date: transaction.transaction_date
+                        ? new Date(
+                              transaction.transaction_date
+                          ).toLocaleDateString()
+                        : "Unknown date",
+                }))
+            );
+        } catch (error) {
+            console.error("Error fetching transactions:", error);
+        } finally {
+            setLoading(false);
+            if (isRefreshing) {
+                setRefreshing(false);
+            }
+        }
     };
 
-    // Fetch transactions when the component mounts
+    // Handle pull-to-refresh
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchTransactions(true);
+    };
+
     useEffect(() => {
         fetchTransactions();
     }, []);
 
-    // Handle approve and reject actions
-    const handleApprove = (id) => {
-        setTransactions((prev) =>
-            prev.filter((transaction) => transaction.id !== id)
-        );
+    // Just update the handleApprove and handleReject functions:
+
+    // Handle approve action - using API_URL from constants
+    const handleApprove = async (id) => {
+        try {
+            console.log(`Sending approval request for transaction ${id}`);
+            console.log(`URL: ${API_URL}/api/payment-transactions/${id}`);
+
+            const response = await fetch(
+                `${API_URL}/api/payment-transactions/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ payment_status: "completed" }),
+                }
+            );
+
+            if (!response.ok) {
+                // Try to parse the error response as JSON
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (jsonError) {
+                    console.error("Error parsing JSON response:", jsonError);
+                    throw new Error(
+                        `Server responded with status: ${response.status}`
+                    );
+                }
+                console.error("Server response:", errorData);
+                throw new Error(
+                    errorData.error || "Failed to approve the transaction"
+                );
+            }
+
+            // Check if there's a response body before trying to parse it
+            const contentLength = response.headers.get("content-length");
+            if (contentLength && parseInt(contentLength) > 0) {
+                try {
+                    const result = await response.json();
+                    console.log("Success:", result);
+                } catch (jsonError) {
+                    console.log(
+                        "No JSON in success response or malformed JSON"
+                    );
+                    // Continue execution even if parsing fails
+                }
+            } else {
+                console.log("Empty success response");
+            }
+
+            // Refresh the transactions list after approval
+            fetchTransactions();
+        } catch (error) {
+            console.error("Error approving transaction:", error);
+        }
     };
 
-    const handleReject = (id) => {
-        setTransactions((prev) =>
-            prev.filter((transaction) => transaction.id !== id)
-        );
+    // Handle reject action - using API_URL from constants
+    const handleReject = async (id) => {
+        try {
+            console.log(`Sending reject request for transaction ${id}`);
+            console.log(`URL: ${API_URL}/api/payment-transactions/${id}`);
+
+            const response = await fetch(
+                `${API_URL}/api/payment-transactions/${id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ payment_status: "failed" }),
+                }
+            );
+
+            if (!response.ok) {
+                // Try to parse the error response as JSON
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (jsonError) {
+                    console.error("Error parsing JSON response:", jsonError);
+                    throw new Error(
+                        `Server responded with status: ${response.status}`
+                    );
+                }
+                console.error("Server response:", errorData);
+                throw new Error(
+                    errorData.error || "Failed to reject the transaction"
+                );
+            }
+
+            // Check if there's a response body before trying to parse it
+            const contentLength = response.headers.get("content-length");
+            if (contentLength && parseInt(contentLength) > 0) {
+                try {
+                    const result = await response.json();
+                    console.log("Success:", result);
+                } catch (jsonError) {
+                    console.log(
+                        "No JSON in success response or malformed JSON"
+                    );
+                    // Continue execution even if parsing fails
+                }
+            } else {
+                console.log("Empty success response");
+            }
+
+            // Refresh the transactions list after rejection
+            fetchTransactions();
+        } catch (error) {
+            console.error("Error rejecting transaction:", error);
+        }
     };
 
-    // Render each transaction
     const renderTransaction = ({ item }) => (
         <View className="bg-white p-4 flex-row justify-between items-center border-y-2 border-gray-200">
             <View>
@@ -57,12 +207,6 @@ const TransactionApproval = () => {
                     <Text className="text-gray-500 text-xs">{item.email}</Text>
                 </View>
                 <View>
-                    <Text className="text-sm text-gray-600">
-                        Transaction ID:{" "}
-                        <Text className="font-medium">
-                            {item.transactionId}
-                        </Text>
-                    </Text>
                     <Text className="text-sm text-gray-600">
                         Amount:{" "}
                         <Text className="font-medium">{item.amount}</Text>
@@ -100,9 +244,15 @@ const TransactionApproval = () => {
                 data={transactions}
                 keyExtractor={(item) => item.id}
                 renderItem={renderTransaction}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }
                 ListEmptyComponent={
                     <Text className="text-center text-gray-500 mt-5">
-                        No pending transactions.
+                        {loading ? "Loading..." : "No pending transactions."}
                     </Text>
                 }
                 contentContainerStyle={{

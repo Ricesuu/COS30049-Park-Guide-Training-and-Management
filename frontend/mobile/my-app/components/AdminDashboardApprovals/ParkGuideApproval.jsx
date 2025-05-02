@@ -7,6 +7,7 @@ import {
     RefreshControl,
 } from "react-native";
 import { fetchData } from "../../src/api/api"; // Import fetchData utility
+import { API_URL } from "../../src/config/constants"; // Import API_URL
 
 const ParkGuideApproval = () => {
     const [applicants, setApplicants] = useState([]);
@@ -61,14 +62,12 @@ const ParkGuideApproval = () => {
         fetchApplicants();
     }, []);
 
-    const BASE_URL = "http://192.168.1.110:3000"; // Check if this IP is correct for your backend
-
     const handleApprove = async (id) => {
         try {
             console.log(
-                `Sending approval request for guide ${id} to ${BASE_URL}/api/park-guides/${id}`
+                `Sending approval request for guide ${id} to ${API_URL}/api/park-guides/${id}`
             );
-            const response = await fetch(`${BASE_URL}/api/park-guides/${id}`, {
+            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -94,11 +93,35 @@ const ParkGuideApproval = () => {
         }
     };
 
-    const handleReject = (id) => {
-        setApplicants((prev) =>
-            prev.filter((applicant) => applicant.guide_id !== id)
-        );
-        // Add API call to reject the applicant here
+    const handleReject = async (id) => {
+        try {
+            console.log(
+                `Sending rejection request for guide ${id} to ${API_URL}/api/park-guides/${id}`
+            );
+            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ certification_status: "rejected" }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Server response:", errorData);
+                throw new Error("Failed to reject the park guide");
+            }
+
+            const result = await response.json();
+            console.log("Success:", result);
+
+            // Remove the rejected guide from the list
+            setApplicants((prev) =>
+                prev.filter((applicant) => applicant.guide_id !== id)
+            );
+        } catch (error) {
+            console.error("Error rejecting park guide:", error);
+        }
     };
 
     // Render each applicant
