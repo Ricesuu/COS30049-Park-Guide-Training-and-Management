@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 
 export async function GET() {
-    console.log("Fetching payment transactions...");
     let connection;
 
     try {
@@ -39,7 +38,8 @@ export async function GET() {
             }
         }
 
-        console.log("Final results:", results);
+        // Remove this line that's causing the log output:
+        // console.log("Final results:", results);
 
         return NextResponse.json(results, {
             headers: {

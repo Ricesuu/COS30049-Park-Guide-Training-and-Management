@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 
 export async function PUT(request, { params }) {
-    console.log("PUT request received for transaction ID:", params.id);
     const { id } = params;
     let connection = null;
 
     try {
         // Parse JSON body
         const requestBody = await request.json();
-        console.log("Request body:", requestBody);
 
         // Validate payment_status
         const validStatuses = ["pending", "completed", "failed"];
@@ -25,13 +23,8 @@ export async function PUT(request, { params }) {
             );
         }
 
-        console.log(
-            `Attempting to update transaction ${id} to status: ${payment_status}`
-        );
-
         // Make sure ID is valid
         if (!id || isNaN(parseInt(id, 10))) {
-            console.error("Invalid ID parameter:", id);
             return NextResponse.json(
                 { error: "Invalid transaction ID" },
                 { status: 400 }
@@ -47,19 +40,12 @@ export async function PUT(request, { params }) {
             [payment_status, parseInt(id, 10)]
         );
 
-        console.log("Query result:", result);
-
         if (result.affectedRows === 0) {
-            console.log(`No transaction found with ID ${id}`);
             return NextResponse.json(
                 { error: "Payment transaction not found" },
                 { status: 404 }
             );
         }
-
-        console.log(
-            `Successfully updated transaction ${id} status to ${payment_status}`
-        );
 
         // Return success response
         return NextResponse.json({
@@ -68,16 +54,15 @@ export async function PUT(request, { params }) {
             success: true,
         });
     } catch (error) {
-        console.error("Error in PUT handler:", error);
+        console.error(`Error updating transaction ${id}:`, error.message);
         return NextResponse.json(
-            { error: "Internal server error", details: error.message },
+            { error: "Internal server error" },
             { status: 500 }
         );
     } finally {
         if (connection) {
             try {
                 connection.release();
-                console.log("Database connection released");
             } catch (err) {
                 console.error("Error releasing connection:", err);
             }

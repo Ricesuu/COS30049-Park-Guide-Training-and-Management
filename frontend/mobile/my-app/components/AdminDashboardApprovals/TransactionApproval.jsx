@@ -18,7 +18,8 @@ const TransactionApproval = () => {
 
     const fetchTransactions = async (isRefreshing = false) => {
         try {
-            console.log("Fetching payment transactions...");
+            console.log("Fetching payment transactions approvals...");
+
             const transactionsResponse = await fetchData(
                 "/payment-transactions"
             );
@@ -83,13 +84,10 @@ const TransactionApproval = () => {
         fetchTransactions();
     }, []);
 
-    // Just update the handleApprove and handleReject functions:
-
     // Handle approve action - using API_URL from constants
     const handleApprove = async (id) => {
         try {
-            console.log(`Sending approval request for transaction ${id}`);
-            console.log(`URL: ${API_URL}/api/payment-transactions/${id}`);
+            console.log(`Approving transaction ${id}...`);
 
             const response = await fetch(
                 `${API_URL}/api/payment-transactions/${id}`,
@@ -108,32 +106,16 @@ const TransactionApproval = () => {
                 try {
                     errorData = await response.json();
                 } catch (jsonError) {
-                    console.error("Error parsing JSON response:", jsonError);
                     throw new Error(
                         `Server responded with status: ${response.status}`
                     );
                 }
-                console.error("Server response:", errorData);
                 throw new Error(
                     errorData.error || "Failed to approve the transaction"
                 );
             }
 
-            // Check if there's a response body before trying to parse it
-            const contentLength = response.headers.get("content-length");
-            if (contentLength && parseInt(contentLength) > 0) {
-                try {
-                    const result = await response.json();
-                    console.log("Success:", result);
-                } catch (jsonError) {
-                    console.log(
-                        "No JSON in success response or malformed JSON"
-                    );
-                    // Continue execution even if parsing fails
-                }
-            } else {
-                console.log("Empty success response");
-            }
+            console.log(`Transaction ${id} approved successfully`);
 
             // Refresh the transactions list after approval
             fetchTransactions();
@@ -145,8 +127,7 @@ const TransactionApproval = () => {
     // Handle reject action - using API_URL from constants
     const handleReject = async (id) => {
         try {
-            console.log(`Sending reject request for transaction ${id}`);
-            console.log(`URL: ${API_URL}/api/payment-transactions/${id}`);
+            console.log(`Rejecting transaction ${id}...`);
 
             const response = await fetch(
                 `${API_URL}/api/payment-transactions/${id}`,
@@ -165,32 +146,16 @@ const TransactionApproval = () => {
                 try {
                     errorData = await response.json();
                 } catch (jsonError) {
-                    console.error("Error parsing JSON response:", jsonError);
                     throw new Error(
                         `Server responded with status: ${response.status}`
                     );
                 }
-                console.error("Server response:", errorData);
                 throw new Error(
                     errorData.error || "Failed to reject the transaction"
                 );
             }
 
-            // Check if there's a response body before trying to parse it
-            const contentLength = response.headers.get("content-length");
-            if (contentLength && parseInt(contentLength) > 0) {
-                try {
-                    const result = await response.json();
-                    console.log("Success:", result);
-                } catch (jsonError) {
-                    console.log(
-                        "No JSON in success response or malformed JSON"
-                    );
-                    // Continue execution even if parsing fails
-                }
-            } else {
-                console.log("Empty success response");
-            }
+            console.log(`Transaction ${id} rejected successfully`);
 
             // Refresh the transactions list after rejection
             fetchTransactions();
