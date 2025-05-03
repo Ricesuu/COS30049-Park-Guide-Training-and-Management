@@ -5,6 +5,7 @@ import {
     ScrollView,
     RefreshControl,
     ActivityIndicator,
+    Alert,
 } from "react-native";
 import MonitoringCard from "../../components/AdminDashboardMonitoring/MonitoringCard";
 import AlertCard from "../../components/AdminDashboardMonitoring/AlertCard";
@@ -71,30 +72,70 @@ const IoTMonitoringPage = () => {
         fetchMonitoringData(true);
     };
 
+    // Update the handlePress function to only show today's data
     const handlePress = (type) => {
-        const historicalData = {
-            temperature: {
-                labels: ["12 PM", "1 PM", "2 PM"],
-                values: [25, 26, 27],
-            },
-            humidity: {
-                labels: ["12 PM", "1 PM", "2 PM"],
-                values: [45, 50, 55],
-            },
-            "soil moisture": {
-                labels: ["12 PM", "1 PM", "2 PM"],
-                values: [30, 35, 40],
-            },
-            motion: {
-                labels: ["12 PM", "1 PM", "2 PM"],
-                values: [0, 1, 0],
-            },
-        };
+        // Convert type to lowercase for consistent comparison
+        const typeLower = type.toLowerCase();
 
-        navigation.navigate("Trends", {
-            type,
-            data: historicalData[type.toLowerCase()],
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Filter data for the selected sensor type AND only today's date
+        const sensorData = iotData.filter((sensor) => {
+            // Check if it matches the sensor type
+            const isCorrectType = sensor.sensor_type === typeLower;
+
+            // Check if the timestamp is from today
+            const sensorDate = new Date(sensor.recorded_at);
+            const isToday = sensorDate >= today;
+
+            return isCorrectType && isToday;
         });
+
+        // Sort by timestamp ascending
+        const sortedData = sensorData.sort(
+            (a, b) => new Date(a.recorded_at) - new Date(b.recorded_at)
+        );
+
+        // Prepare data for chart display
+        const labels = sortedData.map((item) => {
+            const date = new Date(item.recorded_at);
+            return `${date.getHours()}:${date
+                .getMinutes()
+                .toString()
+                .padStart(2, "0")}`;
+        });
+
+        // Format values based on sensor type
+        let values;
+        if (typeLower === "motion") {
+            values = sortedData.map((item) =>
+                item.recorded_value.toLowerCase() === "detected" ? 1 : 0
+            );
+        } else {
+            values = sortedData.map((item) => {
+                // Remove any non-numeric characters and convert to float
+                const numericValue = item.recorded_value.replace(
+                    /[^\d.-]/g,
+                    ""
+                );
+                return parseFloat(numericValue) || 0;
+            });
+        }
+
+        // If we have data, navigate to the trends page
+        if (labels.length > 0) {
+            navigation.navigate("Trends", {
+                type,
+                data: { labels, values },
+            });
+        } else {
+            // Handle the case where no data is available for today
+            Alert.alert("No Data", `No data available for ${type} today.`, [
+                { text: "OK" },
+            ]);
+        }
     };
 
     // Function to remove an alert
