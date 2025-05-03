@@ -5,6 +5,7 @@ import {
     FlatList,
     ActivityIndicator,
     RefreshControl,
+    Alert,
 } from "react-native";
 import ParkGuideCard from "../components/AdminDashboardManage/ParkGuideCard";
 import AddGuideButton from "../components/AdminDashboardManage/GuideButtons";
@@ -49,7 +50,7 @@ const Manage = () => {
                     guide.certification_status === "certified"
                         ? "Active"
                         : "Suspended",
-                park: guide.assigned_park,
+                license_expiry_date: guide.license_expiry_date, // Include certification expiry date
                 user_id: guide.user_id,
                 guide_id: guide.guide_id,
                 email: userDetails[index].email,
@@ -87,50 +88,94 @@ const Manage = () => {
     const handleSuspend = async (id) => {
         try {
             const guideToUpdate = guides.find((guide) => guide.id === id);
-
             if (!guideToUpdate) return;
 
             const newStatus =
                 guideToUpdate.status === "Active" ? "suspended" : "certified";
 
-            console.log(
-                `Sending update request for guide ${guideToUpdate.guide_id} to ${API_URL}/api/park-guides/${guideToUpdate.guide_id}`
-            );
-
-            // Update guide status in the API
-            const response = await fetch(
-                `${API_URL}/api/park-guides/${guideToUpdate.guide_id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
+            // Show confirmation dialog using Alert
+            Alert.alert(
+                "Confirm Action",
+                `Are you sure you want to ${
+                    guideToUpdate.status === "Active" ? "suspend" : "activate"
+                } this guide?`,
+                [
+                    {
+                        text: "Cancel",
+                        style: "cancel",
                     },
-                    body: JSON.stringify({ certification_status: newStatus }),
-                }
-            );
+                    {
+                        text:
+                            guideToUpdate.status === "Active"
+                                ? "Suspend"
+                                : "Activate",
+                        style: "destructive",
+                        onPress: async () => {
+                            try {
+                                // Update guide status in the API
+                                const response = await fetch(
+                                    `${API_URL}/api/park-guides/${guideToUpdate.guide_id}`,
+                                    {
+                                        method: "PUT",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            certification_status: newStatus,
+                                        }),
+                                    }
+                                );
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Server response:", errorData);
-                throw new Error("Failed to update guide status");
-            }
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    console.error(
+                                        "Server response:",
+                                        errorData
+                                    );
+                                    throw new Error(
+                                        "Failed to update guide status"
+                                    );
+                                }
 
-            const result = await response.json();
-            console.log("Success:", result);
+                                const result = await response.json();
+                                console.log("Success:", result);
 
-            // Update local state
-            setGuides((prev) =>
-                prev.map((guide) =>
-                    guide.id === id
-                        ? {
-                              ...guide,
-                              status:
-                                  guide.status === "Active"
-                                      ? "Suspended"
-                                      : "Active",
-                          }
-                        : guide
-                )
+                                // Update local state
+                                setGuides((prev) =>
+                                    prev.map((guide) =>
+                                        guide.id === id
+                                            ? {
+                                                  ...guide,
+                                                  status:
+                                                      guide.status === "Active"
+                                                          ? "Suspended"
+                                                          : "Active",
+                                              }
+                                            : guide
+                                    )
+                                );
+
+                                // Show success message
+                                Alert.alert(
+                                    "Success",
+                                    `Guide has been successfully ${
+                                        guideToUpdate.status === "Active"
+                                            ? "suspended"
+                                            : "activated"
+                                    }.`
+                                );
+                            } catch (err) {
+                                console.error(
+                                    "Error updating guide status:",
+                                    err
+                                );
+                                setError(
+                                    "Failed to update guide status. Please try again later."
+                                );
+                            }
+                        },
+                    },
+                ]
             );
         } catch (err) {
             console.error("Error updating guide status:", err);

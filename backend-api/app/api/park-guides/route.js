@@ -5,7 +5,10 @@ export async function GET() {
     let connection;
     try {
         connection = await getConnection();
-        const [rows] = await connection.execute("SELECT * FROM ParkGuides");
+        // Fetch all park guides, including license_expiry_date
+        const [rows] = await connection.execute(
+            "SELECT guide_id, user_id, certification_status, license_expiry_date FROM ParkGuides"
+        );
         return NextResponse.json(rows, {
             headers: { "Content-Type": "application/json" },
         });
