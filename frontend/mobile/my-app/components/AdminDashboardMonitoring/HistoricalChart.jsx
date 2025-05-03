@@ -1,18 +1,13 @@
-import React from "react";
-import { View, Text, Dimensions } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, Dimensions, StyleSheet } from "react-native";
 import { LineChart } from "react-native-chart-kit";
+import PropTypes from "prop-types";
 
 const HistoricalChart = ({ type, data }) => {
     // Handle empty data gracefully
     if (!data || !data.labels || !data.values || data.labels.length === 0) {
         return (
-            <View
-                style={{
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: 220,
-                }}
-            >
+            <View style={styles.emptyContainer}>
                 <Text>No historical data available</Text>
             </View>
         );
@@ -44,7 +39,7 @@ const HistoricalChart = ({ type, data }) => {
     };
 
     // If we have too many data points, sample them to avoid crowding the x-axis
-    const sampleData = () => {
+    const chartData = useMemo(() => {
         if (data.labels.length <= 10) return data;
 
         const sampleInterval = Math.ceil(data.labels.length / 10);
@@ -57,28 +52,17 @@ const HistoricalChart = ({ type, data }) => {
         }
 
         return { labels: sampledLabels, values: sampledValues };
-    };
+    }, [data]);
 
-    const chartData = sampleData();
+    const formattedTitle = type
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 
     return (
         <View>
             {/* Chart Title */}
-            <Text
-                style={{
-                    fontSize: 18,
-                    fontWeight: "bold",
-                    marginBottom: 10,
-                    textAlign: "center",
-                }}
-            >
-                Today's{" "}
-                {type
-                    .split(" ")
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(" ")}{" "}
-                Data
-            </Text>
+            <Text style={styles.title}>Today's {formattedTitle} Data</Text>
             {/* Line Chart */}
             <LineChart
                 data={{
@@ -95,6 +79,7 @@ const HistoricalChart = ({ type, data }) => {
                 width={screenWidth}
                 height={220}
                 yAxisSuffix={getSuffix()}
+                yAxisLabel="" // Consider adding a label here
                 chartConfig={{
                     backgroundColor: "#fff",
                     backgroundGradientFrom: "#f5f5f5",
@@ -112,57 +97,74 @@ const HistoricalChart = ({ type, data }) => {
                     },
                 }}
                 bezier
-                style={{
-                    marginVertical: 8,
-                    borderRadius: 16,
-                }}
+                style={styles.chart}
             />
             {/* Show legend for motion detection */}
             {type.toLowerCase() === "motion detection" && (
-                <View
-                    style={{
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        marginTop: 10,
-                    }}
-                >
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginRight: 20,
-                        }}
-                    >
-                        <View
-                            style={{
-                                width: 12,
-                                height: 12,
-                                backgroundColor: "orange",
-                                borderRadius: 6,
-                                marginRight: 5,
-                            }}
-                        />
+                <View style={styles.legendContainer}>
+                    <View style={styles.legendItem}>
+                        <View style={styles.legendDotActive} />
                         <Text>1 = Motion Detected</Text>
                     </View>
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                    >
-                        <View
-                            style={{
-                                width: 12,
-                                height: 12,
-                                backgroundColor: "orange",
-                                borderRadius: 6,
-                                marginRight: 5,
-                                opacity: 0.3,
-                            }}
-                        />
+                    <View style={styles.legendItem}>
+                        <View style={styles.legendDotInactive} />
                         <Text>0 = No Motion</Text>
                     </View>
                 </View>
             )}
         </View>
     );
+};
+
+const styles = StyleSheet.create({
+    emptyContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        height: 220,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 10,
+        textAlign: "center",
+    },
+    chart: {
+        marginVertical: 8,
+        borderRadius: 16,
+    },
+    legendContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        marginTop: 10,
+    },
+    legendItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginRight: 20,
+    },
+    legendDotActive: {
+        width: 12,
+        height: 12,
+        backgroundColor: "orange",
+        borderRadius: 6,
+        marginRight: 5,
+    },
+    legendDotInactive: {
+        width: 12,
+        height: 12,
+        backgroundColor: "orange",
+        borderRadius: 6,
+        marginRight: 5,
+        opacity: 0.3,
+    },
+});
+
+HistoricalChart.propTypes = {
+    type: PropTypes.string.isRequired,
+    data: PropTypes.shape({
+        labels: PropTypes.array,
+        values: PropTypes.array,
+    }),
 };
 
 export default HistoricalChart;
