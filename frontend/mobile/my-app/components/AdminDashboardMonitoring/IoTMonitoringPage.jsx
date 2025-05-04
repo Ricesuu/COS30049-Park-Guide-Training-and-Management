@@ -147,7 +147,11 @@ const IoTMonitoringPage = () => {
     const getLatestSensorValue = (sensorType) => {
         if (!iotData || iotData.length === 0) return "N/A";
 
-        // Find the most recent value for the given sensor type
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Find values for the given sensor type
         const matchingSensors = iotData.filter(
             (sensor) => sensor.sensor_type === sensorType
         );
@@ -158,6 +162,15 @@ const IoTMonitoringPage = () => {
         const sortedSensors = matchingSensors.sort(
             (a, b) => new Date(b.recorded_at) - new Date(a.recorded_at)
         );
+
+        // Check if the most recent reading is from today
+        const mostRecentDate = new Date(sortedSensors[0].recorded_at);
+        const isToday = mostRecentDate >= today;
+
+        // Return "No readings today" if the latest reading is not from today
+        if (!isToday) {
+            return "No readings today";
+        }
 
         return sortedSensors[0].recorded_value;
     };
@@ -253,29 +266,48 @@ const IoTMonitoringPage = () => {
                 >
                     <MonitoringCard
                         type="Temperature"
-                        value={`${getLatestSensorValue("temperature")}${
-                            getLatestSensorValue("temperature") !== "N/A"
-                                ? "°C"
-                                : ""
-                        }`}
+                        value={
+                            getLatestSensorValue("temperature") ===
+                            "No readings today"
+                                ? "No readings today"
+                                : `${getLatestSensorValue("temperature")}${
+                                      getLatestSensorValue("temperature") !==
+                                      "N/A"
+                                          ? "°C"
+                                          : ""
+                                  }`
+                        }
                         onPress={() => handlePress("temperature")}
                         style={{ width: "48%" }}
                     />
                     <MonitoringCard
                         type="Humidity"
-                        value={`${getLatestSensorValue("humidity")}${
-                            getLatestSensorValue("humidity") !== "N/A" ? "" : ""
-                        }`}
+                        value={
+                            getLatestSensorValue("humidity") ===
+                            "No readings today"
+                                ? "No readings today"
+                                : `${getLatestSensorValue("humidity")}${
+                                      getLatestSensorValue("humidity") !== "N/A"
+                                          ? "%"
+                                          : ""
+                                  }`
+                        }
                         onPress={() => handlePress("humidity")}
                         style={{ width: "48%" }}
                     />
                     <MonitoringCard
                         type="Soil Moisture"
-                        value={`${getLatestSensorValue("soil moisture")}${
-                            getLatestSensorValue("soil moisture") !== "N/A"
-                                ? ""
-                                : ""
-                        }`}
+                        value={
+                            getLatestSensorValue("soil moisture") ===
+                            "No readings today"
+                                ? "No readings today"
+                                : `${getLatestSensorValue("soil moisture")}${
+                                      getLatestSensorValue("soil moisture") !==
+                                      "N/A"
+                                          ? "%"
+                                          : ""
+                                  }`
+                        }
                         onPress={() => handlePress("soil moisture")}
                         style={{ width: "48%" }}
                     />
