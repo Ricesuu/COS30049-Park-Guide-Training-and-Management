@@ -7,8 +7,8 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
-import MonitoringCard from "../../components/AdminDashboardMonitoring/MonitoringCard";
-import AlertCard from "../../components/AdminDashboardMonitoring/AlertCard";
+import MonitoringCard from "./MonitoringCard";
+import AlertCard from "./AlertCard";
 import { useNavigation } from "expo-router";
 import { fetchData } from "../../src/api/api";
 
@@ -17,31 +17,18 @@ const IoTMonitoringPage = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [iotData, setIotData] = useState([]);
+    const [activeAlerts, setActiveAlerts] = useState([]);
     const [error, setError] = useState(null);
-
-    // State to manage alerts
-    const [alerts, setAlerts] = useState([
-        {
-            title: "High Temperature Alert",
-            description: "Temperature is above 30°C.",
-        },
-        {
-            title: "Low Soil Moisture Alert",
-            description: "Soil moisture is below 20%.",
-        },
-        {
-            title: "Unauthorized Motion Detected",
-            description: "Motion detected near sensitive plant areas.",
-        },
-    ]);
 
     // Fetch IoT monitoring data
     const fetchMonitoringData = async (isRefreshing = false) => {
         try {
             console.log("Fetching IoT monitoring data...");
-            const response = await fetchData("/iot-monitoring");
+            const iotResponse = await fetchData("/iot-monitoring");
+            const alertsResponse = await fetchData("/active-alerts");
 
-            setIotData(response || []);
+            setIotData(iotResponse || []);
+            setActiveAlerts(alertsResponse || []);
             setError(null);
         } catch (err) {
             console.error("Error fetching IoT monitoring data:", err);
@@ -138,9 +125,22 @@ const IoTMonitoringPage = () => {
         }
     };
 
-    // Function to remove an alert
-    const handleRemoveAlert = (index) => {
-        setAlerts((prevAlerts) => prevAlerts.filter((_, i) => i !== index));
+    // Function to handle alert dismissal
+    const handleDismissAlert = async (alertId) => {
+        try {
+            await fetchData("/active-alerts", {
+                method: "DELETE",
+                body: JSON.stringify({ alert_id: alertId }),
+            });
+
+            // Remove the alert from state
+            setActiveAlerts((prevAlerts) =>
+                prevAlerts.filter((alert) => alert.alert_id !== alertId)
+            );
+        } catch (err) {
+            console.error("Failed to dismiss alert:", err);
+            Alert.alert("Error", "Failed to dismiss alert. Please try again.");
+        }
     };
 
     // Helper function to get the latest value of a specific sensor type
@@ -200,6 +200,38 @@ const IoTMonitoringPage = () => {
         return todayMotions.length.toString();
     };
 
+    if (loading) {
+        return (
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
+                <Text style={{ marginTop: 10 }}>
+                    Loading monitoring data...
+                </Text>
+            </View>
+        );
+    }
+
+    // Format alert severity for display
+    const getSeverityStyle = (severity) => {
+        switch (severity.toLowerCase()) {
+            case "high":
+                return { color: "red" };
+            case "medium":
+                return { color: "orange" };
+            case "low":
+                return { color: "blue" };
+            default:
+                return { color: "gray" };
+        }
+    };
+
+    // Loading state
     if (loading) {
         return (
             <View
@@ -288,7 +320,7 @@ const IoTMonitoringPage = () => {
                                 ? "No readings today"
                                 : `${getLatestSensorValue("humidity")}${
                                       getLatestSensorValue("humidity") !== "N/A"
-                                          ? "%"
+                                          ? ""
                                           : ""
                                   }`
                         }
@@ -304,7 +336,7 @@ const IoTMonitoringPage = () => {
                                 : `${getLatestSensorValue("soil moisture")}${
                                       getLatestSensorValue("soil moisture") !==
                                       "N/A"
-                                          ? "%"
+                                          ? ""
                                           : ""
                                   }`
                         }
@@ -320,20 +352,49 @@ const IoTMonitoringPage = () => {
                 </View>
 
                 <Text className="text-2xl font-bold text-gray-800 mt-6 mb-4">
-                    Alerts
+                    Active Alerts{" "}
+                    {activeAlerts.length > 0 && `(${activeAlerts.length})`}
                 </Text>
-                {alerts.map((alert, index) => (
-                    <AlertCard
-                        key={index}
-                        title={alert.title}
-                        description={alert.description}
-                        onRemove={() => handleRemoveAlert(index)}
-                        style={{ marginBottom: 10 }}
-                    />
-                ))}
+
+                {activeAlerts.length === 0 ? (
+                    <View style={{ padding: 20, alignItems: "center" }}>
+                        <Text style={{ color: "#666" }}>
+                            No active alerts at this time
+                        </Text>
+                    </View>
+                ) : (
+                    activeAlerts.map((alert) => (
+                        <AlertCard
+                            key={alert.alert_id}
+                            title={`${
+                                alert.park_name || "Park"
+                            }: ${getSensorDisplayName(alert.sensor_type)}`}
+                            description={`${alert.message} (${alert.recorded_value})`}
+                            severity={alert.severity}
+                            onRemove={() => handleDismissAlert(alert.alert_id)}
+                            style={{ marginBottom: 10 }}
+                        />
+                    ))
+                )}
             </ScrollView>
         </View>
     );
 };
+
+// Helper function to get display-friendly sensor names
+function getSensorDisplayName(sensorType) {
+    switch (sensorType) {
+        case "temperature":
+            return "Temperature Alert";
+        case "humidity":
+            return "Humidity Alert";
+        case "soil moisture":
+            return "Soil Moisture Alert";
+        case "motion":
+            return "Motion Alert";
+        default:
+            return sensorType.charAt(0).toUpperCase() + sensorType.slice(1);
+    }
+}
 
 export default IoTMonitoringPage;

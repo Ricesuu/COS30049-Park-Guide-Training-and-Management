@@ -11,37 +11,42 @@ import {
     StyleSheet,
     ScrollView,
     RefreshControl,
+    TouchableOpacity,
 } from "react-native";
 import { fetchData } from "../../src/api/api";
+import { useNavigation } from "expo-router";
 
 const IoTMonitoring = forwardRef((props, ref) => {
-    const [iotData, setIoTData] = useState([]); // Initialize as an array
-    const [loading, setLoading] = useState(true); // For initial loading
-    const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
+    const navigation = useNavigation();
+    const [iotData, setIoTData] = useState([]);
+    const [activeAlerts, setActiveAlerts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
 
     const loadIoTData = async (isRefreshing = false) => {
         try {
             console.log("Fetching IoT data...");
-            const response = await fetchData("/iot-monitoring"); // Fetch data from the API
+            const iotResponse = await fetchData("/iot-monitoring");
+            const alertsResponse = await fetchData("/active-alerts");
 
-            // Update the state with the fetched data
-            setIoTData(response || []); // Use the response directly or fallback to an empty array
-            setError(null); // Clear any previous errors
+            setIoTData(iotResponse || []);
+            setActiveAlerts(alertsResponse || []);
+            setError(null);
         } catch (err) {
             setError("Failed to load IoT data");
             console.error(err);
         } finally {
             if (isRefreshing) {
-                setRefreshing(false); // Stop pull-to-refresh
+                setRefreshing(false);
             } else {
-                setLoading(false); // Stop initial loading
+                setLoading(false);
             }
         }
     };
 
     useImperativeHandle(ref, () => ({
-        refreshIoTData: () => loadIoTData(true), // Expose this function to the parent
+        refreshIoTData: () => loadIoTData(true),
     }));
 
     useEffect(() => {
@@ -114,6 +119,10 @@ const IoTMonitoring = forwardRef((props, ref) => {
         return todayMotions.length.toString();
     };
 
+    const handleViewAllMonitoring = () => {
+        navigation.navigate("monitor");
+    };
+
     if (loading) {
         return (
             <View style={styles.center}>
@@ -142,15 +151,22 @@ const IoTMonitoring = forwardRef((props, ref) => {
             }
         >
             <View>
-                <Text style={styles.title}>IoT Monitoring</Text>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.title}>IoT Monitoring</Text>
+                    <TouchableOpacity onPress={handleViewAllMonitoring}>
+                        <Text style={styles.viewAll}>View All</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.row}>
                     <View style={styles.card}>
                         <Text
-                            style={[
-                                styles.value,
+                            style={
                                 getLatestSensorValue("temperature") ===
-                                    "No readings today" && styles.smallValue,
-                            ]}
+                                "No readings today"
+                                    ? styles.smallValue
+                                    : styles.value
+                            }
                         >
                             {getLatestSensorValue("temperature") ===
                             "No readings today"
@@ -167,18 +183,19 @@ const IoTMonitoring = forwardRef((props, ref) => {
 
                     <View style={styles.card}>
                         <Text
-                            style={[
-                                styles.value,
+                            style={
                                 getLatestSensorValue("humidity") ===
-                                    "No readings today" && styles.smallValue,
-                            ]}
+                                "No readings today"
+                                    ? styles.smallValue
+                                    : styles.value
+                            }
                         >
                             {getLatestSensorValue("humidity") ===
                             "No readings today"
                                 ? "No readings today"
                                 : `${getLatestSensorValue("humidity")}${
                                       getLatestSensorValue("humidity") !== "N/A"
-                                          ? "%"
+                                          ? ""
                                           : ""
                                   }`}
                         </Text>
@@ -189,11 +206,12 @@ const IoTMonitoring = forwardRef((props, ref) => {
                 <View style={styles.row}>
                     <View style={styles.card}>
                         <Text
-                            style={[
-                                styles.value,
+                            style={
                                 getLatestSensorValue("soil moisture") ===
-                                    "No readings today" && styles.smallValue,
-                            ]}
+                                "No readings today"
+                                    ? styles.smallValue
+                                    : styles.value
+                            }
                         >
                             {getLatestSensorValue("soil moisture") ===
                             "No readings today"
@@ -201,7 +219,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                 : `${getLatestSensorValue("soil moisture")}${
                                       getLatestSensorValue("soil moisture") !==
                                       "N/A"
-                                          ? "%"
+                                          ? ""
                                           : ""
                                   }`}
                         </Text>
@@ -215,17 +233,45 @@ const IoTMonitoring = forwardRef((props, ref) => {
                         <Text style={styles.label}>Motion Events Today</Text>
                     </View>
                 </View>
+
+                {activeAlerts.length > 0 && (
+                    <View style={styles.alertsContainer}>
+                        <Text style={styles.alertsTitle}>
+                            Active Alerts ({activeAlerts.length})
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.alertBadge}
+                            onPress={handleViewAllMonitoring}
+                        >
+                            <Text style={styles.alertBadgeText}>
+                                {activeAlerts.length}{" "}
+                                {activeAlerts.length === 1 ? "alert" : "alerts"}{" "}
+                                require attention
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
         </ScrollView>
     );
 });
 
 const styles = StyleSheet.create({
+    headerContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+    },
     title: {
         fontSize: 24,
         fontWeight: "bold",
         marginBottom: 10,
         color: "#333",
+    },
+    viewAll: {
+        color: "rgb(22, 163, 74)",
+        fontWeight: "bold",
     },
     row: {
         flexDirection: "row",
@@ -247,9 +293,9 @@ const styles = StyleSheet.create({
         color: "#333",
     },
     smallValue: {
-        fontSize: 18, // Smaller font size for "No readings today"
-        fontWeight: "bold", // Optional: make it less bold
-        textAlign: "center", // Center the text
+        fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "center",
     },
     label: {
         fontSize: 16,
@@ -265,6 +311,26 @@ const styles = StyleSheet.create({
     error: {
         color: "red",
         fontSize: 16,
+    },
+    alertsContainer: {
+        marginTop: 10,
+    },
+    alertsTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 10,
+    },
+    alertBadge: {
+        backgroundColor: "#FFEBEB",
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: "#FF8080",
+    },
+    alertBadgeText: {
+        color: "#CC0000",
+        fontWeight: "bold",
+        textAlign: "center",
     },
 });
 

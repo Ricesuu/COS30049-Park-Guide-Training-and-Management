@@ -129,7 +129,37 @@ CREATE TABLE IF NOT EXISTS PaymentTransactions (
 );
 
 -- ==============================================
+-- Table: Alert Thresholds Table
+CREATE TABLE IF NOT EXISTS AlertThresholds (
+  threshold_id INT AUTO_INCREMENT PRIMARY KEY,
+  sensor_type VARCHAR(50) NOT NULL,
+  park_id INT NOT NULL,
+  min_threshold FLOAT NULL,
+  max_threshold FLOAT NULL,
+  trigger_message VARCHAR(255) NOT NULL,
+  severity ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
+  is_enabled BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (park_id) REFERENCES Parks(park_id),
+  UNIQUE KEY unique_threshold (sensor_type, park_id)
+);
 
+-- ==============================================
+-- Table: Active Alerts Table
+CREATE TABLE IF NOT EXISTS ActiveAlerts (
+  alert_id INT AUTO_INCREMENT PRIMARY KEY,
+  park_id INT NOT NULL,
+  sensor_type VARCHAR(50) NOT NULL,
+  recorded_value VARCHAR(50) NOT NULL,
+  threshold_id INT NOT NULL,
+  message VARCHAR(255) NOT NULL,
+  severity ENUM('low', 'medium', 'high') NOT NULL,
+  is_acknowledged BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (park_id) REFERENCES Parks(park_id),
+  FOREIGN KEY (threshold_id) REFERENCES AlertThresholds(threshold_id)
+);
 
 
 
@@ -444,3 +474,22 @@ SELECT * from PaymentTransactions;
 
 
 
+
+
+-- THEN insert the AlertThresholds data
+INSERT INTO AlertThresholds (park_id, sensor_type, min_threshold, max_threshold, trigger_message, severity) VALUES
+-- Temperature thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', 15, 30, 'Temperature threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', 16, 28, 'Temperature threshold exceeded', 'medium'),
+
+-- Humidity thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', 50, 80, 'Humidity threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', 60, 85, 'Humidity threshold exceeded', 'medium'),
+
+-- Soil moisture thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', 30, 70, 'Soil moisture threshold exceeded', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', 40, 70, 'Soil moisture threshold exceeded', 'high'),
+
+-- Motion detection is handled differently - no min/max but presence/absence
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', NULL, NULL, 'Unauthorized motion detected', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', NULL, NULL, 'Unauthorized motion detected', 'high');
