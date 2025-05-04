@@ -6,9 +6,12 @@ import {
     RefreshControl,
     ActivityIndicator,
     Alert,
+    StyleSheet,
+    TouchableOpacity,
 } from "react-native";
 import MonitoringCard from "./MonitoringCard";
 import AlertCard from "./AlertCard";
+import AlertTestingTool from "./AlertTestingTool";
 import { useNavigation } from "expo-router";
 import { fetchData } from "../../src/api/api";
 
@@ -19,19 +22,43 @@ const IoTMonitoringPage = () => {
     const [iotData, setIotData] = useState([]);
     const [activeAlerts, setActiveAlerts] = useState([]);
     const [error, setError] = useState(null);
+    const [showTestingTool, setShowTestingTool] = useState(false);
 
     // Fetch IoT monitoring data
-    const fetchMonitoringData = async (isRefreshing = false) => {
+    const fetchMonitoringData = async (
+        isRefreshing = false,
+        showMessage = false
+    ) => {
         try {
+            console.log("==== MONITORING DATA FETCH START ====");
             console.log("Fetching IoT monitoring data...");
             const iotResponse = await fetchData("/iot-monitoring");
+            console.log(`Fetched ${iotResponse?.length || 0} IoT records`);
+
             const alertsResponse = await fetchData("/active-alerts");
+            console.log(`Fetched ${alertsResponse?.length || 0} active alerts`);
+            console.log("==== MONITORING DATA FETCH COMPLETE ====");
 
             setIotData(iotResponse || []);
             setActiveAlerts(alertsResponse || []);
             setError(null);
+
+            // Show success message when refreshing after test data submission
+            if (showMessage) {
+                Alert.alert(
+                    "Data Refreshed",
+                    "The monitoring data has been refreshed with the latest values."
+                );
+            }
         } catch (err) {
+            console.error("==== MONITORING DATA FETCH ERROR ====");
             console.error("Error fetching IoT monitoring data:", err);
+            console.error("Error details:", {
+                message: err.message,
+                stack: err.stack,
+            });
+            console.error("==== END ERROR LOG ====");
+
             setError("Failed to load IoT monitoring data. Please try again.");
         } finally {
             setLoading(false);
@@ -41,20 +68,36 @@ const IoTMonitoringPage = () => {
         }
     };
 
+    // Callback function for AlertTestingTool
+    const handleTestDataSubmitted = () => {
+        console.log("==== TEST DATA REFRESH START ====");
+        console.log("Test data submitted, refreshing data...");
+        // Fetch data with refreshing indicator and show success message
+        setRefreshing(true);
+        fetchMonitoringData(true, true);
+        console.log("==== TEST DATA REFRESH END ====");
+    };
+
     // Load data on component mount
     useEffect(() => {
+        console.log("IoTMonitoringPage mounted, fetching initial data");
         fetchMonitoringData();
 
         // Set up periodic refresh every 60 seconds for real-time monitoring
         const interval = setInterval(() => {
+            console.log("Periodic refresh timer triggered");
             fetchMonitoringData();
         }, 60000);
 
-        return () => clearInterval(interval);
+        return () => {
+            console.log("IoTMonitoringPage unmounted, clearing interval");
+            clearInterval(interval);
+        };
     }, []);
 
     // Pull-to-refresh handler
     const onRefresh = () => {
+        console.log("Manual pull-to-refresh triggered");
         setRefreshing(true);
         fetchMonitoringData(true);
     };
@@ -128,17 +171,19 @@ const IoTMonitoringPage = () => {
     // Function to handle alert dismissal
     const handleDismissAlert = async (alertId) => {
         try {
+            console.log(`Dismissing alert with ID: ${alertId}`);
             await fetchData("/active-alerts", {
                 method: "DELETE",
                 body: JSON.stringify({ alert_id: alertId }),
             });
+            console.log(`Successfully dismissed alert with ID: ${alertId}`);
 
             // Remove the alert from state
             setActiveAlerts((prevAlerts) =>
                 prevAlerts.filter((alert) => alert.alert_id !== alertId)
             );
         } catch (err) {
-            console.error("Failed to dismiss alert:", err);
+            console.error(`Error dismissing alert with ID ${alertId}:`, err);
             Alert.alert("Error", "Failed to dismiss alert. Please try again.");
         }
     };
@@ -200,23 +245,6 @@ const IoTMonitoringPage = () => {
         return todayMotions.length.toString();
     };
 
-    if (loading) {
-        return (
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
-                <Text style={{ marginTop: 10 }}>
-                    Loading monitoring data...
-                </Text>
-            </View>
-        );
-    }
-
     // Format alert severity for display
     const getSeverityStyle = (severity) => {
         switch (severity.toLowerCase()) {
@@ -231,26 +259,24 @@ const IoTMonitoringPage = () => {
         }
     };
 
-    // Loading state
-    if (loading) {
-        return (
-            <View
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
-                <Text style={{ marginTop: 10 }}>
-                    Loading monitoring data...
-                </Text>
-            </View>
-        );
+    // Helper function to get display-friendly sensor names
+    function getSensorDisplayName(sensorType) {
+        switch (sensorType.toLowerCase()) {
+            case "temperature":
+                return "Temperature";
+            case "humidity":
+                return "Humidity";
+            case "soil moisture":
+                return "Soil Moisture";
+            case "motion":
+                return "Motion Detection";
+            default:
+                return sensorType;
+        }
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+        <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <Text
                 style={{
                     fontSize: 24,
@@ -258,14 +284,20 @@ const IoTMonitoringPage = () => {
                     fontWeight: "bold",
                     textAlign: "center",
                     paddingVertical: 20,
-                    backgroundColor: "rgb(22, 163, 74)",
                 }}
             >
                 IoT Monitoring
             </Text>
-
             <ScrollView
-                contentContainerStyle={{ padding: 10 }}
+                style={{
+                    backgroundColor: "white",
+                    borderTopLeftRadius: 30,
+                    borderTopRightRadius: 30,
+                    paddingTop: 20,
+                    paddingHorizontal: 15,
+                    flex: 1,
+                }}
+                contentContainerStyle={{ paddingBottom: 120 }}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -274,127 +306,178 @@ const IoTMonitoringPage = () => {
                     />
                 }
             >
-                {error && (
-                    <Text
+                {loading ? (
+                    <View
                         style={{
-                            color: "red",
-                            textAlign: "center",
-                            marginBottom: 10,
+                            paddingVertical: 50,
+                            alignItems: "center",
+                            justifyContent: "center",
                         }}
                     >
-                        {error}
-                    </Text>
-                )}
-
-                <Text className="text-2xl font-bold text-gray-800 mb-4">
-                    Monitored Parameters
-                </Text>
-                <View
-                    style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        justifyContent: "space-between",
-                    }}
-                >
-                    <MonitoringCard
-                        type="Temperature"
-                        value={
-                            getLatestSensorValue("temperature") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("temperature")}${
-                                      getLatestSensorValue("temperature") !==
-                                      "N/A"
-                                          ? "°C"
-                                          : ""
-                                  }`
-                        }
-                        onPress={() => handlePress("temperature")}
-                        style={{ width: "48%" }}
-                    />
-                    <MonitoringCard
-                        type="Humidity"
-                        value={
-                            getLatestSensorValue("humidity") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("humidity")}${
-                                      getLatestSensorValue("humidity") !== "N/A"
-                                          ? ""
-                                          : ""
-                                  }`
-                        }
-                        onPress={() => handlePress("humidity")}
-                        style={{ width: "48%" }}
-                    />
-                    <MonitoringCard
-                        type="Soil Moisture"
-                        value={
-                            getLatestSensorValue("soil moisture") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("soil moisture")}${
-                                      getLatestSensorValue("soil moisture") !==
-                                      "N/A"
-                                          ? ""
-                                          : ""
-                                  }`
-                        }
-                        onPress={() => handlePress("soil moisture")}
-                        style={{ width: "48%" }}
-                    />
-                    <MonitoringCard
-                        type="Motion Detection"
-                        value={`${getMotionDetectionCount()} motion(s) today`}
-                        onPress={() => handlePress("motion")}
-                        style={{ width: "48%" }}
-                    />
-                </View>
-
-                <Text className="text-2xl font-bold text-gray-800 mt-6 mb-4">
-                    Active Alerts{" "}
-                    {activeAlerts.length > 0 && `(${activeAlerts.length})`}
-                </Text>
-
-                {activeAlerts.length === 0 ? (
-                    <View style={{ padding: 20, alignItems: "center" }}>
-                        <Text style={{ color: "#666" }}>
-                            No active alerts at this time
+                        <ActivityIndicator
+                            size="large"
+                            color="rgb(22, 163, 74)"
+                        />
+                        <Text style={{ marginTop: 10 }}>
+                            Loading IoT data...
                         </Text>
                     </View>
                 ) : (
-                    activeAlerts.map((alert) => (
-                        <AlertCard
-                            key={alert.alert_id}
-                            title={`${
-                                alert.park_name || "Park"
-                            }: ${getSensorDisplayName(alert.sensor_type)}`}
-                            description={`${alert.message} (${alert.recorded_value})`}
-                            severity={alert.severity}
-                            onRemove={() => handleDismissAlert(alert.alert_id)}
-                            style={{ marginBottom: 10 }}
-                        />
-                    ))
+                    <>
+                        {error && (
+                            <Text
+                                style={{
+                                    color: "red",
+                                    textAlign: "center",
+                                    marginBottom: 10,
+                                }}
+                            >
+                                {error}
+                            </Text>
+                        )}
+
+                        <Text className="text-xl font-bold text-gray-800 mb-4">
+                            Current Sensor Readings
+                        </Text>
+
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <MonitoringCard
+                                type="Temperature"
+                                value={
+                                    getLatestSensorValue("temperature") ===
+                                    "No readings today"
+                                        ? "No readings today"
+                                        : `${getLatestSensorValue(
+                                              "temperature"
+                                          )}${
+                                              getLatestSensorValue(
+                                                  "temperature"
+                                              ) !== "N/A"
+                                                  ? "°C"
+                                                  : ""
+                                          }`
+                                }
+                                onPress={() => handlePress("temperature")}
+                                style={{ width: "48%" }}
+                            />
+                            <MonitoringCard
+                                type="Humidity"
+                                value={
+                                    getLatestSensorValue("humidity") ===
+                                    "No readings today"
+                                        ? "No readings today"
+                                        : `${getLatestSensorValue("humidity")}${
+                                              getLatestSensorValue(
+                                                  "humidity"
+                                              ) !== "N/A"
+                                                  ? ""
+                                                  : ""
+                                          }`
+                                }
+                                onPress={() => handlePress("humidity")}
+                                style={{ width: "48%" }}
+                            />
+                            <MonitoringCard
+                                type="Soil Moisture"
+                                value={
+                                    getLatestSensorValue("soil moisture") ===
+                                    "No readings today"
+                                        ? "No readings today"
+                                        : `${getLatestSensorValue(
+                                              "soil moisture"
+                                          )}${
+                                              getLatestSensorValue(
+                                                  "soil moisture"
+                                              ) !== "N/A"
+                                                  ? ""
+                                                  : ""
+                                          }`
+                                }
+                                onPress={() => handlePress("soil moisture")}
+                                style={{ width: "48%" }}
+                            />
+                            <MonitoringCard
+                                type="Motion Detection"
+                                value={`${getMotionDetectionCount()} motion(s) today`}
+                                onPress={() => handlePress("motion")}
+                                style={{ width: "48%" }}
+                            />
+                        </View>
+
+                        <Text className="text-2xl font-bold text-gray-800 mt-6 mb-4">
+                            Active Alerts{" "}
+                            {activeAlerts.length > 0 &&
+                                `(${activeAlerts.length})`}
+                        </Text>
+
+                        {activeAlerts.length === 0 ? (
+                            <View style={{ padding: 20, alignItems: "center" }}>
+                                <Text style={{ color: "#666" }}>
+                                    No active alerts at this time
+                                </Text>
+                            </View>
+                        ) : (
+                            activeAlerts.map((alert) => (
+                                <AlertCard
+                                    key={alert.alert_id}
+                                    title={`${
+                                        alert.park_name || "Park"
+                                    }: ${getSensorDisplayName(
+                                        alert.sensor_type
+                                    )}`}
+                                    description={`${alert.message} (${alert.recorded_value})`}
+                                    severity={alert.severity}
+                                    onRemove={() =>
+                                        handleDismissAlert(alert.alert_id)
+                                    }
+                                    style={{ marginBottom: 10 }}
+                                />
+                            ))
+                        )}
+
+                        {/* Toggle button for showing/hiding the testing tool */}
+                        <TouchableOpacity
+                            style={styles.toggleButton}
+                            onPress={() => setShowTestingTool((prev) => !prev)}
+                        >
+                            <Text style={styles.toggleButtonText}>
+                                {showTestingTool
+                                    ? "Hide Testing Tool"
+                                    : "Show Testing Tool"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Conditionally render the testing tool and pass the refresh callback */}
+                        {showTestingTool && (
+                            <AlertTestingTool
+                                onSubmitSuccess={handleTestDataSubmitted}
+                            />
+                        )}
+                    </>
                 )}
             </ScrollView>
         </View>
     );
 };
 
-// Helper function to get display-friendly sensor names
-function getSensorDisplayName(sensorType) {
-    switch (sensorType) {
-        case "temperature":
-            return "Temperature Alert";
-        case "humidity":
-            return "Humidity Alert";
-        case "soil moisture":
-            return "Soil Moisture Alert";
-        case "motion":
-            return "Motion Alert";
-        default:
-            return sensorType.charAt(0).toUpperCase() + sensorType.slice(1);
-    }
-}
+const styles = StyleSheet.create({
+    toggleButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        padding: 12,
+        borderRadius: 8,
+        marginVertical: 20,
+        alignItems: "center",
+    },
+    toggleButtonText: {
+        color: "white",
+        fontWeight: "bold",
+    },
+});
 
 export default IoTMonitoringPage;

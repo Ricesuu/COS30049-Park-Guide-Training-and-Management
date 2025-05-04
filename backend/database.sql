@@ -476,19 +476,18 @@ SELECT * from PaymentTransactions;
 
 
 
--- THEN insert the AlertThresholds data
 INSERT INTO AlertThresholds (park_id, sensor_type, min_threshold, max_threshold, trigger_message, severity) VALUES
 -- Temperature thresholds
-((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', 15, 30, 'Temperature threshold exceeded', 'medium'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', 16, 28, 'Temperature threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', 15, 19, 'Temperature threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', 16, 19, 'Temperature threshold exceeded', 'medium'),
 
 -- Humidity thresholds
-((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', 50, 80, 'Humidity threshold exceeded', 'medium'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', 60, 85, 'Humidity threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', 50, 51, 'Humidity threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', 60, 61, 'Humidity threshold exceeded', 'medium'),
 
 -- Soil moisture thresholds
-((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', 30, 70, 'Soil moisture threshold exceeded', 'high'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', 40, 70, 'Soil moisture threshold exceeded', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', 30, 31, 'Soil moisture threshold exceeded', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', 30, 31, 'Soil moisture threshold exceeded', 'high'),
 
 -- Motion detection is handled differently - no min/max but presence/absence
 ((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', NULL, NULL, 'Unauthorized motion detected', 'high'),
