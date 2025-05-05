@@ -1,6 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import IoTMonitoringPage from "../../../components/AdminDashboardMonitoring/IoTMonitoringPage";
+import IoTMonitoringPage from "../../../components/ADMINdashboard/AdminDashboardMonitoring/IoTMonitoringPage";
 import TrendsPage from "./trends";
 
 const Stack = createNativeStackNavigator();

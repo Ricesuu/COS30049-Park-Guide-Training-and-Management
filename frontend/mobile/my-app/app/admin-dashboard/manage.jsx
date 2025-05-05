@@ -7,9 +7,9 @@ import {
     RefreshControl,
     Alert,
 } from "react-native";
-import ParkGuideCard from "../../components/AdminDashboardManage/ParkGuideCard";
-import AddGuideButton from "../../components/AdminDashboardManage/GuideButtons";
-import GuideDetailModal from "../../components/AdminDashboardManage/GuideDetailModal";
+import ParkGuideCard from "../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
+import AddGuideButton from "../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
+import GuideDetailModal from "../../components/ADMINdashboard/AdminDashboardManage/GuideDetailModal";
 import { fetchData } from "../../src/api/api"; // Import fetchData utility
 import { API_URL } from "../../src/constants/constants"; // Import API_URL
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
-import HistoricalChart from "../../../components/AdminDashboardMonitoring/HistoricalChart";
-import MotionDetectionLog from "../../../components/AdminDashboardMonitoring/MotionDetectionLog";
+import HistoricalChart from "../../../components/ADMINdashboard/AdminDashboardMonitoring/HistoricalChart";
+import MotionDetectionLog from "../../../components/ADMINdashboard/AdminDashboardMonitoring/MotionDetectionLog";
 
 const TrendsPage = ({ route }) => {
     const { type, data } = route.params;

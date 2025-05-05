@@ -142,8 +142,8 @@ export const useLoginHandler = () => {
             }
 
             const routeMap = {
-                admin: "/admin-dashboard", // Changed from "/admin" to "/admin-dashboard"
-                park_guide: "/park_guide/",
+                admin: "/admin-dashboard",
+                park_guide: "/pg-dashboard/with-layout", // Fixed: Changed from "/pg-dashboard/" to include the subfolder
             };
 
             const targetRoute = routeMap[userData.role];

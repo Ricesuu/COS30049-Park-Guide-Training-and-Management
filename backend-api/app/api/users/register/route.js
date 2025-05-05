@@ -55,7 +55,7 @@ export async function POST(req) {
         try {
             await connection.execute(
                 `INSERT INTO users 
-         (uid, email, firstName, lastName, role, status, failed_attempts, last_failed_attempt, locked_until, createdAt)
+         (uid, email, first_name, last_name, role, status, failed_attempts, last_failed_attempt, locked_until, created_at)
          VALUES (?, ?, ?, ?, ?, 'pending', 0, NULL, NULL, NOW())`,
                 [uid, email, firstName, lastName, role]
             );

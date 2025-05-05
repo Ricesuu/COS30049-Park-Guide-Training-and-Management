@@ -1,10 +1,10 @@
 import React, { useRef, useState } from "react";
 import { View, ScrollView, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Import useNavigation
-import Header from "../../components/AdminDashboardHome/Header";
-import PendingApprovals from "../../components/AdminDashboardHome/PendingApprovals";
-import IoTMonitoring from "../../components/AdminDashboardHome/IoTMonitoring";
-import RecentActivities from "../../components/AdminDashboardHome/RecentActivities";
+import Header from "../../components/ADMINdashboard/AdminDashboardHome/Header";
+import PendingApprovals from "../../components/ADMINdashboard/AdminDashboardHome/PendingApprovals";
+import IoTMonitoring from "../../components/ADMINdashboard/AdminDashboardHome/IoTMonitoring";
+import RecentActivities from "../../components/ADMINdashboard/AdminDashboardHome/RecentActivities";
 
 const HomePage = () => {
     const navigation = useNavigation(); // Use the navigation hook

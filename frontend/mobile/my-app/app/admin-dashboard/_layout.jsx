@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import MainTabBar from "../../components/MainTabBar";
+import MainTabBar from "../../components/ADMINdashboard/MainTabBar";
 
 const _layout = () => {
     return (
