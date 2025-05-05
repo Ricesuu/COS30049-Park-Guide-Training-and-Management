@@ -34,7 +34,10 @@ const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
                 <Text className="text-lg font-bold">{guide.name}</Text>
                 <Text className="text-gray-600">Role: {guide.role}</Text>
                 <Text className="text-gray-600">Status: {guide.status}</Text>
-                <Text className="text-gray-600">Park: {guide.park}</Text>
+                <Text className="text-gray-600">
+                    Certification Expiry:{" "}
+                    {new Date(guide.license_expiry_date).toLocaleDateString()}
+                </Text>
             </View>
 
             {/* Action buttons */}

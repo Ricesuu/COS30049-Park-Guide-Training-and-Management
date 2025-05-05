@@ -1,9 +1,25 @@
 import React from "react";
 import { View, Text } from "react-native";
 import HistoricalChart from "../../components/AdminDashboardMonitoring/HistoricalChart";
+import MotionDetectionLog from "../../components/AdminDashboardMonitoring/MotionDetectionLog";
 
 const TrendsPage = ({ route }) => {
-    const { type, data } = route.params; // Get the type (e.g., Temperature) and data from navigation params
+    const { type, data } = route.params;
+
+    // Check if data is valid
+    const hasValidData =
+        data && data.labels && data.values && data.labels.length > 0;
+
+    // Function to format type string for display
+    const formatTypeForDisplay = (typeStr) => {
+        return typeStr
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+    };
+
+    // Determine whether to show chart or timeline based on type
+    const isMotionDetection = type.toLowerCase().includes("motion");
 
     return (
         <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
@@ -18,12 +34,31 @@ const TrendsPage = ({ route }) => {
                     backgroundColor: "rgb(22, 163, 74)",
                 }}
             >
-                {type} Trends
+                {formatTypeForDisplay(type)} Trends
             </Text>
 
-            {/* Historical Chart */}
-            <View style={{ padding: 20 }}>
-                <HistoricalChart type={type} data={data} />
+            {/* Chart or Timeline */}
+            <View style={{ padding: 20, flex: 1 }}>
+                {hasValidData ? (
+                    isMotionDetection ? (
+                        <MotionDetectionLog type={type} data={data} />
+                    ) : (
+                        <HistoricalChart type={type} data={data} />
+                    )
+                ) : (
+                    <View
+                        style={{
+                            alignItems: "center",
+                            flex: 1,
+                            justifyContent: "center",
+                        }}
+                    >
+                        <Text style={{ fontSize: 16, textAlign: "center" }}>
+                            No historical data available for{" "}
+                            {formatTypeForDisplay(type)}.
+                        </Text>
+                    </View>
+                )}
             </View>
         </View>
     );

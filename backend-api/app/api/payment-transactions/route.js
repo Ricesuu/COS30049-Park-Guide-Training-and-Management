@@ -1,15 +1,53 @@
-// app/api/payment-transactions/route.js
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 
 export async function GET() {
     let connection;
+
     try {
         connection = await getConnection();
-        const [rows] = await connection.execute(
-            "SELECT * FROM PaymentTransactions"
+
+        // Step 1: Get payment transactions
+        const [transactions] = await connection.execute(
+            `SELECT * FROM PaymentTransactions WHERE payment_status = 'pending'`
         );
-        return NextResponse.json(rows);
+
+        // Step 2: For each transaction, get the user details
+        const results = [];
+
+        for (const transaction of transactions) {
+            const [users] = await connection.execute(
+                `SELECT first_name, last_name, email FROM Users WHERE user_id = ?`,
+                [transaction.user_id]
+            );
+
+            if (users.length > 0) {
+                results.push({
+                    ...transaction,
+                    first_name: users[0].first_name,
+                    last_name: users[0].last_name,
+                    email: users[0].email,
+                });
+            } else {
+                results.push({
+                    ...transaction,
+                    first_name: "Unknown",
+                    last_name: "User",
+                    email: "No email provided",
+                });
+            }
+        }
+
+        // Remove this line that's causing the log output:
+        // console.log("Final results:", results);
+
+        return NextResponse.json(results, {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
+        });
     } catch (error) {
         console.error("Error fetching payment transactions:", error);
         return NextResponse.json(
@@ -18,30 +56,5 @@ export async function GET() {
         );
     } finally {
         if (connection) connection.release();
-    }
-}
-
-export async function POST(request) {
-    try {
-        const body = await request.json();
-        const { user_id, amount, payment_status, payment_method } = body;
-        const connection = await getConnection();
-        const [result] = await connection.execute(
-            "INSERT INTO PaymentTransactions (user_id, amount, payment_status, payment_method) VALUES (?, ?, ?, ?)",
-            [user_id, amount, payment_status, payment_method]
-        );
-        return NextResponse.json(
-            {
-                id: result.insertId,
-                message: "Payment transaction created successfully",
-            },
-            { status: 201 }
-        );
-    } catch (error) {
-        console.error("Error creating payment transaction:", error);
-        return NextResponse.json(
-            { error: "Failed to create payment transaction" },
-            { status: 500 }
-        );
     }
 }
