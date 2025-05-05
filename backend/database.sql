@@ -5,12 +5,15 @@ USE park_guide_management;
 -- Table: User
 CREATE TABLE IF NOT EXISTS Users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
+  uid VARCHAR(255) NOT NULL UNIQUE, -- Firebase UID
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'park_guide', 'visitor') NOT NULL,
-  phone_number VARCHAR(20),
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'park_guide') NOT NULL DEFAULT 'park_guide',
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  failed_attempts INT DEFAULT 0,
+  last_failed_attempt DATETIME DEFAULT NULL,
+  locked_until DATETIME DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -121,9 +124,12 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
 CREATE TABLE IF NOT EXISTS PaymentTransactions (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    uid VARCHAR(255) NULL,
     amount DECIMAL(10,2) NOT NULL,
     payment_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
     payment_method ENUM('debit_card', 'digital_wallet') NOT NULL,
+    paymentPurpose VARCHAR(255) NULL,
+    receipt_path VARCHAR(255) NULL,
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
@@ -166,13 +172,10 @@ CREATE TABLE IF NOT EXISTS ActiveAlerts (
 
 -- DUMMY DATA
 
--- Dummy Users Data
-INSERT INTO Users (first_name, last_name, email, password_hash, role, phone_number) VALUES
-('Alice', 'Brown', 'alice.brown@example.com', 'abc123hashed', 'visitor', '1234567890'),
-('Bob', 'Smith', 'bob.smith@example.com', 'xyz456hashed', 'park_guide', '9876543210'),
-('Charlie', 'Johnson', 'charlie.johnson@example.com', 'def789hashed', 'admin', NULL),
-('David', 'Williams', 'david.williams@example.com', 'ghi101hashed', 'visitor', '5555555555'),
-('Eva', 'Taylor', 'eva.taylor@example.com', 'jkl202hashed', 'park_guide', '4444444444');
+-- Updated Dummy Users Data
+INSERT INTO Users (uid, email, first_name, last_name, role, status) VALUES 
+('vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved');
+
 SELECT * from Users;
 
 
@@ -180,10 +183,7 @@ SELECT * from Users;
 
 
 -- Dummy Park Guides Data
-INSERT INTO ParkGuides (user_id, certification_status, license_expiry_date, assigned_park) VALUES
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 'certified', '2025-12-31', 'Bako National Park'),
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 'pending', NULL, 'Semenggoh Wildlife Centre');
-SELECT * from ParkGuides;
+
 
 
 
@@ -203,49 +203,19 @@ SELECT * from TrainingModules;
 
 
 -- Dummy Guide Training Progress Data
-INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date) VALUES
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), 'Completed', '2025-04-01'),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Advanced Navigation Techniques'), 'in progress', NULL),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), 'Completed', '2025-03-15'),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Emergency First Aid'), 'in progress', NULL);
-SELECT * from GuideTrainingProgress;
 
 
 
 
 
 -- Dummy Multi-License Training Exemptions Data
-INSERT INTO MultiLicenseTrainingExemptions (guide_id, training_id, exempted_training_id) VALUES
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Advanced Navigation Techniques')),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Emergency First Aid'));
-SELECT * from MultiLicenseTrainingExemptions;
 
 
 
 
 
 -- Dummy Certifications Data
-INSERT INTO Certifications (guide_id, module_id, issued_date, expiry_date) VALUES
--- Certification for Bob Smith: "Basic Park Safety"
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), '2025-04-01', '2026-04-01'),
 
--- Certification for Eva Taylor: "Wildlife Interaction Guidelines"
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), '2025-03-15', '2026-03-15');
-SELECT * from Certifications;
 
 
 
@@ -430,47 +400,14 @@ SELECT * from IoTMonitoring;
 
 
 -- Dummy Visitor Feedback Data
-INSERT INTO VisitorFeedback (visitor_id, guide_id, rating, comment) VALUES
--- Feedback for Bob Smith
-((SELECT user_id FROM Users WHERE email = 'david.williams@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- 5, 'Bob was an amazing guide! Very knowledgeable and friendly.'),
 
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- 4, 'Great experience, but the tour could have been a bit longer.'),
-
--- Feedback for Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'david.williams@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- 3, 'Eva was good, but the group size made it hard to interact.'),
-
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- 5, 'Eva was fantastic! She made the experience unforgettable.');
-SELECT * from VisitorFeedback;
 
 
 
 
 
 -- Dummy Payment Transactions Data
-INSERT INTO PaymentTransactions (user_id, amount, payment_status, payment_method, transaction_date) VALUES
--- Payment for certification fees by Bob Smith
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 150.00, 'completed', 'debit_card', '2025-04-01 09:00:00'),
 
--- Payment for advanced training course by Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 200.00, 'completed', 'digital_wallet', '2025-04-02 14:30:00'),
-
--- Pending payment for certification renewal by Bob Smith
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 120.00, 'pending', 'digital_wallet', '2025-04-03 10:45:00'),
-
--- Failed payment for new training module by Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 180.00, 'failed', 'debit_card', '2025-04-04 16:15:00'),
-
--- Payment for certification fees by Alice Brown (New applicant)
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 100.00, 'completed', 'debit_card', '2025-04-05 08:20:00');
-SELECT * from PaymentTransactions;
 
 
 
