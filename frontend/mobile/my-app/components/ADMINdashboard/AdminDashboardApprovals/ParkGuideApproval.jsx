@@ -8,39 +8,31 @@ import {
 } from "react-native";
 import { fetchData } from "../../../src/api/api"; // Import fetchData utility
 import { API_URL } from "../../../src/constants/constants"; // Import API_URL
+import { auth } from "../../../lib/Firebase"; // Import Firebase auth
 
 const ParkGuideApproval = () => {
     const [applicants, setApplicants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Function to fetch park guide data with user details
+    // Function to fetch pending park guide users
     const fetchApplicants = async (isRefreshing = false) => {
         try {
-            console.log("Fetching park guide approvals...");
-            const parkGuidesResponse = await fetchData("/park-guides"); // Fetch data from the ParkGuides table
+            console.log("Fetching pending park guide users...");
+            // Fetch all users
+            const usersResponse = await fetchData("/users");
 
-            // Filter guides with certification_status 'pending'
-            const pendingGuides = parkGuidesResponse.filter(
-                (guide) =>
-                    guide.certification_status &&
-                    guide.certification_status.toLowerCase() === "pending"
+            // Filter for park guide users with pending status
+            const pendingUsers = usersResponse.filter(
+                (user) =>
+                    user.role === "park_guide" &&
+                    user.status.toLowerCase() === "pending"
             );
 
-            // Fetch user details for each pending guide
-            const userDetailsPromises = pendingGuides.map(
-                (guide) => fetchData(`/users/${guide.user_id}`) // Fetch user details by user_id
+            console.log(
+                `Found ${pendingUsers.length} pending park guide users`
             );
-
-            const userDetails = await Promise.all(userDetailsPromises);
-
-            // Combine park guide and user details
-            const combinedData = pendingGuides.map((guide, index) => ({
-                ...guide,
-                ...userDetails[index], // Merge user details into the guide object
-            }));
-
-            setApplicants(combinedData);
+            setApplicants(pendingUsers);
         } catch (error) {
             console.error("Error fetching park guide approvals:", error);
         } finally {
@@ -62,65 +54,84 @@ const ParkGuideApproval = () => {
         fetchApplicants();
     }, []);
 
-    const handleApprove = async (id) => {
+    // Helper function to get current user token
+    const getAuthToken = async () => {
+        if (!auth.currentUser) {
+            throw new Error("No authenticated user");
+        }
+        return await auth.currentUser.getIdToken(true);
+    };
+
+    const handleApprove = async (uid) => {
         try {
+            // Get fresh token from Firebase
+            const token = await getAuthToken();
+
             console.log(
-                `Sending approval request for guide ${id} to ${API_URL}/api/park-guides/${id}`
+                `Sending approval request for user ${uid} to ${API_URL}/api/users/${uid}`
             );
-            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+            const response = await fetch(`${API_URL}/api/users/${uid}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ certification_status: "certified" }),
+                body: JSON.stringify({
+                    status: "approved",
+                    assigned_park: "Unassigned", // Default park assignment
+                }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Server response:", errorData);
-                throw new Error("Failed to approve the park guide");
+                throw new Error("Failed to approve the park guide user");
             }
 
             const result = await response.json();
             console.log("Success:", result);
 
-            // Remove the approved guide from the list
+            // Remove the approved user from the list
             setApplicants((prev) =>
-                prev.filter((applicant) => applicant.guide_id !== id)
+                prev.filter((applicant) => applicant.uid !== uid)
             );
         } catch (error) {
-            console.error("Error approving park guide:", error);
+            console.error("Error approving park guide user:", error);
         }
     };
 
-    const handleReject = async (id) => {
+    const handleReject = async (uid) => {
         try {
+            // Get fresh token from Firebase
+            const token = await getAuthToken();
+
             console.log(
-                `Sending rejection request for guide ${id} to ${API_URL}/api/park-guides/${id}`
+                `Sending rejection request for user ${uid} to ${API_URL}/api/users/${uid}`
             );
-            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+            const response = await fetch(`${API_URL}/api/users/${uid}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ certification_status: "rejected" }),
+                body: JSON.stringify({ status: "rejected" }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Server response:", errorData);
-                throw new Error("Failed to reject the park guide");
+                throw new Error("Failed to reject the park guide user");
             }
 
             const result = await response.json();
             console.log("Success:", result);
 
-            // Remove the rejected guide from the list
+            // Remove the rejected user from the list
             setApplicants((prev) =>
-                prev.filter((applicant) => applicant.guide_id !== id)
+                prev.filter((applicant) => applicant.uid !== uid)
             );
         } catch (error) {
-            console.error("Error rejecting park guide:", error);
+            console.error("Error rejecting park guide user:", error);
         }
     };
 
@@ -136,23 +147,24 @@ const ParkGuideApproval = () => {
                 </View>
                 <View>
                     <Text className="text-sm text-gray-600">
-                        Assigned Park:{" "}
-                        <Text className="font-medium">
-                            {item.assigned_park}
-                        </Text>
+                        Role: <Text className="font-medium">Park Guide</Text>
+                    </Text>
+                    <Text className="text-sm text-gray-600">
+                        Status:{" "}
+                        <Text className="font-medium">{item.status}</Text>
                     </Text>
                 </View>
             </View>
             <View className="flex-row justify-end space-x-2 gap-x-2">
                 <TouchableOpacity
                     className="bg-red-100 px-4 py-2 rounded-lg"
-                    onPress={() => handleReject(item.guide_id)}
+                    onPress={() => handleReject(item.uid)}
                 >
                     <Text className="text-red-600 font-semibold">Reject</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     className="bg-green-100 px-4 py-2 rounded-lg"
-                    onPress={() => handleApprove(item.guide_id)}
+                    onPress={() => handleApprove(item.uid)}
                 >
                     <Text className="text-green-600 font-semibold">
                         Approve
@@ -183,7 +195,7 @@ const ParkGuideApproval = () => {
             ) : (
                 <FlatList
                     data={applicants}
-                    keyExtractor={(item) => item.guide_id.toString()}
+                    keyExtractor={(item) => item.uid}
                     renderItem={renderApplicant}
                     ListEmptyComponent={
                         <Text className="text-center text-gray-500 mt-5">

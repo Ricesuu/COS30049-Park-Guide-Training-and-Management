@@ -15,17 +15,14 @@ const PendingApprovals = forwardRef(({ navigation }, ref) => {
         try {
             console.log("Fetching pending approvals...");
 
-            // Fetch data from the ParkGuides table
-            const parkGuidesResponse = await fetchData("/park-guides");
+            // Fetch all users
+            const usersResponse = await fetchData("/users");
 
-            // Use the response directly as the data array
-            const parkGuidesData = parkGuidesResponse || [];
-
-            // Filter guides with certification_status 'pending'
-            const pendingParkGuides = parkGuidesData.filter(
-                (guide) =>
-                    guide.certification_status &&
-                    guide.certification_status.toLowerCase() === "pending"
+            // Filter for park guide users with pending status
+            const pendingParkGuides = usersResponse.filter(
+                (user) =>
+                    user.role === "park_guide" &&
+                    user.status.toLowerCase() === "pending"
             );
 
             setParkGuideCount(pendingParkGuides.length);

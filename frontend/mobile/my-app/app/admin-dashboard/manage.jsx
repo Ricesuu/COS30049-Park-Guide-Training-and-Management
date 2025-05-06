@@ -6,7 +6,10 @@ import {
     ActivityIndicator,
     RefreshControl,
     Alert,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import ParkGuideCard from "../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
 import AddGuideButton from "../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
 import GuideDetailModal from "../../components/ADMINdashboard/AdminDashboardManage/GuideDetailModal";
@@ -15,11 +18,17 @@ import { API_URL } from "../../src/constants/constants"; // Import API_URL
 
 const Manage = () => {
     const [guides, setGuides] = useState([]);
+    const [filteredGuides, setFilteredGuides] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedGuide, setSelectedGuide] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [parks, setParks] = useState([]);
+    const [selectedPark, setSelectedPark] = useState("all");
+    const [selectedStatus, setSelectedStatus] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState("name");
 
     // Function to fetch park guide data with user details
     const fetchGuides = async (isRefreshing = false) => {
@@ -54,9 +63,11 @@ const Manage = () => {
                 user_id: guide.user_id,
                 guide_id: guide.guide_id,
                 email: userDetails[index].email,
+                park: guide.park, // Include park information
             }));
 
             setGuides(guidesWithUserInfo);
+            setFilteredGuides(guidesWithUserInfo);
             setError(null);
         } catch (err) {
             console.error("Error fetching guides data:", err);
@@ -69,16 +80,57 @@ const Manage = () => {
         }
     };
 
+    // Function to fetch parks
+    const fetchParks = async () => {
+        try {
+            console.log("Fetching parks...");
+            const parksResponse = await fetchData("/parks");
+            setParks(parksResponse);
+        } catch (err) {
+            console.error("Error fetching parks data:", err);
+            setError("Failed to load parks data. Please try again later.");
+        }
+    };
+
     // Handle pull-to-refresh
     const onRefresh = () => {
         setRefreshing(true);
         fetchGuides(true);
+        fetchParks();
     };
 
-    // Fetch guides when the component mounts
+    // Filter guides based on selected park, status, and search query
+    const filterGuides = () => {
+        let filtered = guides;
+
+        if (selectedPark !== "all") {
+            filtered = filtered.filter((guide) => guide.park === selectedPark);
+        }
+
+        if (selectedStatus !== "all") {
+            filtered = filtered.filter(
+                (guide) => guide.status === selectedStatus
+            );
+        }
+
+        if (searchQuery) {
+            filtered = filtered.filter((guide) =>
+                guide.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        setFilteredGuides(filtered);
+    };
+
+    // Fetch guides and parks when the component mounts
     useEffect(() => {
         fetchGuides();
+        fetchParks();
     }, []);
+
+    useEffect(() => {
+        filterGuides();
+    }, [selectedPark, selectedStatus, searchQuery]);
 
     const handleEdit = (guide) => {
         setSelectedGuide(guide);
@@ -155,6 +207,8 @@ const Manage = () => {
                                     )
                                 );
 
+                                filterGuides();
+
                                 // Show success message
                                 Alert.alert(
                                     "Success",
@@ -201,13 +255,7 @@ const Manage = () => {
                                     `${API_URL}/api/park-guides/${id}`,
                                     {
                                         method: "DELETE",
-                                        headers: {
-                                            // Only include Content-Type if you were sending a body,
-                                            // but DELETE often doesn't. Let's try without it too for a moment.
-                                            // If the simple curl works but this doesn't, headers are suspect.
-                                            // "Content-Type": "application/json",
-                                            // "Accept": "application/json" // Removed for testing
-                                        },
+                                        headers: {},
                                     }
                                 );
 
@@ -234,6 +282,8 @@ const Manage = () => {
                                 setGuides((prev) =>
                                     prev.filter((guide) => guide.id !== id)
                                 );
+
+                                filterGuides();
 
                                 Alert.alert(
                                     "Success",
@@ -311,6 +361,9 @@ const Manage = () => {
                     guide.id === updatedGuide.id ? updatedGuide : guide
                 )
             );
+
+            filterGuides();
+
             setIsModalVisible(false);
             console.log("Guide updated successfully");
         } catch (err) {
@@ -333,6 +386,59 @@ const Manage = () => {
             >
                 Manage Park Guides
             </Text>
+
+            {/* Park Filter */}
+            <View style={{ padding: 10 }}>
+                <Picker
+                    selectedValue={selectedPark}
+                    onValueChange={(itemValue) => {
+                        setSelectedPark(itemValue);
+                        filterGuides();
+                    }}
+                >
+                    <Picker.Item label="All Parks" value="all" />
+                    {parks.map((park) => (
+                        <Picker.Item
+                            key={park.park_id}
+                            label={park.park_name}
+                            value={park.park_name}
+                        />
+                    ))}
+                </Picker>
+            </View>
+
+            {/* Status Filter */}
+            <View style={{ padding: 10 }}>
+                <Picker
+                    selectedValue={selectedStatus}
+                    onValueChange={(itemValue) => {
+                        setSelectedStatus(itemValue);
+                        filterGuides();
+                    }}
+                >
+                    <Picker.Item label="All Statuses" value="all" />
+                    <Picker.Item label="Active" value="Active" />
+                    <Picker.Item label="Suspended" value="Suspended" />
+                </Picker>
+            </View>
+
+            {/* Search Bar */}
+            <View style={{ padding: 10 }}>
+                <TextInput
+                    placeholder="Search by guide name"
+                    value={searchQuery}
+                    onChangeText={(text) => {
+                        setSearchQuery(text);
+                        filterGuides();
+                    }}
+                    style={{
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                        borderRadius: 5,
+                        padding: 10,
+                    }}
+                />
+            </View>
 
             {/* Loading state */}
             {loading ? (
@@ -359,7 +465,7 @@ const Manage = () => {
                         {error}
                     </Text>
                 </View>
-            ) : guides.length === 0 ? (
+            ) : filteredGuides.length === 0 ? (
                 <View
                     style={{
                         flex: 1,
@@ -375,7 +481,7 @@ const Manage = () => {
             ) : (
                 /* List of Park Guides */
                 <FlatList
-                    data={guides}
+                    data={filteredGuides}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <ParkGuideCard
