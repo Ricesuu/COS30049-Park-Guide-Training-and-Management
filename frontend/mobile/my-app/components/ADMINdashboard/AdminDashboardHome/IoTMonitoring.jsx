@@ -174,7 +174,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                 : `${getLatestSensorValue("temperature")}${
                                       getLatestSensorValue("temperature") !==
                                       "N/A"
-                                          ? "°C"
+                                          ? ""
                                           : ""
                                   }`}
                         </Text>
