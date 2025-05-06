@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/Firebase";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import apiClient from "../src/api/api"; // Import the API client
+import apiClient from "../src/api/api"; // API client with correct baseURL
 
 const AuthContext = createContext();
 
@@ -14,9 +14,37 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    // Helper: Retry fetching user info from backend (max 3 attempts)
+    const fetchUserDataWithRetry = async (token, attempts = 3, delay = 1000) => {
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const response = await apiClient.get("/users/login", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const data = response.data;
+                console.log("🌐 Backend role response:", data);
+
+                setRole(data.role);
+                setStatus(data.status);
+                await AsyncStorage.setItem("userRole", data.role);
+                await AsyncStorage.setItem("userStatus", data.status);
+                return;
+            } catch (err) {
+                if (err.response?.status === 404 && i < attempts - 1) {
+                    console.warn(`⚠️ User not found in backend DB yet. Retrying in ${delay}ms...`);
+                    await new Promise((res) => setTimeout(res, delay));
+                } else {
+                    throw err;
+                }
+            }
+        }
+    };
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             console.log("📡 Firebase auth state changed.");
+            setLoading(true);
 
             if (user) {
                 console.log("✅ User detected:", user.uid);
@@ -35,22 +63,13 @@ export const AuthProvider = ({ children }) => {
                     setRole(cachedRole);
                     setStatus(cachedStatus);
 
-                    // 🔐 Refresh token and fetch latest role/status
+                    // 🔐 Get fresh token
                     const token = await user.getIdToken();
                     console.log("🔐 Fetched token:", token);
 
-                    // Using apiClient instead of hardcoded fetch
-                    const response = await apiClient.get("/users/login", {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
+                    // ✅ Fetch latest role/status with retry support
+                    await fetchUserDataWithRetry(token);
 
-                    const data = response.data;
-                    console.log("🌐 Backend role response:", data);
-
-                    setRole(data.role);
-                    setStatus(data.status);
-                    await AsyncStorage.setItem("userRole", data.role);
-                    await AsyncStorage.setItem("userStatus", data.status);
                 } catch (err) {
                     console.error("❌ AuthContext error:", err);
                     setAuthUser(null);
