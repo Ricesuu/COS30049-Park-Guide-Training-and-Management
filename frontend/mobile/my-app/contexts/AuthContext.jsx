@@ -15,7 +15,11 @@ export const AuthProvider = ({ children }) => {
     const router = useRouter();
 
     // Helper: Retry fetching user info from backend (max 3 attempts)
-    const fetchUserDataWithRetry = async (token, attempts = 3, delay = 1000) => {
+    const fetchUserDataWithRetry = async (
+        token,
+        attempts = 3,
+        delay = 1000
+    ) => {
         for (let i = 0; i < attempts; i++) {
             try {
                 const response = await apiClient.get("/users/login", {
@@ -32,7 +36,9 @@ export const AuthProvider = ({ children }) => {
                 return;
             } catch (err) {
                 if (err.response?.status === 404 && i < attempts - 1) {
-                    console.warn(`⚠️ User not found in backend DB yet. Retrying in ${delay}ms...`);
+                    console.warn(
+                        `⚠️ User not found in backend DB yet. Retrying in ${delay}ms...`
+                    );
                     await new Promise((res) => setTimeout(res, delay));
                 } else {
                     throw err;
@@ -67,15 +73,21 @@ export const AuthProvider = ({ children }) => {
                     const token = await user.getIdToken();
                     console.log("🔐 Fetched token:", token);
 
+                    // Store the token in AsyncStorage for later API requests
+                    await AsyncStorage.setItem("authToken", token);
+
                     // ✅ Fetch latest role/status with retry support
                     await fetchUserDataWithRetry(token);
-
                 } catch (err) {
                     console.error("❌ AuthContext error:", err);
                     setAuthUser(null);
                     setRole(null);
                     setStatus(null);
-                    await AsyncStorage.multiRemove(["userRole", "userStatus"]);
+                    await AsyncStorage.multiRemove([
+                        "userRole",
+                        "userStatus",
+                        "authToken",
+                    ]);
                     router.replace("/");
                 }
             } else {
@@ -83,7 +95,11 @@ export const AuthProvider = ({ children }) => {
                 setAuthUser(null);
                 setRole(null);
                 setStatus(null);
-                await AsyncStorage.multiRemove(["userRole", "userStatus"]);
+                await AsyncStorage.multiRemove([
+                    "userRole",
+                    "userStatus",
+                    "authToken",
+                ]);
             }
 
             setLoading(false);

@@ -30,41 +30,71 @@ const Manage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState("name");
 
+    // Helper function to convert certification_status to display status
+    const getStatusFromCertification = (certificationStatus) => {
+        if (!certificationStatus) return "Training";
+
+        switch (certificationStatus.toLowerCase()) {
+            case "certified":
+                return "Active";
+            case "suspended":
+                return "Suspended";
+            case "rejected":
+                return "Rejected";
+            case "pending_review":
+                return "Ready for Certification";
+            case "pending":
+            default:
+                return "Training";
+        }
+    };
+
     // Function to fetch park guide data with user details
     const fetchGuides = async (isRefreshing = false) => {
         try {
-            console.log("Fetching certified park guides...");
+            console.log("Fetching all park guides...");
             const parkGuidesResponse = await fetchData("/park-guides"); // Fetch data from the ParkGuides table
 
-            // Filter guides with certification_status 'certified'
-            const certifiedGuides = parkGuidesResponse.filter(
-                (guide) =>
-                    guide.certification_status &&
-                    guide.certification_status.toLowerCase() === "certified"
+            // Also fetch training progress to determine which guides are ready for certification
+            const trainingProgressResponse = await fetchData(
+                "/guide-training-progress"
             );
 
-            // Fetch user details for each certified guide
-            const userDetailsPromises = certifiedGuides.map(
-                (guide) => fetchData(`/users/${guide.user_id}`) // Fetch user details by user_id
-            );
+            // The API already joins with Users table, so we have user information in the response
+            const guidesWithUserInfo = parkGuidesResponse.map((guide) => {
+                // Check if guide has completed all required training
+                const guideTrainingModules = trainingProgressResponse.filter(
+                    (progress) => progress.guide_id === guide.guide_id
+                );
 
-            const userDetails = await Promise.all(userDetailsPromises);
+                // If guide has 'pending' status and has completed modules, mark as ready for certification
+                const hasCompletedTraining = guideTrainingModules.some(
+                    (module) => module.status === "completed"
+                );
 
-            // Combine park guide and user details and format data structure for UI
-            const guidesWithUserInfo = certifiedGuides.map((guide, index) => ({
-                id: guide.guide_id.toString(),
-                name: `${userDetails[index].first_name} ${userDetails[index].last_name}`,
-                role: "Park Guide",
-                status:
-                    guide.certification_status === "certified"
-                        ? "Active"
-                        : "Suspended",
-                license_expiry_date: guide.license_expiry_date, // Include certification expiry date
-                user_id: guide.user_id,
-                guide_id: guide.guide_id,
-                email: userDetails[index].email,
-                park: guide.park, // Include park information
-            }));
+                // Set a special certification status for guides ready to be certified
+                let certificationStatus =
+                    guide.certification_status || "pending";
+                if (certificationStatus === "pending" && hasCompletedTraining) {
+                    certificationStatus = "pending_review";
+                }
+
+                return {
+                    id: guide.guide_id.toString(),
+                    name: `${guide.first_name || "Unknown"} ${
+                        guide.last_name || "User"
+                    }`,
+                    role: "Park Guide",
+                    status: getStatusFromCertification(certificationStatus),
+                    certification_status: certificationStatus,
+                    license_expiry_date: guide.license_expiry_date,
+                    user_id: guide.user_id,
+                    guide_id: guide.guide_id,
+                    email: guide.email || "unknown@example.com",
+                    park: guide.assigned_park || "",
+                    user_status: guide.user_status,
+                };
+            });
 
             setGuides(guidesWithUserInfo);
             setFilteredGuides(guidesWithUserInfo);
@@ -142,15 +172,29 @@ const Manage = () => {
             const guideToUpdate = guides.find((guide) => guide.id === id);
             if (!guideToUpdate) return;
 
-            const newStatus =
-                guideToUpdate.status === "Active" ? "suspended" : "certified";
+            // Determine the new status based on current status
+            let newStatus;
+            let actionText;
+            let successText;
+
+            if (guideToUpdate.status === "Active") {
+                newStatus = "suspended";
+                actionText = "suspend";
+                successText = "suspended";
+            } else if (guideToUpdate.status === "Suspended") {
+                newStatus = "certified";
+                actionText = "activate";
+                successText = "activated";
+            } else if (guideToUpdate.status === "Training") {
+                newStatus = "certified";
+                actionText = "certify";
+                successText = "certified";
+            }
 
             // Show confirmation dialog using Alert
             Alert.alert(
                 "Confirm Action",
-                `Are you sure you want to ${
-                    guideToUpdate.status === "Active" ? "suspend" : "activate"
-                } this guide?`,
+                `Are you sure you want to ${actionText} this guide?`,
                 [
                     {
                         text: "Cancel",
@@ -158,9 +202,8 @@ const Manage = () => {
                     },
                     {
                         text:
-                            guideToUpdate.status === "Active"
-                                ? "Suspend"
-                                : "Activate",
+                            actionText.charAt(0).toUpperCase() +
+                            actionText.slice(1),
                         style: "destructive",
                         onPress: async () => {
                             try {
@@ -192,16 +235,21 @@ const Manage = () => {
                                 const result = await response.json();
                                 console.log("Success:", result);
 
-                                // Update local state
+                                // Update local state with the new status
                                 setGuides((prev) =>
                                     prev.map((guide) =>
                                         guide.id === id
                                             ? {
                                                   ...guide,
                                                   status:
-                                                      guide.status === "Active"
+                                                      newStatus === "certified"
+                                                          ? "Active"
+                                                          : newStatus ===
+                                                            "suspended"
                                                           ? "Suspended"
-                                                          : "Active",
+                                                          : "Training",
+                                                  certification_status:
+                                                      newStatus,
                                               }
                                             : guide
                                     )
@@ -212,11 +260,7 @@ const Manage = () => {
                                 // Show success message
                                 Alert.alert(
                                     "Success",
-                                    `Guide has been successfully ${
-                                        guideToUpdate.status === "Active"
-                                            ? "suspended"
-                                            : "activated"
-                                    }.`
+                                    `Guide has been successfully ${successText}.`
                                 );
                             } catch (err) {
                                 console.error(
@@ -418,7 +462,12 @@ const Manage = () => {
                 >
                     <Picker.Item label="All Statuses" value="all" />
                     <Picker.Item label="Active" value="Active" />
+                    <Picker.Item label="Training" value="Training" />
                     <Picker.Item label="Suspended" value="Suspended" />
+                    <Picker.Item
+                        label="Ready for Certification"
+                        value="Ready for Certification"
+                    />
                 </Picker>
             </View>
 
@@ -475,7 +524,7 @@ const Manage = () => {
                     }}
                 >
                     <Text style={{ textAlign: "center" }}>
-                        No certified guides found.
+                        No guides found matching your filters.
                     </Text>
                 </View>
             ) : (

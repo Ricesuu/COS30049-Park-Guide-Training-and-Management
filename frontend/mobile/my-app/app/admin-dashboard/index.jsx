@@ -4,7 +4,6 @@ import { useNavigation } from "@react-navigation/native"; // Import useNavigatio
 import Header from "../../components/ADMINdashboard/AdminDashboardHome/Header";
 import PendingApprovals from "../../components/ADMINdashboard/AdminDashboardHome/PendingApprovals";
 import IoTMonitoring from "../../components/ADMINdashboard/AdminDashboardHome/IoTMonitoring";
-import RecentActivities from "../../components/ADMINdashboard/AdminDashboardHome/RecentActivities";
 
 const HomePage = () => {
     const navigation = useNavigation(); // Use the navigation hook
@@ -57,7 +56,6 @@ const HomePage = () => {
                         navigation={navigation} // Pass navigation to PendingApprovals
                     />
                     <IoTMonitoring ref={iotMonitoringRef} />
-                    <RecentActivities />
                 </View>
             </ScrollView>
         </View>
