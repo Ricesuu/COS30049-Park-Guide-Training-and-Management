@@ -1,0 +1,472 @@
+/* General Reset */
+body {
+  margin: 0;
+  font-family: 'Inter', Arial, sans-serif; /* Modern font */
+  background-color: #f3f4f6; /* Light gray background */
+  color: #333; /* Dark text color */
+}
+
+/* Dashboard Container */
+.dashboard-container {
+  display: flex;
+  flex-direction: row; /* Align sidebar and main content horizontally */
+  height: 100vh;
+  margin-left: 0; /* Remove unnecessary margin */
+}
+
+/* Sidebar Styling */
+.sidebar {
+  position: fixed; /* Fix the sidebar to the side */
+  top: 0;
+  left: 0;
+  height: 100vh; /* Full height of the viewport */
+  width: 18rem; /* Sidebar width (288px) */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 1.5rem; /* 24px */
+  background: linear-gradient(135deg, #7CC242, #5AAE2E); /* Gradient for a modern look */
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure it stays above other content */
+}
+
+.sidebar img {
+  width: 60%; /* Slightly larger logo */
+  margin-bottom: 2rem; /* 32px */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Keep the original shape */
+}
+
+.sidebar button {
+  display: inline-block;
+  width: 90%; /* Wider buttons */
+  background: white;
+  color: #333;
+  text-align: center;
+  padding: 0.75rem 0; /* 12px top/bottom */
+  margin-bottom: 1rem; /* 16px */
+  border: none;
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font-size: 1rem; /* Slightly larger text */
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.sidebar button:hover {
+  background: #f3f4f6; /* Light gray hover effect */
+  transform: translateY(-2px); /* Subtle lift effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar button.bg-red-500 {
+  background: linear-gradient(135deg, #f56565, #e53e3e); /* Gradient for red button */
+  color: white;
+}
+
+.sidebar button.bg-red-500:hover {
+  background: linear-gradient(135deg, #e53e3e, #c53030); /* Darker red on hover */
+}
+
+/* Main Content Styling */
+.main-content {
+  margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal columns */
+  grid-gap: 2rem; /* Spacing between containers */
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* Dashboard Main Content Styling */
+.dashboard-main-content {
+  margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal columns */
+  grid-gap: 2rem; /* Spacing between containers */
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* Training Main Content Styling */
+.training-main-content {
+  margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  box-sizing: border-box;
+  height: 100vh; /* Full height of the viewport */
+  overflow-y: auto; /* Enable scrolling for long content */
+}
+
+/* Section Styling (Shared for Training and Certification) */
+.training-section,
+.cert-section {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem; /* Consistent padding */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  flex-grow: 1; /* Allow the section to grow and take up remaining space */
+  max-width: 1200px; /* Limit the width of the section */
+  width: 100%; /* Ensure it stretches to fit the container */
+  margin: 0 auto; /* Center the section horizontally */
+}
+
+/* Section Title Styling */
+.section-title {
+  font-size: 1.75rem; /* Larger title */
+  font-weight: bold;
+  color: #333;
+  text-align: center; /* Center the title */
+  margin-bottom: 1.5rem; /* Add spacing below the title */
+}
+
+/* Grid Container for Modules or Certifications */
+.grid-container,
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid layout */
+  gap: 1.5rem; /* Spacing between items */
+  margin-top: 1.5rem; /* Add spacing above the grid */
+}
+
+/* Left Column Styling */
+.left-column {
+  display: grid;
+  grid-template-rows: 1fr 1fr; /* Two rows of equal height */
+  gap: 1.5rem; /* Spacing between rows */
+}
+
+/* Right Column Styling */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Match the height of the left column */
+}
+
+/* Box Styling */
+.box {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Profile Header Styling */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem; /* Space between the image and details */
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem 2rem; /* Add spacing around the header */
+  width: calc(100% - 4rem); /* Full width minus margins */
+  box-sizing: border-box;
+}
+
+/* User Info Styling */
+.user-info {
+  grid-column: span 10; /* Span across both columns */
+  display: flex;
+  align-items: center;
+  margin-right: -1em;
+  gap: 1.5rem; /* Space between photo and details */
+}
+
+.user-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px; /* Square with rounded corners */
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-details {
+  text-align: left;
+}
+
+.user-name {
+  font-size: 1.75rem; /* Larger font size for the name */
+  font-weight: bold;
+  margin: 0;
+}
+
+.user-id {
+  font-size: 1.25rem; /* Slightly larger font size for the ID */
+  color: #666;
+  margin-top: 0.5rem;
+  text-align: center; /* Center the ID */
+}
+
+/* Announcement Styling */
+.announcement {
+  height: 500px; /* Match the height of the certification container */
+  display: flex;
+  flex-direction: column; /* Stack title and list vertically */
+  width: 100%; /* Take up full column width */
+  border: 1px solid #d1d5db; /* Add a border for separation */
+  padding: 0.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.boxtitle {
+  font-size: 1.25rem; /* Slightly larger title */
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem; /* Add spacing below the title */
+  text-align: center; /* Center the title */
+  border-bottom: 1px solid #d1d5db; /* Add a bottom border for separation */
+  padding-bottom: 0.5rem; /* Add padding below the title */
+}
+
+/* Announcement List Styling */
+.announcement-list {
+  flex-grow: 1; /* Allow the list to grow and fill the remaining space */
+  overflow-y: auto; /* Enable scrolling for long lists */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.announcement-item {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 0.75rem; /* Reduced padding for a tighter fit */
+  margin-bottom: 0.5rem; /* Reduced gap between items */
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+}
+
+/* Priority Colors */
+.announcement-item.high {
+  border-left: 8px solid #f44336; /* Red for high priority */
+}
+
+.announcement-item.medium {
+  border-left: 8px solid #ff9800; /* Orange for medium priority */
+}
+
+.announcement-item.low {
+  border-left: 8px solid #4caf50; /* Green for low priority */
+}
+
+/* Certification Styling */
+.certification {
+  height: 500px; /* Match the height of the announcement container */
+  display: flex;
+  flex-direction: column; /* Stack title and content vertically */
+  width: 100%; /* Take up full column width */
+  border: 1px solid #d1d5db; /* Add a border for separation */
+  padding: 0.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.certification-content {
+  flex-grow: 1; /* Allow the content to grow and fill the remaining space */
+  overflow-y: auto; /* Enable scrolling for long lists */
+  margin-top: 0.5rem; /* Add spacing between the title and content */
+}
+
+/* Certification Box Styling */
+.cert-box {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: #f9f9f9;
+  border: 1px solid #d1d5db;
+  border-radius: 8px; /* Rounded corners */
+  padding: 0.75rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem; /* Spacing between boxes */
+  height: 100px; /* Fixed height for all certification boxes */
+}
+
+.cert-image {
+  width: 64px; /* Fixed size for certification images */
+  height: 64px;
+  border-radius: 8px;
+  margin-right: 1rem;
+  object-fit: cover; /* Ensure the image scales proportionally */
+}
+
+.cert-box:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Performance Container Styling */
+.performance {
+  height: auto; /* Adjust height to fit content */
+  display: flex;
+  flex-direction: column; /* Stack title and content vertically */
+  justify-content: flex-start; /* Align content to the top */
+  align-items: flex-start; /* Align content to the left */
+  border: 1px solid #d1d5db; /* Add a border for separation */
+  padding: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.performance-content {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.6;
+}
+
+canvas {
+  width: 100%;
+  max-width: 300px; /* Limit the size of the pie chart */
+  height: auto;
+}
+
+/* Alert List Styling */
+.alert-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem; /* Reduced spacing between alerts */
+  font-size: 0.9rem; /* Slightly smaller font size */
+  color: #555;
+}
+
+.alert-indicator {
+  width: 1rem; /* Reduced size */
+  height: 1rem; /* Reduced size */
+  border-radius: 50%;
+  margin-right: 0.5rem; /* Reduced spacing */
+}
+
+.alert-indicator.green {
+  background-color: #4caf50;
+}
+
+.alert-indicator.orange {
+  background-color: #ff9800;
+}
+
+.alert-indicator.red {
+  background-color: #f44336;
+}
+
+/* Module Box Styling */
+.module-box {
+  background-color: #f9f9f9;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 1rem; /* Reduced padding */
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column; /* Stack image and text vertically */
+  align-items: center;
+  max-width: 250px; /* Limit the width of each module box */
+  margin: 0 auto; /* Center the module box */
+}
+
+.module-box:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-4px); /* Subtle lift effect */
+}
+
+/* Module Image */
+.module-image {
+  width: 100px; /* Reduced width */
+  height: auto; /* Maintain the original aspect ratio */
+  margin-bottom: 0.5rem; /* Reduced spacing below the image */
+  object-fit: contain; /* Ensure the image scales proportionally */
+}
+
+/* Module Text Container */
+.module-text {
+  background-color: #ffffff; /* White background for the text box */
+  border-top: 1px solid #d1d5db; /* Add a border to separate the text from the image */
+  padding: 0.5rem; /* Reduced padding inside the text box */
+  width: 100%; /* Make the text box span the full width of the module box */
+  box-sizing: border-box; /* Include padding in the width calculation */
+}
+
+/* Module Title */
+.module-title {
+  font-size: 1rem; /* Reduced font size */
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.25rem; /* Reduced spacing below the title */
+}
+
+/* Module Description */
+.module-description {
+  font-size: 0.875rem; /* Reduced font size */
+  color: #666;
+  margin-bottom: 0.5rem; /* Reduced spacing below the description */
+}
+
+/* Module Details Styling */
+.module-details {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 2rem; /* 32px */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 800px; /* Limit the width of the content */
+  width: 100%; /* Ensure it stretches to fit the container */
+  margin: 0 auto; /* Center the module details */
+}
+
+.module-image-large {
+  width: 100%;
+  max-width: 400px; /* Limit the size of the image */
+  height: auto;
+  margin: 1rem 0;
+  object-fit: contain; /* Ensure the image scales proportionally */
+}
+
+.module-video {
+  width: 100%;
+  max-width: 600px; /* Limit the size of the video */
+  height: auto;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.module-content {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.6;
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.back-button {
+  background-color: #7CC242;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #5AAE2E;
+}
