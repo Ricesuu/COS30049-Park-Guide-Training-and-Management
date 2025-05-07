@@ -33,11 +33,31 @@ const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
             <View className="flex-1 justify-center">
                 <Text className="text-lg font-bold">{guide.name}</Text>
                 <Text className="text-gray-600">Role: {guide.role}</Text>
-                <Text className="text-gray-600">Status: {guide.status}</Text>
-                <Text className="text-gray-600">
-                    Certification Expiry:{" "}
-                    {new Date(guide.license_expiry_date).toLocaleDateString()}
+                <Text
+                    className={`${
+                        guide.status === "Active"
+                            ? "text-green-600"
+                            : guide.status === "Training"
+                            ? "text-blue-600"
+                            : "text-red-600"
+                    }`}
+                >
+                    Status: {guide.status}
                 </Text>
+                {guide.status !== "Training" && guide.license_expiry_date ? (
+                    <Text className="text-gray-600">
+                        Certification Expiry:{" "}
+                        {new Date(
+                            guide.license_expiry_date
+                        ).toLocaleDateString()}
+                    </Text>
+                ) : (
+                    guide.status !== "Training" && (
+                        <Text className="text-gray-600 italic">
+                            No certification expiry date available
+                        </Text>
+                    )
+                )}
             </View>
 
             {/* Action buttons */}
@@ -52,25 +72,40 @@ const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
                     </Text>
                 </TouchableOpacity>
 
-                {/* Suspend/Activate button */}
-                <TouchableOpacity
-                    className={`${
-                        guide.status === "Active"
-                            ? "bg-red-100"
-                            : "bg-green-100"
-                    } px-4 py-2 rounded-lg`}
-                    onPress={() => onSuspend(guide.id)}
-                >
-                    <Text
+                {/* Suspend/Activate button - Only show for Active or Suspended guides */}
+                {guide.status !== "Training" && (
+                    <TouchableOpacity
                         className={`${
                             guide.status === "Active"
-                                ? "text-red-600"
-                                : "text-green-600"
-                        } font-semibold text-center`}
+                                ? "bg-red-100"
+                                : "bg-green-100"
+                        } px-4 py-2 rounded-lg`}
+                        onPress={() => onSuspend(guide.id)}
                     >
-                        {guide.status === "Active" ? "Suspend" : "Activate"}
-                    </Text>
-                </TouchableOpacity>
+                        <Text
+                            className={`${
+                                guide.status === "Active"
+                                    ? "text-red-600"
+                                    : "text-green-600"
+                            } font-semibold text-center`}
+                        >
+                            {guide.status === "Active" ? "Suspend" : "Activate"}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Certify button - Only show for fully trained guides */}
+                {guide.status === "Training" &&
+                    guide.certification_status === "pending_review" && (
+                        <TouchableOpacity
+                            className="bg-green-100 px-4 py-2 rounded-lg"
+                            onPress={() => onSuspend(guide.id)}
+                        >
+                            <Text className="text-green-600 font-semibold text-center">
+                                Certify
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
                 {/* Delete button */}
                 <TouchableOpacity

@@ -6,7 +6,10 @@ import {
     ActivityIndicator,
     RefreshControl,
     Alert,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import ParkGuideCard from "../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
 import AddGuideButton from "../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
 import GuideDetailModal from "../../components/ADMINdashboard/AdminDashboardManage/GuideDetailModal";
@@ -15,48 +18,86 @@ import { API_URL } from "../../src/constants/constants"; // Import API_URL
 
 const Manage = () => {
     const [guides, setGuides] = useState([]);
+    const [filteredGuides, setFilteredGuides] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedGuide, setSelectedGuide] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [parks, setParks] = useState([]);
+    const [selectedPark, setSelectedPark] = useState("all");
+    const [selectedStatus, setSelectedStatus] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState("name");
+
+    // Helper function to convert certification_status to display status
+    const getStatusFromCertification = (certificationStatus) => {
+        if (!certificationStatus) return "Training";
+
+        switch (certificationStatus.toLowerCase()) {
+            case "certified":
+                return "Active";
+            case "suspended":
+                return "Suspended";
+            case "rejected":
+                return "Rejected";
+            case "pending_review":
+                return "Ready for Certification";
+            case "pending":
+            default:
+                return "Training";
+        }
+    };
 
     // Function to fetch park guide data with user details
     const fetchGuides = async (isRefreshing = false) => {
         try {
-            console.log("Fetching certified park guides...");
+            console.log("Fetching all park guides...");
             const parkGuidesResponse = await fetchData("/park-guides"); // Fetch data from the ParkGuides table
 
-            // Filter guides with certification_status 'certified'
-            const certifiedGuides = parkGuidesResponse.filter(
-                (guide) =>
-                    guide.certification_status &&
-                    guide.certification_status.toLowerCase() === "certified"
+            // Also fetch training progress to determine which guides are ready for certification
+            const trainingProgressResponse = await fetchData(
+                "/guide-training-progress"
             );
 
-            // Fetch user details for each certified guide
-            const userDetailsPromises = certifiedGuides.map(
-                (guide) => fetchData(`/users/${guide.user_id}`) // Fetch user details by user_id
-            );
+            // The API already joins with Users table, so we have user information in the response
+            const guidesWithUserInfo = parkGuidesResponse.map((guide) => {
+                // Check if guide has completed all required training
+                const guideTrainingModules = trainingProgressResponse.filter(
+                    (progress) => progress.guide_id === guide.guide_id
+                );
 
-            const userDetails = await Promise.all(userDetailsPromises);
+                // If guide has 'pending' status and has completed modules, mark as ready for certification
+                const hasCompletedTraining = guideTrainingModules.some(
+                    (module) => module.status === "completed"
+                );
 
-            // Combine park guide and user details and format data structure for UI
-            const guidesWithUserInfo = certifiedGuides.map((guide, index) => ({
-                id: guide.guide_id.toString(),
-                name: `${userDetails[index].first_name} ${userDetails[index].last_name}`,
-                role: "Park Guide",
-                status:
-                    guide.certification_status === "certified"
-                        ? "Active"
-                        : "Suspended",
-                license_expiry_date: guide.license_expiry_date, // Include certification expiry date
-                user_id: guide.user_id,
-                guide_id: guide.guide_id,
-                email: userDetails[index].email,
-            }));
+                // Set a special certification status for guides ready to be certified
+                let certificationStatus =
+                    guide.certification_status || "pending";
+                if (certificationStatus === "pending" && hasCompletedTraining) {
+                    certificationStatus = "pending_review";
+                }
+
+                return {
+                    id: guide.guide_id.toString(),
+                    name: `${guide.first_name || "Unknown"} ${
+                        guide.last_name || "User"
+                    }`,
+                    role: "Park Guide",
+                    status: getStatusFromCertification(certificationStatus),
+                    certification_status: certificationStatus,
+                    license_expiry_date: guide.license_expiry_date,
+                    user_id: guide.user_id,
+                    guide_id: guide.guide_id,
+                    email: guide.email || "unknown@example.com",
+                    park: guide.assigned_park || "",
+                    user_status: guide.user_status,
+                };
+            });
 
             setGuides(guidesWithUserInfo);
+            setFilteredGuides(guidesWithUserInfo);
             setError(null);
         } catch (err) {
             console.error("Error fetching guides data:", err);
@@ -69,16 +110,57 @@ const Manage = () => {
         }
     };
 
+    // Function to fetch parks
+    const fetchParks = async () => {
+        try {
+            console.log("Fetching parks...");
+            const parksResponse = await fetchData("/parks");
+            setParks(parksResponse);
+        } catch (err) {
+            console.error("Error fetching parks data:", err);
+            setError("Failed to load parks data. Please try again later.");
+        }
+    };
+
     // Handle pull-to-refresh
     const onRefresh = () => {
         setRefreshing(true);
         fetchGuides(true);
+        fetchParks();
     };
 
-    // Fetch guides when the component mounts
+    // Filter guides based on selected park, status, and search query
+    const filterGuides = () => {
+        let filtered = guides;
+
+        if (selectedPark !== "all") {
+            filtered = filtered.filter((guide) => guide.park === selectedPark);
+        }
+
+        if (selectedStatus !== "all") {
+            filtered = filtered.filter(
+                (guide) => guide.status === selectedStatus
+            );
+        }
+
+        if (searchQuery) {
+            filtered = filtered.filter((guide) =>
+                guide.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        setFilteredGuides(filtered);
+    };
+
+    // Fetch guides and parks when the component mounts
     useEffect(() => {
         fetchGuides();
+        fetchParks();
     }, []);
+
+    useEffect(() => {
+        filterGuides();
+    }, [selectedPark, selectedStatus, searchQuery]);
 
     const handleEdit = (guide) => {
         setSelectedGuide(guide);
@@ -90,15 +172,29 @@ const Manage = () => {
             const guideToUpdate = guides.find((guide) => guide.id === id);
             if (!guideToUpdate) return;
 
-            const newStatus =
-                guideToUpdate.status === "Active" ? "suspended" : "certified";
+            // Determine the new status based on current status
+            let newStatus;
+            let actionText;
+            let successText;
+
+            if (guideToUpdate.status === "Active") {
+                newStatus = "suspended";
+                actionText = "suspend";
+                successText = "suspended";
+            } else if (guideToUpdate.status === "Suspended") {
+                newStatus = "certified";
+                actionText = "activate";
+                successText = "activated";
+            } else if (guideToUpdate.status === "Training") {
+                newStatus = "certified";
+                actionText = "certify";
+                successText = "certified";
+            }
 
             // Show confirmation dialog using Alert
             Alert.alert(
                 "Confirm Action",
-                `Are you sure you want to ${
-                    guideToUpdate.status === "Active" ? "suspend" : "activate"
-                } this guide?`,
+                `Are you sure you want to ${actionText} this guide?`,
                 [
                     {
                         text: "Cancel",
@@ -106,9 +202,8 @@ const Manage = () => {
                     },
                     {
                         text:
-                            guideToUpdate.status === "Active"
-                                ? "Suspend"
-                                : "Activate",
+                            actionText.charAt(0).toUpperCase() +
+                            actionText.slice(1),
                         style: "destructive",
                         onPress: async () => {
                             try {
@@ -140,29 +235,32 @@ const Manage = () => {
                                 const result = await response.json();
                                 console.log("Success:", result);
 
-                                // Update local state
+                                // Update local state with the new status
                                 setGuides((prev) =>
                                     prev.map((guide) =>
                                         guide.id === id
                                             ? {
                                                   ...guide,
                                                   status:
-                                                      guide.status === "Active"
+                                                      newStatus === "certified"
+                                                          ? "Active"
+                                                          : newStatus ===
+                                                            "suspended"
                                                           ? "Suspended"
-                                                          : "Active",
+                                                          : "Training",
+                                                  certification_status:
+                                                      newStatus,
                                               }
                                             : guide
                                     )
                                 );
 
+                                filterGuides();
+
                                 // Show success message
                                 Alert.alert(
                                     "Success",
-                                    `Guide has been successfully ${
-                                        guideToUpdate.status === "Active"
-                                            ? "suspended"
-                                            : "activated"
-                                    }.`
+                                    `Guide has been successfully ${successText}.`
                                 );
                             } catch (err) {
                                 console.error(
@@ -201,13 +299,7 @@ const Manage = () => {
                                     `${API_URL}/api/park-guides/${id}`,
                                     {
                                         method: "DELETE",
-                                        headers: {
-                                            // Only include Content-Type if you were sending a body,
-                                            // but DELETE often doesn't. Let's try without it too for a moment.
-                                            // If the simple curl works but this doesn't, headers are suspect.
-                                            // "Content-Type": "application/json",
-                                            // "Accept": "application/json" // Removed for testing
-                                        },
+                                        headers: {},
                                     }
                                 );
 
@@ -234,6 +326,8 @@ const Manage = () => {
                                 setGuides((prev) =>
                                     prev.filter((guide) => guide.id !== id)
                                 );
+
+                                filterGuides();
 
                                 Alert.alert(
                                     "Success",
@@ -311,6 +405,9 @@ const Manage = () => {
                     guide.id === updatedGuide.id ? updatedGuide : guide
                 )
             );
+
+            filterGuides();
+
             setIsModalVisible(false);
             console.log("Guide updated successfully");
         } catch (err) {
@@ -333,6 +430,64 @@ const Manage = () => {
             >
                 Manage Park Guides
             </Text>
+
+            {/* Park Filter */}
+            <View style={{ padding: 10 }}>
+                <Picker
+                    selectedValue={selectedPark}
+                    onValueChange={(itemValue) => {
+                        setSelectedPark(itemValue);
+                        filterGuides();
+                    }}
+                >
+                    <Picker.Item label="All Parks" value="all" />
+                    {parks.map((park) => (
+                        <Picker.Item
+                            key={park.park_id}
+                            label={park.park_name}
+                            value={park.park_name}
+                        />
+                    ))}
+                </Picker>
+            </View>
+
+            {/* Status Filter */}
+            <View style={{ padding: 10 }}>
+                <Picker
+                    selectedValue={selectedStatus}
+                    onValueChange={(itemValue) => {
+                        setSelectedStatus(itemValue);
+                        filterGuides();
+                    }}
+                >
+                    <Picker.Item label="All Statuses" value="all" />
+                    <Picker.Item label="Active" value="Active" />
+                    <Picker.Item label="Training" value="Training" />
+                    <Picker.Item label="Suspended" value="Suspended" />
+                    <Picker.Item
+                        label="Ready for Certification"
+                        value="Ready for Certification"
+                    />
+                </Picker>
+            </View>
+
+            {/* Search Bar */}
+            <View style={{ padding: 10 }}>
+                <TextInput
+                    placeholder="Search by guide name"
+                    value={searchQuery}
+                    onChangeText={(text) => {
+                        setSearchQuery(text);
+                        filterGuides();
+                    }}
+                    style={{
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                        borderRadius: 5,
+                        padding: 10,
+                    }}
+                />
+            </View>
 
             {/* Loading state */}
             {loading ? (
@@ -359,7 +514,7 @@ const Manage = () => {
                         {error}
                     </Text>
                 </View>
-            ) : guides.length === 0 ? (
+            ) : filteredGuides.length === 0 ? (
                 <View
                     style={{
                         flex: 1,
@@ -369,13 +524,13 @@ const Manage = () => {
                     }}
                 >
                     <Text style={{ textAlign: "center" }}>
-                        No certified guides found.
+                        No guides found matching your filters.
                     </Text>
                 </View>
             ) : (
                 /* List of Park Guides */
                 <FlatList
-                    data={guides}
+                    data={filteredGuides}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <ParkGuideCard

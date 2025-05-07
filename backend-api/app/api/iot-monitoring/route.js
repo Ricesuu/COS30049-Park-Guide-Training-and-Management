@@ -159,6 +159,7 @@ async function checkThresholds(
             min_threshold: threshold.min_threshold,
             max_threshold: threshold.max_threshold,
             severity: threshold.severity,
+            trigger_message: threshold.trigger_message,
         });
 
         // Convert recorded value to number for comparison (if possible)
@@ -169,15 +170,50 @@ async function checkThresholds(
 
         // Check if the value is outside the permitted range
         if (sensor_type === "motion") {
-            // For motion sensor, alert on detection
+            // For motion sensor, check if motion is detected AND if current time is within allowed range
             console.log(
                 `[checkThresholds] Checking motion sensor with value: ${recorded_value}`
             );
+
             if (recorded_value.toLowerCase() === "detected") {
-                thresholdTriggered = true;
-                console.log(
-                    "[checkThresholds] Motion detection triggered threshold"
+                // Extract time range from the trigger message (format: "Motion detected between 20:00 to 06:00")
+                const timeRangeMatch = threshold.trigger_message.match(
+                    /between (\d{1,2}:\d{2}) to (\d{1,2}:\d{2})/
                 );
+
+                if (timeRangeMatch) {
+                    const startTime = timeRangeMatch[1];
+                    const endTime = timeRangeMatch[2];
+                    console.log(
+                        `[checkThresholds] Motion detection time range: ${startTime} to ${endTime}`
+                    );
+
+                    // Check if current time is within the configured range
+                    const isWithinTimeRange = isCurrentTimeInRange(
+                        startTime,
+                        endTime
+                    );
+                    console.log(
+                        `[checkThresholds] Current time is within configured range: ${isWithinTimeRange}`
+                    );
+
+                    if (isWithinTimeRange) {
+                        thresholdTriggered = true;
+                        console.log(
+                            "[checkThresholds] Motion detected within configured time range, threshold triggered"
+                        );
+                    } else {
+                        console.log(
+                            "[checkThresholds] Motion detected outside configured time range, no alert triggered"
+                        );
+                    }
+                } else {
+                    // If no time range is found in the message, default to triggering the alert (backward compatibility)
+                    thresholdTriggered = true;
+                    console.log(
+                        "[checkThresholds] No time range found in trigger message, defaulting to alert"
+                    );
+                }
             }
         } else if (!isNaN(numericValue)) {
             // For numeric sensors, check min/max thresholds
@@ -276,5 +312,40 @@ async function checkThresholds(
         });
         console.error("=================================================");
         throw error; // Propagate error to trigger transaction rollback
+    }
+}
+
+// Helper function to check if current time is within specified range
+// Handles both regular ranges (e.g., 09:00 to 17:00) and overnight ranges (e.g., 20:00 to 06:00)
+function isCurrentTimeInRange(startTime, endTime) {
+    // Get current time
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+
+    // Parse start time
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+
+    // Parse end time
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+    // Convert all times to minutes since midnight for easier comparison
+    const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+    const startTimeInMinutes = startHours * 60 + startMinutes;
+    const endTimeInMinutes = endHours * 60 + endMinutes;
+
+    // Handle overnight ranges (when end time is earlier than start time)
+    if (endTimeInMinutes < startTimeInMinutes) {
+        // If current time is after start time OR before end time, it's in range
+        return (
+            currentTimeInMinutes >= startTimeInMinutes ||
+            currentTimeInMinutes <= endTimeInMinutes
+        );
+    } else {
+        // Regular range (start time is before end time)
+        return (
+            currentTimeInMinutes >= startTimeInMinutes &&
+            currentTimeInMinutes <= endTimeInMinutes
+        );
     }
 }

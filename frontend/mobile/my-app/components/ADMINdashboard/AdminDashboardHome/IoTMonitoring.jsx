@@ -285,6 +285,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 5,
         alignItems: "center",
+        justifyContent: "center", // Added to vertically center content
         elevation: 5,
     },
     value: {

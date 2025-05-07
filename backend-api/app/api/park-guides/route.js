@@ -5,9 +5,12 @@ export async function GET() {
     let connection;
     try {
         connection = await getConnection();
-        // Fetch all park guides, including license_expiry_date
+        // Fetch all park guides with user information using JOIN
         const [rows] = await connection.execute(
-            "SELECT guide_id, user_id, certification_status, license_expiry_date FROM ParkGuides"
+            `SELECT pg.guide_id, pg.user_id, pg.certification_status, pg.license_expiry_date, pg.assigned_park, 
+                    u.first_name, u.last_name, u.email, u.status as user_status
+             FROM ParkGuides pg
+             JOIN Users u ON pg.user_id = u.user_id`
         );
         return NextResponse.json(rows, {
             headers: { "Content-Type": "application/json" },
