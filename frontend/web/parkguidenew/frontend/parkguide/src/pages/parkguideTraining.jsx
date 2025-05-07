@@ -24,23 +24,23 @@ const Training = () => {
       <Sidebar />
 
       {/* Main Content */}
-      <div className="training-main-content full-height">
+      <div className="training-main-content">
         {/* Training Section */}
-        <div className="training-section">
-          <h2 className="section-title">Choose a Training Module</h2>
-          <div className="grid-container">
-            {modules.map((module, index) => (
-              <div
-                key={index}
-                className="module-box"
-                onClick={() => startTraining(module.name)}
-              >
-                <img src={module.image} alt={module.name} className="module-image" />
-                <p className="module-title">{module.name}</p>
-                <p className="module-description">{module.description}</p>
-              </div>
-            ))}
-          </div>
+        <h2 className="section-title">Choose a Training Module</h2>
+        <div className="row-container">
+          {modules.map((module, index) => (
+            <div
+              key={index}
+              className="module-box"
+              onClick={() => startTraining(module.name)}
+            >
+              <img src={module.image} alt={module.name} className="module-image" />
+              <p className="module-title">{module.name}</p>
+              <p className="module-description">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

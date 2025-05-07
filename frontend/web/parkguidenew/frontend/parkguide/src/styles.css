@@ -83,27 +83,44 @@ body {
 /* Dashboard Main Content Styling */
 .dashboard-main-content {
   margin-left: 20rem; /* Offset the content to the right of the sidebar */
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two equal columns */
-  grid-gap: 2rem; /* Spacing between containers */
+  display: flex;
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Center the content horizontally */
+  gap: 2rem; /* Add spacing between the boxes */
   padding: 2rem;
   box-sizing: border-box;
+  height: 100vh; /* Full height of the viewport */
+  width: calc(100% - 20rem); /* Take up the remaining space of the page */
+  overflow-y: auto; /* Enable scrolling for long content */
 }
 
 /* Training Main Content Styling */
 .training-main-content {
   margin-left: 20rem; /* Offset the content to the right of the sidebar */
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Stack the title and row container vertically */
   padding: 2rem;
   box-sizing: border-box;
   height: 100vh; /* Full height of the viewport */
   overflow-y: auto; /* Enable scrolling for long content */
 }
 
+/* Certification Main Content Styling */
+.cert-main-content {
+  margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: flex;
+  flex-direction: column; /* Stack the title and grid container vertically */
+  padding: 2rem;
+  box-sizing: border-box;
+  height: 100vh; /* Full height of the viewport */
+  overflow-y: auto; /* Enable scrolling for long content */
+  background-color: #ffffff; /* White background for the container */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
 /* Section Styling (Shared for Training and Certification) */
-.training-section,
-.cert-section {
+.training-section {
   background-color: #ffffff;
   border-radius: 12px;
   padding: 2rem; /* Consistent padding */
@@ -112,6 +129,37 @@ body {
   max-width: 1200px; /* Limit the width of the section */
   width: 100%; /* Ensure it stretches to fit the container */
   margin: 0 auto; /* Center the section horizontally */
+}
+
+/* Certification Section Styling */
+.cert-section {
+  display: flex;
+  flex-direction: column; /* Stack title and content vertically */
+  justify-content: flex-start; /* Align content to the top */
+  align-items: center; /* Center the container horizontally */
+  height: 100%; /* Take up the remaining vertical space */
+  width: calc(100% - 20rem); /* Take up the remaining horizontal space, accounting for the sidebar */
+  margin: 0 auto; /* Center the container horizontally */
+  padding: 1rem;
+  box-sizing: border-box;
+  gap: 1.5rem; /* Add spacing between items */
+  background-color: #f9f9f9; /* Light background for the container */
+  border-radius: 12px; /* Rounded corners for the container */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for the container */
+  overflow-y: auto; /* Enable scrolling for overflow content */
+  max-height: 80vh; /* Limit the height to fit within the viewport */
+}
+
+.cert-section .section-title {
+  position: sticky; /* Keep the title at the top */
+  top: 0;
+  background-color: #f9f9f9; /* Match the container background */
+  z-index: 10; /* Ensure it stays above the content */
+  padding: 0.5rem 1rem; /* Add padding for spacing */
+  text-align: center; /* Center the title */
+  font-size: 1.75rem; /* Larger font size for the title */
+  font-weight: bold;
+  border-bottom: 1px solid #d1d5db; /* Add a bottom border for separation */
 }
 
 /* Section Title Styling */
@@ -123,6 +171,18 @@ body {
   margin-bottom: 1.5rem; /* Add spacing below the title */
 }
 
+/* Row Container for Modules */
+.row-container {
+  display: flex;
+  flex-wrap: wrap; /* Allow modules to wrap to the next row if needed */
+  gap: 1.5rem; /* Spacing between modules */
+  justify-content: center; /* Center the modules horizontally */
+  align-items: flex-start; /* Align modules to the top */
+  flex-grow: 1; /* Allow the container to take up remaining space */
+  overflow-y: auto; /* Enable scrolling if content overflows */
+  margin: 0 auto; /* Center the entire container */
+}
+
 /* Grid Container for Modules or Certifications */
 .grid-container,
 .cert-grid {
@@ -130,6 +190,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid layout */
   gap: 1.5rem; /* Spacing between items */
   margin-top: 1.5rem; /* Add spacing above the grid */
+  width: 100%; /* Full width of the container */
 }
 
 /* Left Column Styling */
@@ -174,11 +235,16 @@ body {
 
 /* User Info Styling */
 .user-info {
-  grid-column: span 10; /* Span across both columns */
   display: flex;
   align-items: center;
-  margin-right: -1em;
   gap: 1.5rem; /* Space between photo and details */
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 90%; /* Widen the profile box */
+  max-width: 1000px; /* Increase the maximum width */
+  margin: 0 auto 2rem auto; /* Center horizontally and add spacing below */
 }
 
 .user-photo {
@@ -281,41 +347,57 @@ body {
 
 /* Certification Box Styling */
 .cert-box {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
   background-color: #f9f9f9;
   border: 1px solid #d1d5db;
-  border-radius: 8px; /* Rounded corners */
-  padding: 0.75rem;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0.5rem; /* Spacing between boxes */
-  height: 100px; /* Fixed height for all certification boxes */
-}
-
-.cert-image {
-  width: 64px; /* Fixed size for certification images */
-  height: 64px;
-  border-radius: 8px;
-  margin-right: 1rem;
-  object-fit: cover; /* Ensure the image scales proportionally */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .cert-box:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background-color: #f3f4f6;
+  transform: translateY(-4px); /* Subtle lift effect */
+}
+
+/* Certification Image */
+.cert-image {
+  width: 100px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}
+
+/* Certification Title */
+.cert-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+/* Certification Expiry */
+.cert-expiry {
+  font-size: 0.875rem;
+  color: #666;
 }
 
 /* Performance Container Styling */
 .performance {
-  height: auto; /* Adjust height to fit content */
+  height: 500px; /* Match the height of the other boxes */
   display: flex;
   flex-direction: column; /* Stack title and content vertically */
   justify-content: flex-start; /* Align content to the top */
-  align-items: flex-start; /* Align content to the left */
+  align-items: center; /* Center the title and content horizontally */
   border: 1px solid #d1d5db; /* Add a border for separation */
-  padding: 1rem;
+  padding: 0.5rem; /* Reduced padding */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  width: 100%; /* Ensure it spans the full width of its container */
+  box-sizing: border-box; /* Include padding in the width calculation */
 }
 
 .performance-content {
@@ -369,16 +451,15 @@ canvas {
   background-color: #f9f9f9;
   border: 1px solid #d1d5db;
   border-radius: 12px;
-  padding: 1rem; /* Reduced padding */
+  padding: 1rem;
   text-align: center;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.2s ease;
   display: flex;
-  flex-direction: column; /* Stack image and text vertically */
+  flex-direction: column;
   align-items: center;
-  max-width: 250px; /* Limit the width of each module box */
-  margin: 0 auto; /* Center the module box */
+  width: 250px; /* Increased width for a Canvas-like UI */
 }
 
 .module-box:hover {
@@ -388,34 +469,24 @@ canvas {
 
 /* Module Image */
 .module-image {
-  width: 100px; /* Reduced width */
-  height: auto; /* Maintain the original aspect ratio */
-  margin-bottom: 0.5rem; /* Reduced spacing below the image */
-  object-fit: contain; /* Ensure the image scales proportionally */
-}
-
-/* Module Text Container */
-.module-text {
-  background-color: #ffffff; /* White background for the text box */
-  border-top: 1px solid #d1d5db; /* Add a border to separate the text from the image */
-  padding: 0.5rem; /* Reduced padding inside the text box */
-  width: 100%; /* Make the text box span the full width of the module box */
-  box-sizing: border-box; /* Include padding in the width calculation */
+  width: 100px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
 }
 
 /* Module Title */
 .module-title {
-  font-size: 1rem; /* Reduced font size */
+  font-size: 1rem;
   font-weight: bold;
   color: #333;
-  margin-bottom: 0.25rem; /* Reduced spacing below the title */
+  margin-bottom: 0.25rem;
 }
 
 /* Module Description */
 .module-description {
-  font-size: 0.875rem; /* Reduced font size */
+  font-size: 0.875rem;
   color: #666;
-  margin-bottom: 0.5rem; /* Reduced spacing below the description */
 }
 
 /* Module Details Styling */
@@ -469,4 +540,14 @@ canvas {
 
 .back-button:hover {
   background-color: #5AAE2E;
+}
+
+/* Centered Boxes Styling */
+.centered-boxes {
+  display: flex;
+  flex-direction: row; /* Arrange boxes in a row */
+  justify-content: center; /* Center the row horizontally */
+  align-items: flex-start; /* Align boxes to the top */
+  gap: 1.5rem; /* Reduced spacing between the boxes */
+  width: 100%; /* Full width of the container */
 }

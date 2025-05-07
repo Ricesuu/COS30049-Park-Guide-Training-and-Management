@@ -48,6 +48,9 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Centered Boxes */}
+        <div className="centered-boxes">
+          {/* Announcement Container */}
           <div className="box announcement">
             <h2 className="boxtitle">Announcements</h2>
             <ul className="announcement-list">
@@ -91,6 +94,7 @@ const Dashboard = () => {
               ))}
             </div>
           </div>
+        </div>
       </div>
     </div>
   );
