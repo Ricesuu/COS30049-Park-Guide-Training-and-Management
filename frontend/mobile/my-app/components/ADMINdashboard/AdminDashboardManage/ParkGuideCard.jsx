@@ -1,7 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 
-const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
+const ParkGuideCard = ({ guide, onSuspend, onDelete }) => {
+    const router = useRouter();
+
     const handleDelete = () => {
         Alert.alert(
             "Confirm Delete",
@@ -18,6 +21,10 @@ const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
                 },
             ]
         );
+    };
+
+    const handleViewDetails = () => {
+        router.push(`/admin-dashboard/manage/guide-detail?id=${guide.id}`);
     };
 
     return (
@@ -62,13 +69,13 @@ const ParkGuideCard = ({ guide, onEdit, onSuspend, onDelete }) => {
 
             {/* Action buttons */}
             <View className="flex-column space-y-2 gap-2 justify-center">
-                {/* Edit button */}
+                {/* Details button - navigates to guide detail page */}
                 <TouchableOpacity
                     className="bg-blue-100 px-4 py-2 rounded-lg"
-                    onPress={() => onEdit(guide)}
+                    onPress={handleViewDetails}
                 >
                     <Text className="text-blue-600 font-semibold text-center">
-                        Edit
+                        Details
                     </Text>
                 </TouchableOpacity>
 

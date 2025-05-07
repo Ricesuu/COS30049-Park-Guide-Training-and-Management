@@ -23,12 +23,23 @@ const IoTMonitoring = forwardRef((props, ref) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    const [parks, setParks] = useState([]);
+    const [selectedParkId, setSelectedParkId] = useState(null);
+    const [selectedParkName, setSelectedParkName] = useState("");
 
     const loadIoTData = async (isRefreshing = false) => {
         try {
             console.log("Fetching IoT data...");
-            const iotResponse = await fetchData("/iot-monitoring");
-            const alertsResponse = await fetchData("/active-alerts");
+            const iotResponse = await fetchData(
+                `/iot-monitoring${
+                    selectedParkId ? `?park=${selectedParkId}` : ""
+                }`
+            );
+            const alertsResponse = await fetchData(
+                `/active-alerts${
+                    selectedParkId ? `?park=${selectedParkId}` : ""
+                }`
+            );
 
             setIoTData(iotResponse || []);
             setActiveAlerts(alertsResponse || []);
@@ -45,22 +56,54 @@ const IoTMonitoring = forwardRef((props, ref) => {
         }
     };
 
+    const loadParks = async () => {
+        try {
+            console.log("Fetching parks...");
+            const parksResponse = await fetchData("/parks");
+            setParks(parksResponse || []);
+
+            // Set default park to the first one in the list
+            if (parksResponse && parksResponse.length > 0) {
+                const firstPark = parksResponse[0];
+                setSelectedParkId(firstPark.park_id.toString());
+                setSelectedParkName(firstPark.park_name);
+                console.log(`Default park set to: ${firstPark.park_name}`);
+            }
+        } catch (err) {
+            console.error("Failed to load parks", err);
+        }
+    };
+
     useImperativeHandle(ref, () => ({
         refreshIoTData: () => loadIoTData(true),
     }));
 
     useEffect(() => {
-        // Initial data load
-        loadIoTData();
-
-        // Set up polling every 60 seconds
-        const interval = setInterval(() => {
-            loadIoTData();
-        }, 60000); // 60,000 ms = 60 seconds
-
-        // Cleanup interval on component unmount
-        return () => clearInterval(interval);
+        // Initial parks load
+        loadParks();
     }, []);
+
+    // Load data when selected park changes
+    useEffect(() => {
+        if (selectedParkId) {
+            loadIoTData();
+
+            // Set up polling every 60 seconds
+            const interval = setInterval(() => {
+                loadIoTData();
+            }, 60000); // 60,000 ms = 60 seconds
+
+            // Cleanup interval on component unmount
+            return () => clearInterval(interval);
+        }
+    }, [selectedParkId]);
+
+    const handleParkSelection = (parkId, parkName) => {
+        setSelectedParkId(parkId);
+        setSelectedParkName(parkName);
+        // Reset loading state when changing parks
+        setLoading(true);
+    };
 
     // Helper function to get the latest value of a specific sensor type, only showing today's data
     const getLatestSensorValue = (sensorType) => {
@@ -234,6 +277,42 @@ const IoTMonitoring = forwardRef((props, ref) => {
                     </View>
                 </View>
 
+                {/* Park selection moved below IoT cards */}
+                {selectedParkName && (
+                    <View style={styles.parkInfoContainer}>
+                        <Text style={styles.parkInfoText}>
+                            Monitoring:{" "}
+                            <Text style={styles.parkName}>
+                                {selectedParkName}
+                            </Text>
+                        </Text>
+                        {parks.length > 1 && (
+                            <TouchableOpacity
+                                style={styles.changeParkButton}
+                                onPress={() => {
+                                    // Find the next park in the array (cycle through parks)
+                                    const currentIndex = parks.findIndex(
+                                        (park) =>
+                                            park.park_id.toString() ===
+                                            selectedParkId
+                                    );
+                                    const nextIndex =
+                                        (currentIndex + 1) % parks.length;
+                                    const nextPark = parks[nextIndex];
+                                    handleParkSelection(
+                                        nextPark.park_id.toString(),
+                                        nextPark.park_name
+                                    );
+                                }}
+                            >
+                                <Text style={styles.changeParkText}>
+                                    Change Park
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+
                 {activeAlerts.length > 0 && (
                     <View style={styles.alertsContainer}>
                         <Text style={styles.alertsTitle}>
@@ -332,6 +411,28 @@ const styles = StyleSheet.create({
         color: "#CC0000",
         fontWeight: "bold",
         textAlign: "center",
+    },
+    parkInfoContainer: {
+        marginBottom: 20,
+        alignItems: "center",
+    },
+    parkInfoText: {
+        fontSize: 16,
+        color: "#333",
+    },
+    parkName: {
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+    },
+    changeParkButton: {
+        marginTop: 10,
+        padding: 10,
+        backgroundColor: "rgb(22, 163, 74)",
+        borderRadius: 5,
+    },
+    changeParkText: {
+        color: "#fff",
+        fontWeight: "bold",
     },
 });
 

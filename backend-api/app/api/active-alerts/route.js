@@ -2,18 +2,35 @@ import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 
 // Get all active alerts
-export async function GET() {
+export async function GET(request) {
     let connection;
     try {
         connection = await getConnection();
 
-        // Join with Parks to include park names
-        const [rows] = await connection.execute(`
+        // Extract park parameter from URL
+        const { searchParams } = new URL(request.url);
+        const parkId = searchParams.get("park");
+
+        console.log(`[ActiveAlerts GET] Filtering by park: ${parkId || "all"}`);
+
+        let query = `
             SELECT aa.*, p.park_name 
             FROM ActiveAlerts aa
             JOIN Parks p ON aa.park_id = p.park_id
-            ORDER BY aa.created_at DESC
-        `);
+        `;
+
+        let params = [];
+
+        // Filter by park if specified
+        if (parkId && parkId !== "all") {
+            query += " WHERE aa.park_id = ?";
+            params.push(parkId);
+        }
+
+        query += " ORDER BY aa.created_at DESC";
+
+        const [rows] = await connection.execute(query, params);
+        console.log(`[ActiveAlerts GET] Retrieved ${rows.length} alerts`);
 
         return NextResponse.json(rows);
     } catch (error) {
