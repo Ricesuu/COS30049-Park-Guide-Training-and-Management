@@ -2,14 +2,30 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 
-export async function GET() {
+export async function GET(request) {
     let connection;
     try {
         connection = await getConnection();
 
-        console.log("[IoTMonitoring GET] Database connection established");
+        // Extract park parameter from URL
+        const { searchParams } = new URL(request.url);
+        const parkId = searchParams.get("park");
 
-        const [rows] = await connection.execute("SELECT * FROM IoTMonitoring");
+        console.log("[IoTMonitoring GET] Database connection established");
+        console.log(
+            `[IoTMonitoring GET] Filtering by park: ${parkId || "all"}`
+        );
+
+        let query = "SELECT * FROM IoTMonitoring";
+        let params = [];
+
+        // Filter by park if specified
+        if (parkId && parkId !== "all") {
+            query += " WHERE park_id = ?";
+            params.push(parkId);
+        }
+
+        const [rows] = await connection.execute(query, params);
 
         console.log(`[IoTMonitoring GET] Retrieved ${rows.length} records`);
 

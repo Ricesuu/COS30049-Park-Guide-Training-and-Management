@@ -9,6 +9,7 @@ import {
     StyleSheet,
     TouchableOpacity,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import MonitoringCard from "./MonitoringCard";
 import AlertCard from "./AlertCard";
 import AlertTestingTool from "./AlertTestingTool";
@@ -26,6 +27,10 @@ const IoTMonitoringPage = () => {
     const [error, setError] = useState(null);
     const [showTestingTool, setShowTestingTool] = useState(false);
 
+    // Add state for parks and selected park
+    const [parks, setParks] = useState([]);
+    const [selectedParkId, setSelectedParkId] = useState("all");
+
     // Fetch IoT monitoring data
     const fetchMonitoringData = async (
         isRefreshing = false,
@@ -34,13 +39,19 @@ const IoTMonitoringPage = () => {
         try {
             console.log("==== MONITORING DATA FETCH START ====");
             console.log("Fetching IoT monitoring data...");
-            const iotResponse = await fetchData("/iot-monitoring");
+            const iotResponse = await fetchData(
+                `/iot-monitoring?park=${selectedParkId}`
+            );
             console.log(`Fetched ${iotResponse?.length || 0} IoT records`);
 
-            const alertsResponse = await fetchData("/active-alerts");
+            const alertsResponse = await fetchData(
+                `/active-alerts?park=${selectedParkId}`
+            );
             console.log(`Fetched ${alertsResponse?.length || 0} active alerts`);
 
-            const thresholdsResponse = await fetchData("/alert-thresholds");
+            const thresholdsResponse = await fetchData(
+                `/alert-thresholds?park=${selectedParkId}`
+            );
             console.log(
                 `Fetched ${thresholdsResponse?.length || 0} alert thresholds`
             );
@@ -86,10 +97,34 @@ const IoTMonitoringPage = () => {
         console.log("==== TEST DATA REFRESH END ====");
     };
 
-    // Load data on component mount
+    // Load data on component mount and when selected park changes
+    useEffect(() => {
+        console.log(`Park selection changed to: ${selectedParkId}`);
+        fetchMonitoringData();
+    }, [selectedParkId]);
+
     useEffect(() => {
         console.log("IoTMonitoringPage mounted, fetching initial data");
-        fetchMonitoringData();
+
+        // Fetch parks data
+        const fetchParks = async () => {
+            try {
+                const parksResponse = await fetchData("/parks");
+                setParks(parksResponse || []);
+
+                // Set the default park to the first park in the database
+                if (parksResponse && parksResponse.length > 0) {
+                    setSelectedParkId(parksResponse[0].park_id.toString());
+                    console.log(
+                        `Default park set to: ${parksResponse[0].park_name} (ID: ${parksResponse[0].park_id})`
+                    );
+                }
+            } catch (err) {
+                console.error("Error fetching parks data:", err);
+            }
+        };
+
+        fetchParks();
 
         // Set up periodic refresh every 60 seconds for real-time monitoring
         const interval = setInterval(() => {
@@ -312,6 +347,42 @@ const IoTMonitoringPage = () => {
             >
                 IoT Monitoring
             </Text>
+            <View
+                style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    marginHorizontal: 15,
+                    marginBottom: 20,
+                    borderRadius: 8,
+                    padding: 8,
+                }}
+            >
+                <Text
+                    style={{
+                        color: "white",
+                        fontWeight: "500",
+                        marginBottom: 4,
+                    }}
+                >
+                    Monitoring Park:
+                </Text>
+                <Picker
+                    selectedValue={selectedParkId}
+                    onValueChange={(itemValue) => setSelectedParkId(itemValue)}
+                    style={{
+                        backgroundColor: "white",
+                        borderRadius: 8,
+                    }}
+                    dropdownIconColor="#4a5568"
+                >
+                    {parks.map((park) => (
+                        <Picker.Item
+                            key={park.park_id}
+                            label={park.park_name}
+                            value={park.park_id.toString()}
+                        />
+                    ))}
+                </Picker>
+            </View>
             <ScrollView
                 style={{
                     backgroundColor: "white",
