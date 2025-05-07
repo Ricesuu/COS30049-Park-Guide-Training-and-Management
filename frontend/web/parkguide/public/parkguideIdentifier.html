@@ -10,7 +10,7 @@
 <body class="bg-gray-100">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <div class="sidebar flex flex-col justify-start items-center w-72 p-5">
+        <div class="sidebar flex flex-col justify-start items-center w-72 p-5 bg-#7CC242">
             <img src="images/SFC_LOGO_small.jpg" alt="SFC Logo" class="w-1/2 mb-6">
             
             <!-- Buttons -->
@@ -41,29 +41,32 @@
         </div>
 
         <!-- Main Content -->
-        <div class="main-content flex flex-grow">
+        <div class="main-content flex flex-grow flex-wrap">
             <!-- Left Column -->
-            <div class="left-column flex flex-col flex-grow">
+            <div class="left-column flex flex-col w-full md:w-1/4 mt-1">
                 <!-- Upload Box -->
-                <div class="box bg-white p-4 m-2 rounded shadow">
-                    <h2 class="text-lg font-bold mb-4">Upload Image</h2>
+                <div class="bg-white p-4 m-2 rounded shadow flex-none">
+                    <h2 class="text-lg font-bold text-gray-800 border-b border-gray-300 pb-2 text-center">Upload Image</h2>
                     <input type="file" id="imageInput" accept="image/*" class="mb-4">
-                    <div id="imagePreview" class="w-full h-40 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
-                        <span class="text-gray-500">No image uploaded</span>
-                    </div>
+                    <button class="btn bg-blue-500 text-white py-2 px-4 rounded w-full" onclick="uploadToSystem()">Upload</button>
                 </div>
 
-                <!-- Upload Button Box -->
-                <div class="box bg-white p-4 m-2 rounded shadow">
-                    <button class="btn bg-blue-500 text-white py-2 px-4 rounded w-full" onclick="uploadToSystem()">Upload</button>
+                <!-- Image Preview -->
+                <div id="imagePreview" class="flex-grow bg-gray-100 border border-gray-300 rounded flex items-center justify-center m-2 shadow">
+                    <span class="text-gray-500">No image uploaded</span>
                 </div>
             </div>
 
             <!-- Right Column -->
-            <div class="right-column bg-white p-4 m-2 rounded shadow flex-grow-2 border border-black">
-                <div class="flex flex-col justify-between h-full">
-                    <h2 class="text-lg font-bold mb-4">Information</h2>
-                    <!-- Add additional content here if needed -->
+            <div class="right-column bg-white p-4 m-3 rounded shadow w-full md:w-3/4 relative flex flex-col">
+                <div class="flex flex-col h-full">
+                    <h2 class="text-lg font-bold mb-4 text-center">Information</h2>
+                    <!-- Content Area -->
+                    <div class="flex-grow p-4 text-left">
+                        <p class="text-gray-700 text-base">Plant Name: Lorem Ipsum.</p>
+                        <p class="text-gray-700 text-base">You can add more details about the identifier here.</p>
+                        <p class="text-gray-700 text-base">Feel free to customize this section as needed.</p>
+                    </div>
                 </div>
             </div>
         </div>
