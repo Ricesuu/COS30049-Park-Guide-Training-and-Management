@@ -1,0 +1,13 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/parkguideMonitoring": "pages/parkguideMonitoring.js",
+  "/parkguidePerformance": "pages/parkguidePerformance.js",
+  "/parkguideIdentifier": "pages/parkguideIdentifier.js",
+  "/parkguidePlantInfo": "pages/parkguidePlantInfo.js",
+  "/parkguideCert": "pages/parkguideCert.js",
+  "/parkguideTraining": "pages/parkguideTraining.js",
+  "/parkguideQuiz": "pages/parkguideQuiz.js",
+  "/parkguideModule": "pages/parkguideModule.js"
+}

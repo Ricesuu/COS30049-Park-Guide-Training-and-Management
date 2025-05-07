@@ -2,6 +2,9 @@ import axios from "axios";
 import { API_URL } from "../constants/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Enhanced debugging: Log the API URL on initialization
+console.log(`🔌 API configured with base URL: ${API_URL}/api`);
+
 const API_BASE_URL = `${API_URL}/api`; // Construct API base URL from constants
 
 const apiClient = axios.create({
@@ -12,7 +15,7 @@ const apiClient = axios.create({
 // Enhanced fetchData function to handle different HTTP methods
 export const fetchData = async (endpoint, options = {}) => {
     try {
-        console.log(`API Request: ${options.method || "GET"} ${endpoint}`);
+        console.log(`📡 API Request: ${options.method || "GET"} ${endpoint}`);
 
         // Get the auth token from AsyncStorage
         const authToken = await AsyncStorage.getItem("authToken");
@@ -57,17 +60,29 @@ export const fetchData = async (endpoint, options = {}) => {
                 break;
         }
 
-        console.log(`API Response: ${response.status} ${response.statusText}`);
+        console.log(
+            `✅ API Response: ${response.status} ${response.statusText}`
+        );
         return response.data;
     } catch (error) {
-        console.error("API Error:", error);
-        console.error("Details:", {
+        console.error("❌ API Error:", error);
+        console.error("🔍 Error details:", {
             message: error.message,
             url: `${API_BASE_URL}${endpoint}`,
             method: options.method || "GET",
             status: error.response?.status,
             statusText: error.response?.statusText,
             data: error.response?.data,
+            // More detailed network error debugging
+            code: error.code,
+            isAxiosError: error.isAxiosError,
+            config: error.config
+                ? {
+                      url: error.config.url,
+                      method: error.config.method,
+                      baseURL: error.config.baseURL,
+                  }
+                : "No config available",
         });
         throw error;
     }
