@@ -10,24 +10,26 @@ const certifications = Array.from({ length: 12 }, (_, index) => ({
 
 const ParkguideCert = () => {
   return (
-    <div className="dashboard-container">
+    <div className="cert-page-container">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <div className="cert-main-content">
-        <h2 className="section-title">Certification & Licensing</h2>
-        <div className="cert-grid">
-          {certifications.map((cert, index) => (
-            <div className="cert-box" key={index}>
-              <img src={cert.image} alt={cert.title} className="cert-image" />
-              <div className="cert-details">
-                <h3 className="cert-title">{cert.title}</h3>
-                <p className="cert-expiry">Expiry Date: {cert.expiry}</p>
+      <div className="cert-page-container">
+        
+          <h2 className="cert-page-title">Certification & Licensing</h2>
+          <div className="cert-page-grid">
+            {certifications.map((cert, index) => (
+              <div className="cert-page-box" key={index}>
+                <img src={cert.image} alt={cert.title} className="cert-page-image" />
+                <div className="cert-page-details">
+                  <h3 className="cert-page-title-text">{cert.title}</h3>
+                  <p className="cert-page-expiry">Expiry Date: {cert.expiry}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        
       </div>
     </div>
   );

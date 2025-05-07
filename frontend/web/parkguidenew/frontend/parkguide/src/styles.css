@@ -4,6 +4,7 @@ body {
   font-family: 'Inter', Arial, sans-serif; /* Modern font */
   background-color: #f3f4f6; /* Light gray background */
   color: #333; /* Dark text color */
+  overflow-x: hidden; /* Disable horizontal scrolling */
 }
 
 /* Dashboard Container */
@@ -105,9 +106,37 @@ body {
   overflow-y: auto; /* Enable scrolling for long content */
 }
 
+/* Styling for the Training Background Box */
+.training-background-box {
+  background-color: #f9f9f9; /* Light gray background */
+  border: 1px solid #d1d5db; /* Subtle border */
+  border-radius: 12px; /* Rounded corners */
+  padding: 2rem; /* Add padding inside the box */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  margin-top: 1.5rem; /* Add spacing above the box */
+}
+
+/* Center the Title for Training Background Box */
+.training-background-box .section-title {
+  text-align: center; /* Center the title */
+}
+
 /* Certification Main Content Styling */
 .cert-main-content {
   margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: flex;
+  flex-direction: column; /* Stack the title and grid container vertically */
+  padding: 2rem;
+  box-sizing: border-box;
+  height: 100vh; /* Full height of the viewport */
+  background-color: #ffffff; /* White background for the container */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Certification Page Specific Styling */
+.cert-page-container {
+  margin-left: 11rem; /* Offset the content to the right of the sidebar */
   display: flex;
   flex-direction: column; /* Stack the title and grid container vertically */
   padding: 2rem;
@@ -117,6 +146,65 @@ body {
   background-color: #ffffff; /* White background for the container */
   border-radius: 12px; /* Rounded corners */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  justify-content: flex-start; /* Align content to the top */
+}
+
+/* Ensure Title Sticks to the Container */
+.cert-page-title {
+  background-color: #ffffff; /* Match the container background */
+  z-index: 10; /* Ensure it stays above other content */
+  padding: 0.5rem 1rem; /* Add padding for spacing */
+  text-align: center; /* Align the title to the left */
+  font-size: 1.75rem; /* Larger font size for the title */
+  font-weight: bold;
+  border-bottom: 1px solid #d1d5db; /* Add a bottom border for separation */
+}
+
+/* Updated Styling for Certificate List to Utilize Full Width */
+.cert-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid layout to utilize full width */
+  gap: 1.5rem; /* Add spacing between certificates */
+  margin-top: 1.5rem; /* Add spacing above the grid */
+  width: 100%; /* Ensure it stretches to fit the container width */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
+.cert-page-box {
+  background-color: #f9f9f9;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cert-page-box:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-4px); /* Subtle lift effect */
+}
+
+.cert-page-image {
+  width: 100px;
+  height: auto;
+  margin-bottom: 0.5rem;
+  object-fit: contain;
+}
+
+.cert-page-title-text {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.cert-page-expiry {
+  font-size: 0.875rem;
+  color: #666;
 }
 
 /* Section Styling (Shared for Training and Certification) */
@@ -386,6 +474,16 @@ body {
   color: #666;
 }
 
+/* Styling for the Certification Background Box */
+.cert-background-box {
+  background-color: #f9f9f9; /* Light gray background */
+  border: 1px solid #d1d5db; /* Subtle border */
+  border-radius: 12px; /* Rounded corners */
+  padding: 2rem; /* Add padding inside the box */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  margin-top: 1.5rem; /* Add spacing above the box */
+}
+
 /* Performance Container Styling */
 .performance {
   height: 500px; /* Match the height of the other boxes */
@@ -550,4 +648,86 @@ canvas {
   align-items: flex-start; /* Align boxes to the top */
   gap: 1.5rem; /* Reduced spacing between the boxes */
   width: 100%; /* Full width of the container */
+}
+
+/* Styling for the Additional Box */
+.additional-box {
+  margin-top: 2rem; /* Add spacing above the box */
+  padding: 1.5rem; /* Add padding inside the box */
+  background-color: #f9f9f9; /* Light gray background */
+  border: 1px solid #d1d5db; /* Subtle border */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.additional-box-title {
+  font-size: 1.25rem; /* Slightly larger title */
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem; /* Add spacing below the title */
+}
+
+.additional-box-content {
+  font-size: 1rem; /* Standard font size */
+  color: #666; /* Subtle text color */
+  line-height: 1.5; /* Improve readability */
+}
+
+/* Styling for Performance Page */
+.performance-main-content {
+  margin-left: 20rem; /* Offset the content to the right of the sidebar */
+  display: flex;
+  flex-direction: column; /* Stack sections vertically */
+  padding: 3rem; /* Increase padding for a larger container */
+  box-sizing: border-box;
+  height: 100vh; /* Full height of the viewport */
+  overflow-y: auto; /* Enable scrolling for long content */
+  background-color: #ffffff; /* White background for the container */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  width: calc(100% - 18rem); /* Increase width to make the container bigger */
+}
+
+.recommendations-section,
+.reviews-section {
+  margin-bottom: 2rem; /* Add spacing between sections */
+  max-height: 300px; /* Limit the height of the sections */
+  overflow-y: auto; /* Enable vertical scrolling for overflow content */
+  padding-right: 1rem; /* Add padding to avoid content touching the scrollbar */
+}
+
+.subsection-title {
+  font-size: 1.5rem; /* Slightly larger font size */
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1rem; /* Add spacing below the title */
+}
+
+.recommendations-list,
+.reviews-list {
+  list-style: none; /* Remove default list styling */
+  padding: 0;
+  margin: 0;
+}
+
+.recommendation-item,
+.review-item {
+  background-color: #f9f9f9; /* Light gray background */
+  border: 1px solid #d1d5db; /* Subtle border */
+  border-radius: 8px; /* Rounded corners */
+  padding: 1rem; /* Add padding inside the item */
+  margin-bottom: 1rem; /* Add spacing between items */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.review-item.positive {
+  border-left: 8px solid #4caf50; /* Green for positive reviews */
+}
+
+.review-item.negative {
+  border-left: 8px solid #f44336; /* Red for negative reviews */
+}
+
+.review-item.improvement {
+  border-left: 8px solid #ff9800; /* Orange for improvement suggestions */
 }

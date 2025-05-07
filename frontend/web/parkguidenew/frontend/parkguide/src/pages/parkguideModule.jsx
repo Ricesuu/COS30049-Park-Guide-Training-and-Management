@@ -74,6 +74,12 @@ const ParkguideModule = () => {
             </video>
           )}
           <p className="module-content">{module.content}</p>
+          <div className="additional-box">
+            <h3 className="additional-box-title">Additional Information</h3>
+            <p className="additional-box-content">
+              Here you can find more resources and links related to this module. Explore further to enhance your knowledge and skills.
+            </p>
+          </div>
           <button className="back-button" onClick={() => navigate('/training')}>
             Back to Training Modules
           </button>
