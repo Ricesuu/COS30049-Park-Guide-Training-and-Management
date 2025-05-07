@@ -22,46 +22,114 @@ export async function PUT(request, { params }) {
         }
 
         connection = await getConnection();
-        let query, params;
 
-        // Determine which field to update based on what was provided
+        // If updating certification status, also update user status
         if (body.certification_status) {
-            query =
-                "UPDATE ParkGuides SET certification_status = ? WHERE guide_id = ?";
-            params = [body.certification_status, id];
-        } else {
-            query =
-                "UPDATE ParkGuides SET assigned_park = ? WHERE guide_id = ?";
-            params = [body.assigned_park, id];
-        }
+            // First, get the user_id associated with this guide
+            const [guideRows] = await connection.execute(
+                "SELECT user_id FROM ParkGuides WHERE guide_id = ?",
+                [id]
+            );
 
-        // Execute the update query
-        const [result] = await connection.execute(query, params);
+            if (guideRows.length === 0) {
+                return NextResponse.json(
+                    { error: "Park guide not found" },
+                    { status: 404 }
+                );
+            }
 
-        if (result.affectedRows === 0) {
+            const user_id = guideRows[0].user_id;
+
+            // Begin transaction to update both tables
+            await connection.beginTransaction();
+
+            // Update ParkGuides table
+            const [guideResult] = await connection.execute(
+                "UPDATE ParkGuides SET certification_status = ? WHERE guide_id = ?",
+                [body.certification_status, id]
+            );
+
+            // Map certification_status to user status
+            let userStatus;
+            if (body.certification_status === "certified") {
+                userStatus = "approved";
+            } else if (body.certification_status === "rejected") {
+                userStatus = "rejected";
+            } else {
+                userStatus = "pending";
+            }
+
+            // Update Users table
+            const [userResult] = await connection.execute(
+                "UPDATE Users SET status = ? WHERE user_id = ?",
+                [userStatus, user_id]
+            );
+
+            // Commit transaction
+            await connection.commit();
+
+            if (guideResult.affectedRows === 0) {
+                return NextResponse.json(
+                    { error: "Park guide not found or no changes made" },
+                    { status: 404 }
+                );
+            }
+
+            console.log(
+                `Park guide with ID ${id} and associated user updated successfully.`
+            );
             return NextResponse.json(
-                { error: "Park guide not found or no changes made" },
-                { status: 404 }
+                {
+                    message: `Park guide with ID ${id} updated successfully`,
+                    affectedRows: guideResult.affectedRows,
+                },
+                {
+                    headers: {
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods":
+                            "GET, PUT, DELETE, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type",
+                    },
+                }
+            );
+        } else {
+            // Just updating assigned_park, no need to touch user status
+            const [result] = await connection.execute(
+                "UPDATE ParkGuides SET assigned_park = ? WHERE guide_id = ?",
+                [body.assigned_park, id]
+            );
+
+            if (result.affectedRows === 0) {
+                return NextResponse.json(
+                    { error: "Park guide not found or no changes made" },
+                    { status: 404 }
+                );
+            }
+
+            console.log(
+                `Park guide with ID ${id} updated successfully. Rows affected: ${result.affectedRows}`
+            );
+            return NextResponse.json(
+                {
+                    message: `Park guide with ID ${id} updated successfully`,
+                    affectedRows: result.affectedRows,
+                },
+                {
+                    headers: {
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods":
+                            "GET, PUT, DELETE, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type",
+                    },
+                }
             );
         }
-
-        console.log(
-            `Park guide with ID ${id} updated successfully. Rows affected: ${result.affectedRows}`
-        );
-        return NextResponse.json(
-            {
-                message: `Park guide with ID ${id} updated successfully`,
-                affectedRows: result.affectedRows,
-            },
-            {
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type",
-                },
-            }
-        );
     } catch (error) {
+        // Rollback transaction if there was an error
+        if (connection && body.certification_status) {
+            await connection.rollback();
+        }
+
         console.error(`Error updating park guide with ID ${id}:`, error);
         return NextResponse.json(
             {

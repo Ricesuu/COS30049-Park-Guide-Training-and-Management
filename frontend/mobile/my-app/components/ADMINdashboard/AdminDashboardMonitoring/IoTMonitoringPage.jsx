@@ -14,6 +14,7 @@ import AlertCard from "./AlertCard";
 import AlertTestingTool from "./AlertTestingTool";
 import { useNavigation } from "expo-router";
 import { fetchData } from "../../../src/api/api";
+import { Ionicons } from "@expo/vector-icons";
 
 const IoTMonitoringPage = () => {
     const navigation = useNavigation();
@@ -21,6 +22,7 @@ const IoTMonitoringPage = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [iotData, setIotData] = useState([]);
     const [activeAlerts, setActiveAlerts] = useState([]);
+    const [thresholds, setThresholds] = useState([]);
     const [error, setError] = useState(null);
     const [showTestingTool, setShowTestingTool] = useState(false);
 
@@ -37,10 +39,16 @@ const IoTMonitoringPage = () => {
 
             const alertsResponse = await fetchData("/active-alerts");
             console.log(`Fetched ${alertsResponse?.length || 0} active alerts`);
+
+            const thresholdsResponse = await fetchData("/alert-thresholds");
+            console.log(
+                `Fetched ${thresholdsResponse?.length || 0} alert thresholds`
+            );
             console.log("==== MONITORING DATA FETCH COMPLETE ====");
 
             setIotData(iotResponse || []);
             setActiveAlerts(alertsResponse || []);
+            setThresholds(thresholdsResponse || []);
             setError(null);
 
             // Show success message when refreshing after test data submission
@@ -100,6 +108,17 @@ const IoTMonitoringPage = () => {
         console.log("Manual pull-to-refresh triggered");
         setRefreshing(true);
         fetchMonitoringData(true);
+    };
+
+    // Get threshold for a specific sensor type
+    const getThresholdForSensor = (sensorType) => {
+        if (!thresholds || thresholds.length === 0) return null;
+
+        const threshold = thresholds.find(
+            (t) => t.sensor_type.toLowerCase() === sensorType.toLowerCase()
+        );
+
+        return threshold || null;
     };
 
     // Update the handlePress function to only show today's data
@@ -186,6 +205,11 @@ const IoTMonitoringPage = () => {
             console.error(`Error dismissing alert with ID ${alertId}:`, err);
             Alert.alert("Error", "Failed to dismiss alert. Please try again.");
         }
+    };
+
+    // Navigate to threshold settings page
+    const navigateToThresholdSettings = () => {
+        navigation.navigate("ThresholdSettings");
     };
 
     // Helper function to get the latest value of a specific sensor type
@@ -359,10 +383,11 @@ const IoTMonitoringPage = () => {
                                               getLatestSensorValue(
                                                   "temperature"
                                               ) !== "N/A"
-                                                  ? "°C"
+                                                  ? ""
                                                   : ""
                                           }`
                                 }
+                                threshold={getThresholdForSensor("temperature")}
                                 onPress={() => handlePress("temperature")}
                                 style={{ width: "48%" }}
                             />
@@ -380,6 +405,7 @@ const IoTMonitoringPage = () => {
                                                   : ""
                                           }`
                                 }
+                                threshold={getThresholdForSensor("humidity")}
                                 onPress={() => handlePress("humidity")}
                                 style={{ width: "48%" }}
                             />
@@ -399,12 +425,16 @@ const IoTMonitoringPage = () => {
                                                   : ""
                                           }`
                                 }
+                                threshold={getThresholdForSensor(
+                                    "soil moisture"
+                                )}
                                 onPress={() => handlePress("soil moisture")}
                                 style={{ width: "48%" }}
                             />
                             <MonitoringCard
                                 type="Motion Detection"
                                 value={`${getMotionDetectionCount()} motion(s) today`}
+                                threshold={getThresholdForSensor("motion")}
                                 onPress={() => handlePress("motion")}
                                 style={{ width: "48%" }}
                             />
@@ -440,6 +470,21 @@ const IoTMonitoringPage = () => {
                                 />
                             ))
                         )}
+
+                        {/* Threshold Settings Button */}
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            onPress={navigateToThresholdSettings}
+                        >
+                            <Ionicons
+                                name="settings-outline"
+                                size={24}
+                                color="white"
+                            />
+                            <Text style={styles.settingsButtonText}>
+                                Configure Alert Thresholds
+                            </Text>
+                        </TouchableOpacity>
 
                         {/* Toggle button for showing/hiding the testing tool */}
                         <TouchableOpacity
@@ -477,6 +522,20 @@ const styles = StyleSheet.create({
     toggleButtonText: {
         color: "white",
         fontWeight: "bold",
+    },
+    settingsButton: {
+        backgroundColor: "#3b82f6",
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    settingsButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        marginLeft: 8,
     },
 });
 

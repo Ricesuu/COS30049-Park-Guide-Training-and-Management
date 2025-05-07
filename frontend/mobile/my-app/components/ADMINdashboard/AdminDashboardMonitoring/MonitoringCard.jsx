@@ -7,7 +7,14 @@ import {
     Dimensions,
 } from "react-native";
 
-const MonitoringCard = ({ type, value, onPress, style, valueStyle }) => {
+const MonitoringCard = ({
+    type,
+    value,
+    onPress,
+    style,
+    valueStyle,
+    threshold = null,
+}) => {
     const cardWidth = (Dimensions.get("window").width - 30) / 2;
 
     // Determine if the value is a "No readings today" message
@@ -27,6 +34,34 @@ const MonitoringCard = ({ type, value, onPress, style, valueStyle }) => {
 
         const typeLower = type.toLowerCase();
 
+        // If we have thresholds from the database, use those instead of hardcoded values
+        if (threshold) {
+            // For motion sensor, check for "detected" value
+            if (typeLower.includes("motion")) {
+                return value.toLowerCase().includes("0")
+                    ? "#00cc00"
+                    : "#ff9900";
+            }
+            // For numeric sensors, check min/max thresholds
+            else if (!isNaN(numericValue)) {
+                if (
+                    threshold.min_threshold !== null &&
+                    numericValue < threshold.min_threshold
+                ) {
+                    return "#ff0000"; // Below minimum threshold
+                }
+                if (
+                    threshold.max_threshold !== null &&
+                    numericValue > threshold.max_threshold
+                ) {
+                    return "#ff0000"; // Above maximum threshold
+                }
+                return "#00cc00"; // Within acceptable range
+            }
+            return "#cccccc"; // Default gray
+        }
+
+        // Fallback to hardcoded values if no threshold data is available
         if (typeLower === "temperature") {
             if (numericValue > 30) return "#ff0000"; // Red for high temp
             if (numericValue < 15) return "#0000ff"; // Blue for low temp
