@@ -14,6 +14,8 @@ const Sidebar = () => {
       <button className="nav-btn" onClick={() => navigateTo('/')}>Dashboard</button>
       <button className="nav-btn" onClick={() => navigateTo('/training')}>Training Module</button>
       <button className="nav-btn" onClick={() => navigateTo('/certifications')}>Certification & Licensing</button>
+      <button className="nav-btn" onClick={() => navigateTo('/plants')}>Plant Information</button>
+      <button className="nav-btn" onClick={() => navigateTo('/identify')}>Plant Identification</button>
       <button className="nav-btn" onClick={() => navigateTo('/performance')}>Performance</button>
       <button className="nav-btn logout" onClick={() => navigateTo('/logout')}>Logout</button>
     </aside>

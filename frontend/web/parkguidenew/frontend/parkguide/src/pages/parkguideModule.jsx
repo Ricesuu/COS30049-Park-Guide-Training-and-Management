@@ -62,7 +62,7 @@ const ParkguideModule = () => {
       <Sidebar />
 
       {/* Main Content */}
-      <div className="main-content">
+      <div className="module-main-content">
         <div className="module-details">
           <h2 className="module-title">{module.title}</h2>
           <img src={module.image} alt={moduleName} className="module-image-large" />

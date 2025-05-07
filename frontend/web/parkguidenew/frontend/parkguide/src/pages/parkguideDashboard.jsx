@@ -3,6 +3,11 @@ import React from 'react';
 import Sidebar from '../components/sidebar';
 import '../styles.css';
 
+// Import images to ensure they're properly handled by Vite
+import semenggohImg from '/images/Semenggoh.jpg';
+import advancedGuideImg from '/images/advanced_guide.png';
+import firstaidImg from '/images/firstaid.jpg';
+
 const Dashboard = () => {
   const announcements = [
     { text: 'New training modules are now available!', priority: 'high' },
@@ -31,6 +36,13 @@ const Dashboard = () => {
     negativeFeedback: 20, // Example: 20% negative feedback
     totalFeedback: 100, // Example: 100 total feedback entries
   };
+
+  const navigate = (path) => {
+    window.location.href = path;
+  };
+
+  // Use imported images instead of string paths
+  const certImages = [semenggohImg, advancedGuideImg, firstaidImg];
 
   return (
     <div className="dashboard-container">
@@ -75,24 +87,33 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Certification Section */}
+          {/* Certification Section - Show only completed certs */}
           <div className="box certification">
-            <h2 className="boxtitle">Certifications</h2>
-            <div className="certification-content">
-              {certifications.map((cert, index) => (
-                <div className="cert-box" key={index}>
-                  <img
-                    src={index % 2 === 0 ? '/images/Semenggoh.jpg' : '/images/advanced_guide.png'}
-                    alt={`Certification ${index + 1}`}
-                    className="cert-image"
-                  />
-                  <div>
-                    <h3 className="cert-title">{cert.title}</h3>
-                    <p className="cert-expiry">Expiry: {cert.expiry}</p>
+            <h2 className="boxtitle">Your Certifications</h2>
+            <div className="certification-grid">
+              {certifications
+                .filter(cert => cert.expiry !== 'In Progress') // Only show completed certifications
+                .map((cert, index) => (
+                  <div className="dashboard-cert-card" key={index} onClick={() => navigate('/certifications')}>
+                    <div className="dashboard-cert-image-container">
+                      <img
+                        src={certImages[index % 3]}
+                        alt={`Certification ${index + 1}`}
+                        className="dashboard-cert-image"
+                      />
+                    </div>
+                    <div className="dashboard-cert-info">
+                      <h3 className="dashboard-cert-title">{cert.title}</h3>
+                      <p className="dashboard-cert-expiry">
+                        Expiry: <span>{cert.expiry}</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
+            {certifications.filter(cert => cert.expiry !== 'In Progress').length === 0 && (
+              <p className="no-certs-message">You don't have any completed certifications yet.</p>
+            )}
           </div>
         </div>
       </div>
