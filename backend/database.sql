@@ -124,12 +124,12 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
 CREATE TABLE IF NOT EXISTS PaymentTransactions (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    uid VARCHAR(255) NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
-    payment_method ENUM('debit_card', 'digital_wallet') NOT NULL,
-    paymentPurpose VARCHAR(255) NULL,
-    receipt_path VARCHAR(255) NULL,
+    uid VARCHAR(255) NOT NULL,
+    paymentPurpose VARCHAR(100) NOT NULL,
+    paymentMethod ENUM('debit', 'credit', 'e_wallet') NOT NULL,
+    amountPaid DECIMAL(10, 2) NOT NULL,
+    receipt_image LONGBLOB NOT NULL,
+    paymentStatus ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );

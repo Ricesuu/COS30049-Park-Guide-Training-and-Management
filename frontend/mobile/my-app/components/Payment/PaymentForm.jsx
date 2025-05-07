@@ -6,7 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import usePaymentHandler from "../../hooks/usePaymentHandler";
 import AnimatedButton from "../AnimatedButton";
 
-export default function PaymentForm() {
+export default function PaymentForm({ refreshTransactions }) {
     const {
         form,
         open,
@@ -23,7 +23,7 @@ export default function PaymentForm() {
         handlePaymentMethodChange,
         handleFilePick,
         handleSubmit,
-    } = usePaymentHandler();
+    } = usePaymentHandler({ refreshTransactions }); // ✅ pass down the prop
 
     return (
         <View className="flex-1 bg-white p-6 rounded-t-3xl shadow-inner -mt-12 z-0">
