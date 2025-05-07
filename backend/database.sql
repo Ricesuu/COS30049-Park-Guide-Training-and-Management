@@ -5,12 +5,15 @@ USE park_guide_management;
 -- Table: User
 CREATE TABLE IF NOT EXISTS Users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
+  uid VARCHAR(255) NOT NULL UNIQUE, -- Firebase UID
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'park_guide', 'visitor') NOT NULL,
-  phone_number VARCHAR(20),
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'park_guide') NOT NULL DEFAULT 'park_guide',
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  failed_attempts INT DEFAULT 0,
+  last_failed_attempt DATETIME DEFAULT NULL,
+  locked_until DATETIME DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -121,28 +124,58 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
 CREATE TABLE IF NOT EXISTS PaymentTransactions (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
-    payment_method ENUM('debit_card', 'digital_wallet') NOT NULL,
+    uid VARCHAR(255) NOT NULL,
+    paymentPurpose VARCHAR(100) NOT NULL,
+    paymentMethod ENUM('debit', 'credit', 'e_wallet') NOT NULL,
+    amountPaid DECIMAL(10, 2) NOT NULL,
+    receipt_image LONGBLOB NOT NULL,
+    paymentStatus ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
 -- ==============================================
+-- Table: Alert Thresholds Table
+CREATE TABLE IF NOT EXISTS AlertThresholds (
+  threshold_id INT AUTO_INCREMENT PRIMARY KEY,
+  sensor_type VARCHAR(50) NOT NULL,
+  park_id INT NOT NULL,
+  min_threshold FLOAT NULL,
+  max_threshold FLOAT NULL,
+  trigger_message VARCHAR(255) NOT NULL,
+  severity ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
+  is_enabled BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (park_id) REFERENCES Parks(park_id),
+  UNIQUE KEY unique_threshold (sensor_type, park_id)
+);
 
+-- ==============================================
+-- Table: Active Alerts Table
+CREATE TABLE IF NOT EXISTS ActiveAlerts (
+  alert_id INT AUTO_INCREMENT PRIMARY KEY,
+  park_id INT NOT NULL,
+  sensor_type VARCHAR(50) NOT NULL,
+  recorded_value VARCHAR(50) NOT NULL,
+  threshold_id INT NOT NULL,
+  message VARCHAR(255) NOT NULL,
+  severity ENUM('low', 'medium', 'high') NOT NULL,
+  is_acknowledged BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (park_id) REFERENCES Parks(park_id),
+  FOREIGN KEY (threshold_id) REFERENCES AlertThresholds(threshold_id)
+);
 
 
 
 
 -- DUMMY DATA
 
--- Dummy Users Data
-INSERT INTO Users (first_name, last_name, email, password_hash, role, phone_number) VALUES
-('Alice', 'Brown', 'alice.brown@example.com', 'abc123hashed', 'visitor', '1234567890'),
-('Bob', 'Smith', 'bob.smith@example.com', 'xyz456hashed', 'park_guide', '9876543210'),
-('Charlie', 'Johnson', 'charlie.johnson@example.com', 'def789hashed', 'admin', NULL),
-('David', 'Williams', 'david.williams@example.com', 'ghi101hashed', 'visitor', '5555555555'),
-('Eva', 'Taylor', 'eva.taylor@example.com', 'jkl202hashed', 'park_guide', '4444444444');
+-- Updated Dummy Users Data
+INSERT INTO Users (uid, email, first_name, last_name, role, status) VALUES 
+('vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved');
+
 SELECT * from Users;
 
 
@@ -150,10 +183,7 @@ SELECT * from Users;
 
 
 -- Dummy Park Guides Data
-INSERT INTO ParkGuides (user_id, certification_status, license_expiry_date, assigned_park) VALUES
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 'certified', '2025-12-31', 'Bako National Park'),
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 'pending', NULL, 'Semenggoh Wildlife Centre');
-SELECT * from ParkGuides;
+
 
 
 
@@ -173,49 +203,19 @@ SELECT * from TrainingModules;
 
 
 -- Dummy Guide Training Progress Data
-INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date) VALUES
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), 'Completed', '2025-04-01'),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Advanced Navigation Techniques'), 'in progress', NULL),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), 'Completed', '2025-03-15'),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Emergency First Aid'), 'in progress', NULL);
-SELECT * from GuideTrainingProgress;
 
 
 
 
 
 -- Dummy Multi-License Training Exemptions Data
-INSERT INTO MultiLicenseTrainingExemptions (guide_id, training_id, exempted_training_id) VALUES
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Advanced Navigation Techniques')),
-
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Emergency First Aid'));
-SELECT * from MultiLicenseTrainingExemptions;
 
 
 
 
 
 -- Dummy Certifications Data
-INSERT INTO Certifications (guide_id, module_id, issued_date, expiry_date) VALUES
--- Certification for Bob Smith: "Basic Park Safety"
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Basic Park Safety'), '2025-04-01', '2026-04-01'),
 
--- Certification for Eva Taylor: "Wildlife Interaction Guidelines"
-((SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- (SELECT module_id FROM TrainingModules WHERE module_name = 'Wildlife Interaction Guidelines'), '2025-03-15', '2026-03-15');
-SELECT * from Certifications;
 
 
 
@@ -256,17 +256,143 @@ SELECT * from Guidebook;
 
 
 -- Dummy IoT Monitoring Data
+-- Add additional IoT monitoring data with proper timestamps for better chart visualization
+
+-- Clear existing data if you want to start fresh (optional)
+-- DELETE FROM IoTMonitoring;
+
+-- Insert temperature data for Bako National Park (fluctuating through the day)
 INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
--- Temperature and motion sensors in Bako National Park
-((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '29.5', '2025-04-07 08:00:00'),
-((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', '2025-04-07 10:15:00'),
+-- Today's temperature data with natural daily fluctuations
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '24.5', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '25.2', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '26.8', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '28.3', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '29.5', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '30.1', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '30.2', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '29.8', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '28.5', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '27.7', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
 
--- Humidity and soil moisture sensors in Semenggoh Wildlife Centre
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '70%', '2025-04-07 09:30:00'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '45%', '2025-04-07 11:00:00'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', '2025-04-07 13:30:00'),
-((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', '2025-04-07 13:45:00');
+-- Insert humidity data for Bako National Park (inverse to temperature)
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Today's humidity data (inversely proportional to temperature)
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '75%', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '72%', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '68%', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '65%', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '62%', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '60%', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '61%', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '64%', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '68%', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', '71%', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
 
+-- Insert soil moisture data for Bako National Park (more stable through the day)
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Today's soil moisture data (more stable, slight decrease through day)
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '42%', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '42%', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '41%', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '41%', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '40%', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '39%', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '38%', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '38%', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '37%', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', '37%', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
+
+-- Insert motion detection data for Bako National Park (sporadic throughout the day)
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Today's motion detection data (sporadic detections)
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR + INTERVAL 10 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR + INTERVAL 20 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR + INTERVAL 15 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR + INTERVAL 30 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR + INTERVAL 45 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR + INTERVAL 20 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR + INTERVAL 40 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR + INTERVAL 10 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
+
+-- Insert data for Semenggoh Wildlife Centre
+-- Temperature data
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Temperature data for Semenggoh (slightly cooler due to more tree coverage)
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '23.1', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '23.8', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '24.5', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '25.7', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '26.9', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '27.4', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '27.9', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '27.2', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '26.5', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', '25.8', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
+
+-- Humidity data
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Humidity data for Semenggoh (higher due to more vegetation)
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '82%', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '80%', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '78%', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '75%', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '72%', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '70%', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '71%', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '73%', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '76%', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', '79%', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
+
+-- Soil moisture data
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Soil moisture data for Semenggoh (higher due to better water retention)
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '58%', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '57%', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '57%', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '56%', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '55%', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '54%', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '53%', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '53%', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '52%', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', '52%', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR);
+
+-- Motion detection data (more frequent due to wildlife activity)
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES
+-- Motion detection data for Semenggoh (more frequent due to orangutans)
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR + INTERVAL 15 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 9 HOUR + INTERVAL 30 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR + INTERVAL 45 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 7 HOUR + INTERVAL 20 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR + INTERVAL 40 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 5 HOUR + INTERVAL 10 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 4 HOUR + INTERVAL 30 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR + INTERVAL 50 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 3 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 2 HOUR + INTERVAL 25 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'not detected', CURRENT_TIMESTAMP() - INTERVAL 1 HOUR + INTERVAL 15 MINUTE),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', 'detected', CURRENT_TIMESTAMP() - INTERVAL 45 MINUTE);
+
+-- Also add historical data for yesterday to show trends
+-- Add yesterday's data for Bako National Park (temperature only as example)
+INSERT INTO IoTMonitoring (park_id, sensor_type, recorded_value, recorded_at) VALUES 
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '23.8', CURRENT_TIMESTAMP() - INTERVAL 1 DAY - INTERVAL 10 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '24.7', CURRENT_TIMESTAMP() - INTERVAL 1 DAY - INTERVAL 8 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '27.3', CURRENT_TIMESTAMP() - INTERVAL 1 DAY - INTERVAL 6 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '29.8', CURRENT_TIMESTAMP() - INTERVAL 1 DAY - INTERVAL 4 HOUR),
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', '28.1', CURRENT_TIMESTAMP() - INTERVAL 1 DAY - INTERVAL 2 HOUR);
+
+-- Query to verify data was inserted
+SELECT COUNT(*) AS total_records FROM IoTMonitoring;
 SELECT * from IoTMonitoring;
 
 
@@ -274,47 +400,32 @@ SELECT * from IoTMonitoring;
 
 
 -- Dummy Visitor Feedback Data
-INSERT INTO VisitorFeedback (visitor_id, guide_id, rating, comment) VALUES
--- Feedback for Bob Smith
-((SELECT user_id FROM Users WHERE email = 'david.williams@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- 5, 'Bob was an amazing guide! Very knowledgeable and friendly.'),
 
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'bob.smith@example.com')), 
- 4, 'Great experience, but the tour could have been a bit longer.'),
-
--- Feedback for Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'david.williams@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- 3, 'Eva was good, but the group size made it hard to interact.'),
-
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 
- (SELECT guide_id FROM ParkGuides WHERE user_id = (SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com')), 
- 5, 'Eva was fantastic! She made the experience unforgettable.');
-SELECT * from VisitorFeedback;
 
 
 
 
 
 -- Dummy Payment Transactions Data
-INSERT INTO PaymentTransactions (user_id, amount, payment_status, payment_method, transaction_date) VALUES
--- Payment for certification fees by Bob Smith
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 150.00, 'completed', 'debit_card', '2025-04-01 09:00:00'),
-
--- Payment for advanced training course by Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 200.00, 'completed', 'digital_wallet', '2025-04-02 14:30:00'),
-
--- Pending payment for certification renewal by Bob Smith
-((SELECT user_id FROM Users WHERE email = 'bob.smith@example.com'), 120.00, 'pending', 'digital_wallet', '2025-04-03 10:45:00'),
-
--- Failed payment for new training module by Eva Taylor
-((SELECT user_id FROM Users WHERE email = 'eva.taylor@example.com'), 180.00, 'failed', 'debit_card', '2025-04-04 16:15:00'),
-
--- Payment for certification fees by Alice Brown (New applicant)
-((SELECT user_id FROM Users WHERE email = 'alice.brown@example.com'), 100.00, 'completed', 'debit_card', '2025-04-05 08:20:00');
-SELECT * from PaymentTransactions;
 
 
 
+
+
+
+INSERT INTO AlertThresholds (park_id, sensor_type, min_threshold, max_threshold, trigger_message, severity) VALUES
+-- Temperature thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'temperature', 15, 19, 'Temperature threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'temperature', 16, 19, 'Temperature threshold exceeded', 'medium'),
+
+-- Humidity thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'humidity', 50, 51, 'Humidity threshold exceeded', 'medium'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'humidity', 60, 61, 'Humidity threshold exceeded', 'medium'),
+
+-- Soil moisture thresholds
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'soil moisture', 30, 31, 'Soil moisture threshold exceeded', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'soil moisture', 30, 31, 'Soil moisture threshold exceeded', 'high'),
+
+-- Motion detection is handled differently - no min/max but presence/absence
+((SELECT park_id FROM Parks WHERE park_name = 'Bako National Park'), 'motion', NULL, NULL, 'Unauthorized motion detected', 'high'),
+((SELECT park_id FROM Parks WHERE park_name = 'Semenggoh Wildlife Centre'), 'motion', NULL, NULL, 'Unauthorized motion detected', 'high');
