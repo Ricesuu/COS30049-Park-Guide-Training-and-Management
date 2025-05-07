@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 5,
         alignItems: "center",
+        justifyContent: "center", // Added to vertically center content
         elevation: 5,
     },
     value: {
@@ -124,9 +125,10 @@ const styles = StyleSheet.create({
         color: "#333",
     },
     label: {
-        fontSize: 16,
+        fontSize: 15,
         color: "#666",
         marginTop: 5,
+        textAlign: "center",
     },
 });
 
