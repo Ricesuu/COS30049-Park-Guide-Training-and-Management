@@ -10,19 +10,16 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import ParkGuideCard from "../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
-import AddGuideButton from "../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
-import GuideDetailModal from "../../components/ADMINdashboard/AdminDashboardManage/GuideDetailModal";
-import { fetchData } from "../../src/api/api"; // Import fetchData utility
-import { API_URL } from "../../src/constants/constants"; // Import API_URL
+import ParkGuideCard from "../../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
+import AddGuideButton from "../../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
+import { fetchData } from "../../../src/api/api"; // Import fetchData utility
+import { API_URL } from "../../../src/constants/constants"; // Import API_URL
 
 const Manage = () => {
     const [guides, setGuides] = useState([]);
     const [filteredGuides, setFilteredGuides] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedGuide, setSelectedGuide] = useState(null);
-    const [isModalVisible, setIsModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [parks, setParks] = useState([]);
     const [selectedPark, setSelectedPark] = useState("all");
@@ -161,11 +158,6 @@ const Manage = () => {
     useEffect(() => {
         filterGuides();
     }, [selectedPark, selectedStatus, searchQuery]);
-
-    const handleEdit = (guide) => {
-        setSelectedGuide(guide);
-        setIsModalVisible(true);
-    };
 
     const handleSuspend = async (id) => {
         try {
@@ -356,66 +348,6 @@ const Manage = () => {
         }
     };
 
-    const handleSave = async (updatedGuide) => {
-        try {
-            console.log("Saving updated guide:", updatedGuide);
-
-            if (!updatedGuide.guide_id) {
-                console.error(
-                    "Missing guide_id in updatedGuide:",
-                    updatedGuide
-                );
-                setError("Cannot update guide - missing guide ID");
-                return;
-            }
-
-            // Use the simplified endpoint just for park assignment
-            const payload = {
-                park: updatedGuide.park || null,
-            };
-
-            console.log(
-                `Assigning guide ${updatedGuide.guide_id} to park:`,
-                payload.park
-            );
-
-            // Use the new endpoint specifically for park assignment
-            const response = await fetch(
-                `${API_URL}/api/park-guides/assign/${updatedGuide.guide_id}`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(payload),
-                }
-            );
-
-            const responseData = await response.json();
-            console.log("API response:", responseData);
-
-            if (!response.ok) {
-                console.error("Server error response:", responseData);
-                throw new Error("Failed to update guide information");
-            }
-
-            // Update local state on success
-            setGuides((prev) =>
-                prev.map((guide) =>
-                    guide.id === updatedGuide.id ? updatedGuide : guide
-                )
-            );
-
-            filterGuides();
-
-            setIsModalVisible(false);
-            console.log("Guide updated successfully");
-        } catch (err) {
-            console.error("Error updating guide:", err);
-            setError("Failed to update guide. Please try again later.");
-        }
-    };
-
     return (
         <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
             <Text
@@ -535,7 +467,6 @@ const Manage = () => {
                     renderItem={({ item }) => (
                         <ParkGuideCard
                             guide={item}
-                            onEdit={handleEdit}
                             onSuspend={handleSuspend}
                             onDelete={handleDelete}
                         />
@@ -556,15 +487,6 @@ const Manage = () => {
                             />
                         </View>
                     }
-                />
-            )}
-
-            {/* Guide Detail Modal */}
-            {isModalVisible && (
-                <GuideDetailModal
-                    guide={selectedGuide}
-                    onClose={() => setIsModalVisible(false)}
-                    onSave={handleSave}
                 />
             )}
         </View>
