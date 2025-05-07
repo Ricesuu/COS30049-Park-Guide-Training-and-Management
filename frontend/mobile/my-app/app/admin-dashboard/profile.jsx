@@ -29,6 +29,7 @@ const ProfilePage = () => {
     // Form states
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [errors, setErrors] = useState({});
@@ -167,6 +168,7 @@ const ProfilePage = () => {
     const saveNewPassword = async () => {
         // Validate inputs
         const newErrors = {};
+        if (!currentPassword) newErrors.currentPassword = "Current password is required";
         if (!newPassword) newErrors.newPassword = "New password is required";
         if (newPassword.length < 6)
             newErrors.newPassword = "Password must be at least 6 characters";
@@ -191,7 +193,8 @@ const ProfilePage = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        newPassword: newPassword,
+                        currentPassword,
+                        newPassword,
                     }),
                 }
             );
@@ -202,6 +205,7 @@ const ProfilePage = () => {
             }
 
             setPasswordModalVisible(false);
+            setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
 
@@ -365,6 +369,20 @@ const ProfilePage = () => {
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Change Password</Text>
 
+                        <Text style={styles.inputLabel}>Current Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                            placeholder="Enter current password"
+                            secureTextEntry
+                        />
+                        {errors.currentPassword && (
+                            <Text style={styles.errorText}>
+                                {errors.currentPassword}
+                            </Text>
+                        )}
+
                         <Text style={styles.inputLabel}>New Password</Text>
                         <TextInput
                             style={styles.input}
@@ -399,6 +417,7 @@ const ProfilePage = () => {
                                 onPress={() => {
                                     setPasswordModalVisible(false);
                                     setErrors({});
+                                    setCurrentPassword("");
                                     setNewPassword("");
                                     setConfirmPassword("");
                                 }}
@@ -431,6 +450,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F5F5F5",
+
     },
     header: {
         fontSize: 24,
@@ -448,6 +468,8 @@ const styles = StyleSheet.create({
         elevation: 5,
         shadowColor: "#000",
         alignItems: "center",
+        width: "90%", // Ensure consistent width
+        alignSelf: "center", // Center horizontally
     },
     profileName: {
         fontSize: 22,

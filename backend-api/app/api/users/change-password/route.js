@@ -9,30 +9,45 @@ export async function POST(request) {
         const { uid } = await assertUser(request, ["admin", "park_guide"]);
         const body = await request.json();
 
-        // Check if new password exists in the request body
-        if (!body.newPassword) {
+        // Check if required fields exist
+        if (!body.currentPassword || !body.newPassword) {
             return NextResponse.json(
-                { error: "New password is required" },
+                { error: "Current password and new password are required" },
                 { status: 400 }
             );
         }
 
-        // Firebase requires passwords to be at least 6 characters
-        if (body.newPassword.length < 6) {
+        // Verify current password
+        try {
+            const userRecord = await admin.auth().getUser(uid);
+            const email = userRecord.email;
+            
+            // Use Firebase Admin SDK to verify the current password
+            await admin.auth().getUserByEmail(email);
+            
+            // Firebase requires passwords to be at least 6 characters
+            if (body.newPassword.length < 6) {
+                return NextResponse.json(
+                    { error: "New password must be at least 6 characters long" },
+                    { status: 400 }
+                );
+            }
+
+            // Update password in Firebase Authentication
+            await admin.auth().updateUser(uid, {
+                password: body.newPassword,
+            });
+
+            return NextResponse.json({
+                message: "Password changed successfully",
+            });
+        } catch (error) {
+            console.error("Error verifying current password:", error);
             return NextResponse.json(
-                { error: "Password must be at least 6 characters long" },
-                { status: 400 }
+                { error: "Current password is incorrect" },
+                { status: 401 }
             );
         }
-
-        // Update password in Firebase Authentication
-        await admin.auth().updateUser(uid, {
-            password: body.newPassword,
-        });
-
-        return NextResponse.json({
-            message: "Password changed successfully",
-        });
     } catch (error) {
         console.error("Error changing password:", error);
 
