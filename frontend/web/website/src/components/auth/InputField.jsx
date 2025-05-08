@@ -8,7 +8,7 @@ const InputField = ({ type = "text", name, value, onChange, placeholder, error }
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      className="w-full border px-4 py-2 rounded"
+      className="w-full border border-gray-300 px-4 py-2 rounded"
     />
     {error && <p className="text-xs text-red-500">{error}</p>}
   </div>
