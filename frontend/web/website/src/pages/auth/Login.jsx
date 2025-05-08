@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import LoginForm from "../../components/auth/LoginForm";
-import ImageCarousel from "../../components/ImageCarousel";
+import ImageCarousel from "../../components/auth/ImageCarousel";
 
 import hornbill from "../../assets/hornbill.jpg";
 import hawksbillTurtle from "../../assets/hawksbill_turtle.jpg";

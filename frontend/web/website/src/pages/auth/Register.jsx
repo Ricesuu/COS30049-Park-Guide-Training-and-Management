@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 
 import RegisterForm from "../../components/auth/RegisterForm";
-import ImageCarousel from "../../components/ImageCarousel";
+import ImageCarousel from "../../components/auth/ImageCarousel";
 
 import rafflesia from "../../assets/rafflesia.jpg";
 import pitcherPlant from "../../assets/pitcher_plant.jpg";

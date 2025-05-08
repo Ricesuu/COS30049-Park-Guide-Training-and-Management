@@ -1,5 +1,5 @@
-import InfoTable from '../../components/Infotable';
-import InfoCard from '../../components/InfoCard';
+import InfoTable from '../../components/admin/Infotable';
+import InfoCard from '../../components/admin/InfoCard';
 import { Leaf, FileText } from "lucide-react";
 
 const dummyColumns = ["Title", "Type", "Last Updated"];

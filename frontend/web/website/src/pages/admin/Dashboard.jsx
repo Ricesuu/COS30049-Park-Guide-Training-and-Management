@@ -1,7 +1,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Chart } from 'chart.js';
-import DashboardChart from '../../components/DashboardChart';
-import RecentActivityLogs from '../../components/RecentActivityLogs';
+import DashboardChart from '../../components/admin/DashboardChart';
+import RecentActivityLogs from '../../components/admin/RecentActivityLogs';
 
 export default function Dashboard() {
     return (

@@ -121,7 +121,7 @@ export const useLoginHandler = () => {
           navigate("/admin/dashboard");
           break;
         case "park_guide":
-          navigate("/park-guide/dashboard");
+          navigate("/park_guide/dashboard");
           break;
         default:
           showError("Unrecognized user role");

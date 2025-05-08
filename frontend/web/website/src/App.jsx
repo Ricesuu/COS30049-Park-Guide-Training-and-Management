@@ -1,5 +1,5 @@
 import React from "react";
-import './App.css';
+import "./App.css";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { AnimatePresence } from "framer-motion";
@@ -19,6 +19,18 @@ import ParkGuides from "./pages/admin/ParkGuides";
 import ParkGuideDetails from "./pages/admin/ParkGuideDetails";
 import IoTHub from "./pages/admin/IoTHub";
 import AdminLayout from "./pages/admin/AdminLayout";
+
+// 🌿 Park Guide Pages
+import ParkGuideLayout from "./pages/park_guide/ParkGuideLayout";
+import ParkguideDashboard from "./pages/park_guide/parkguideDashboard";
+import ParkguideTraining from "./pages/park_guide/parkguideTraining";
+import ParkguideCert from "./pages/park_guide/parkguideCert";
+import ParkguidePlantInfo from "./pages/park_guide/parkguidePlantInfo";
+import ParkguideIdentification from "./pages/park_guide/parkguideIdentification";
+import ParkguidePerformance from "./pages/park_guide/parkguidePerformance";
+import ParkguideModule from "./pages/park_guide/parkguideModule";
+import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
+import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
 function AppRoutes() {
   const location = useLocation();
@@ -41,6 +53,7 @@ function AppRoutes() {
 
   return (
     <Routes location={location} key={location.pathname}>
+      {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="iot-hub" element={<IoTHub />} />
@@ -48,6 +61,19 @@ function AppRoutes() {
         <Route path="info-manager/:title" element={<InfoDetail />} />
         <Route path="park-guides" element={<ParkGuides />} />
         <Route path="guides/:id" element={<ParkGuideDetails />} />
+      </Route>
+
+      {/* Park Guide Section */}
+      <Route path="/park_guide" element={<ParkGuideLayout />}>
+        <Route path="dashboard" element={<ParkguideDashboard />} />
+        <Route path="training" element={<ParkguideTraining />} />
+        <Route path="certifications" element={<ParkguideCert />} />
+        <Route path="plants" element={<ParkguidePlantInfo />} />
+        <Route path="identify" element={<ParkguideIdentification />} />
+        <Route path="performance" element={<ParkguidePerformance />} />
+        <Route path="module" element={<ParkguideModule />} />
+        <Route path="quiz" element={<ParkguideQuiz />} />
+        <Route path="payment" element={<ParkguidePayment />} />
       </Route>
     </Routes>
   );
@@ -57,7 +83,7 @@ export default function App() {
   return (
     <>
       <AppRoutes />
-      <ToastContainer 
+      <ToastContainer
         position="top-center"
         autoClose={3000}
         hideProgressBar={false}
