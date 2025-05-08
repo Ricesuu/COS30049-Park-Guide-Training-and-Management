@@ -15,7 +15,7 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
         // Fetch quizzes when component mounts
         const fetchQuizzes = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/quizzes');
+                const response = await fetch('http://localhost:3000/api/quizzes');
                 if (!response.ok) {
                     throw new Error('Failed to fetch quizzes');
                 }

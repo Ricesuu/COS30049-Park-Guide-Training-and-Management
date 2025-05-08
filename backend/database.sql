@@ -29,13 +29,58 @@ CREATE TABLE IF NOT EXISTS ParkGuides (
 );
 
 -- ==============================================
+-- Table: Questions Table
+CREATE TABLE IF NOT EXISTS quizzes (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+-- ==============================================
+-- Table: Questions Table
+CREATE TABLE IF NOT EXISTS questions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  quiz_id INT NOT NULL,
+  type VARCHAR(50) NOT NULL, -- 'multiple-choice', 'true-false', etc.
+  text TEXT NOT NULL,
+  explanation TEXT,
+  points INT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
+);
+
+
+-- ==============================================
+-- Table: Options Table for Question Choices
+CREATE TABLE IF NOT EXISTS options (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  question_id INT NOT NULL,
+  text VARCHAR(255) NOT NULL,
+  is_correct BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+);
+
+
+-- ==============================================
 -- Table: Training Modules Table
 CREATE TABLE IF NOT EXISTS TrainingModules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
-  module_name VARCHAR(255) NOT NULL,
-  description TEXT NULL,
-  duration INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  module_code VARCHAR(10) NOT NULL UNIQUE,  
+  module_name VARCHAR(255) NOT NULL,      
+  description TEXT,            
+  difficulty ENUM('beginner', 'intermediate', 'advanced') NOT NULL,  
+  aspect ENUM('language', 'knowledge', 'organization', 'engagement', 'safety') NOT NULL, 
+  video_url VARCHAR(255),
+  course_content LONGTEXT,
+  quiz_id INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE SET NULL
 );
 
 -- ==============================================
@@ -186,17 +231,29 @@ SELECT * from Users;
 
 
 
+-- Dummy Quizzes Data
+INSERT INTO quizzes (name, description) VALUES 
+('Park Safety Basics', 'Essential safety guidelines for park visitors'),
+('Wildlife Awareness', 'How to safely interact with park wildlife');
 
+-- Dummy Questions for Quizzes
+INSERT INTO questions (quiz_id, type, text, explanation, points) VALUES
+(1, 'multiple-choice', 'What should you do if you encounter a bear in the park?', 'Backing away slowly while facing the bear is the safest approach. Running may trigger the bear''s chase instinct.', 1),
+(1, 'true-false', 'It is safe to feed the wildlife in the park.', 'Feeding wildlife is dangerous for both animals and humans. It can cause animals to lose their natural fear of humans and become aggressive.', 2);
 
+-- Dummy Options for questions
+INSERT INTO options (question_id, text, is_correct) VALUES
+(1, 'Run away as fast as possible', FALSE),
+(1, 'Make loud noises and wave your arms', FALSE),
+(1, 'Back away slowly while facing the bear', TRUE),
+(1, 'Play dead immediately', FALSE),
+(2, 'True', FALSE),
+(2, 'False', TRUE);
 
--- Dummy Training Modules Data
-INSERT INTO TrainingModules (module_name, description, duration) VALUES
-('Basic Park Safety', 'Covers fundamental safety procedures for park environments.', 120),
-('Advanced Navigation Techniques', 'Teaches the use of GPS, maps, and compass for navigation.', 180),
-('Wildlife Interaction Guidelines', 'How to safely interact with and manage wildlife encounters.', 150),
-('Emergency First Aid', 'Provides essential first aid training for emergencies.', 240),
-('Environmental Conservation', 'Focuses on sustainable practices and environmental awareness.', 90);
-SELECT * from TrainingModules;
+-- Dummy Training Modules Data that reference the quizzes
+INSERT INTO TrainingModules (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id) VALUES 
+('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1),
+('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2);
 
 
 
