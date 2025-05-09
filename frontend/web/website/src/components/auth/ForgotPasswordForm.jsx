@@ -1,10 +1,9 @@
-
 import React from "react";
 import useForgotPasswordHandle from "../../hooks/useForgotPasswordHandler";
 import InputField from "./InputField";
 
 const ForgotPasswordForm = () => {
-  const { email, setEmail, handleSubmit, error} = useForgotPasswordHandle();
+  const { email, setEmail, handleSubmit, error, loading } = useForgotPasswordHandle(); // 🟢 include loading
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -20,9 +19,12 @@ const ForgotPasswordForm = () => {
       <div className="w-full flex justify-center">
         <button
           type="submit"
-          className="w-full md:w-80 py-[0.9rem] px-8 bg-green-600 text-white text-base rounded font-bold transition-colors duration-300 hover:bg-green-700"
+          disabled={loading}
+          className={`w-full md:w-80 py-[0.9rem] px-8 rounded font-bold transition-colors duration-300 
+            ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"} 
+            text-white text-base`}
         >
-          Submit
+          {loading ? "Sending..." : "Submit"}
         </button>
       </div>
     </form>

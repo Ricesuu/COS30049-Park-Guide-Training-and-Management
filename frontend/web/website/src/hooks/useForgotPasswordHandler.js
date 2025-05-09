@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../Firebase";
@@ -7,11 +6,12 @@ import { toast } from "react-toastify";
 export default function useForgotPasswordHandler() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false); // ✅ Added loading state
 
   const handleResetError = (error) => {
     switch (error.code) {
       case "auth/user-not-found":
-        // Do not show this to user — handled via secure generic message
+        // Secure generic message already handled below
         break;
       case "auth/invalid-email":
         toast.error("Invalid email format.");
@@ -39,6 +39,7 @@ export default function useForgotPasswordHandler() {
     }
 
     setError(null);
+    setLoading(true); // ✅ Begin loading
 
     try {
       await sendPasswordResetEmail(auth, email);
@@ -46,6 +47,8 @@ export default function useForgotPasswordHandler() {
     } catch (err) {
       console.error(err);
       handleResetError(err);
+    } finally {
+      setLoading(false); // ✅ End loading
     }
   };
 
@@ -53,6 +56,7 @@ export default function useForgotPasswordHandler() {
     email,
     setEmail,
     error,
+    loading, // ✅ Return loading
     handleSubmit,
   };
 }

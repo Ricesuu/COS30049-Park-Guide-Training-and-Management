@@ -8,12 +8,18 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false); // 🔁 New loading state
 
   const { handleLogin } = useLoginHandler();
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    handleLogin(email, passwordValue);
+    setLoading(true);
+    try {
+      await handleLogin(email, passwordValue);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,9 +54,12 @@ export default function LoginForm() {
 
       <button
         type="submit"
-        className="w-full py-[0.9rem] px-8 bg-green-600 text-white text-base rounded font-bold transition-colors duration-300 hover:bg-green-700"
+        className={`w-full py-[0.9rem] px-8 rounded font-bold transition-colors duration-300 
+          ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"} 
+          text-white text-base`}
+        disabled={loading}
       >
-        Login
+        {loading ? "Logging in..." : "Login"}
       </button>
 
       <p className="text-sm mt-6 pt-5 text-center">
