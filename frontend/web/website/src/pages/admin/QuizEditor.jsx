@@ -186,23 +186,77 @@ export default function QuizEditor() {
     }
   };
 
-  /* ==================== QUESTION CRUD OPERATIONS ==================== */
-  // Question modal functions
+  /* ==================== QUESTION CRUD OPERATIONS ==================== */ // Question modal functions
   const toggleModal = () => {
-    setModalVisible(!modalVisible);
-    if (!modalVisible) {
-      // Reset form when opening modal
+    // If we're closing the modal, reset everything
+    if (modalVisible) {
       setEditingQuestionId(null);
       setQuestionText("");
       setExplanation("");
       setPoints(1);
       setQuestionType("multiple-choice");
       setOptions([
-        { text: "", isCorrect: false },
+        { text: "", isCorrect: true },
         { text: "", isCorrect: false },
         { text: "", isCorrect: false },
         { text: "", isCorrect: false },
       ]);
+    }
+
+    // When opening the modal directly (not via edit function)
+    if (!modalVisible && !editingQuestionId) {
+      setQuestionText("");
+      setExplanation("");
+      setPoints(1);
+      setQuestionType("multiple-choice");
+      setOptions([
+        { text: "", isCorrect: true },
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+      ]);
+    }
+
+    setModalVisible(!modalVisible);
+  };
+
+  // Function to save all quiz changes at once
+  const handleSaveAllChanges = async () => {
+    try {
+      // Save quiz details (name and description)
+      const quizResponse = await fetch(
+        `${API_BASE_URL}/quizzes/${currentQuiz.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: quizName,
+            description: quizDescription,
+          }),
+        }
+      );
+
+      if (!quizResponse.ok) {
+        throw new Error("Failed to update quiz details");
+      }
+
+      // Update the current quiz in state
+      setCurrentQuiz({
+        ...currentQuiz,
+        name: quizName,
+        description: quizDescription,
+      });
+
+      // Refetch questions to ensure we have the most current data
+      await fetchQuizQuestions(currentQuiz.id);
+
+      // Show success message
+      alert("All changes saved successfully!");
+    } catch (err) {
+      console.error("Error saving quiz changes:", err);
+      alert(`Error: ${err.message}`);
     }
   };
 
@@ -302,34 +356,76 @@ export default function QuizEditor() {
       console.error("Error saving question:", err);
       alert(`Error: ${err.message}`);
     }
-  };
-
-  // Edit a question
+  }; // Edit a question
   const handleEditQuestion = async (questionId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/questions/${questionId}`);
+      console.log("Fetching question details for ID:", questionId);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch question details");
+      // Find the question in the current questions array first
+      const existingQuestion = questions.find((q) => q.id === questionId);
+
+      if (!existingQuestion) {
+        throw new Error("Question not found");
       }
 
-      const question = await response.json();
+      console.log("Question data found:", existingQuestion);
 
-      // Populate form with question data
+      // Process options to ensure they're in the correct format
+      let processedOptions = [];
+
+      if (existingQuestion.type === "true-false") {
+        // True/False questions should have exactly two options
+        processedOptions = [
+          {
+            text: "True",
+            isCorrect:
+              existingQuestion.options.find((o) => o.text === "True")
+                ?.isCorrect || false,
+          },
+          {
+            text: "False",
+            isCorrect:
+              existingQuestion.options.find((o) => o.text === "False")
+                ?.isCorrect || false,
+          },
+        ];
+
+        // If neither is marked correct, mark one as correct
+        if (!processedOptions[0].isCorrect && !processedOptions[1].isCorrect) {
+          processedOptions[0].isCorrect = true;
+        }
+      } else {
+        // Multiple choice
+        processedOptions = existingQuestion.options.map((opt) => ({
+          ...opt,
+          isCorrect: Boolean(opt.isCorrect),
+        }));
+
+        // Ensure at least one option is marked as correct
+        if (!processedOptions.some((opt) => opt.isCorrect === true)) {
+          if (processedOptions.length > 0) {
+            processedOptions[0].isCorrect = true;
+          }
+        }
+      }
+
+      console.log("Processed options:", processedOptions);
+
+      // Set all the form data BEFORE opening the modal
       setEditingQuestionId(questionId);
-      setQuestionType(question.type);
-      setQuestionText(question.text);
-      setExplanation(question.explanation || "");
-      setPoints(question.points);
-      setOptions(question.options);
+      setQuestionType(existingQuestion.type);
+      setQuestionText(existingQuestion.text || "");
+      setExplanation(existingQuestion.explanation || "");
+      setPoints(existingQuestion.points || 1);
+      setOptions(processedOptions);
 
-      // Open modal
-      toggleModal();
+      // Then open the modal
+      setModalVisible(true);
+      setLoading(false);
     } catch (err) {
-      console.error("Error fetching question details:", err);
+      console.error("Error preparing question for edit:", err);
       alert(`Error: ${err.message}`);
-    } finally {
       setLoading(false);
     }
   };
@@ -425,12 +521,20 @@ export default function QuizEditor() {
             {/* Header with back button */}
             <div className="flex justify-between items-center p-4 border-b bg-green-50">
               <span className="text-lg font-semibold">Edit Quiz</span>
-              <button
-                onClick={() => setQuestionBankVisible(false)}
-                className="text-green-800 hover:text-green-600 flex items-center"
-              >
-                Back to Quizzes
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleSaveAllChanges}
+                  className="bg-green-800 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center transition-colors"
+                >
+                  Save All Changes
+                </button>
+                <button
+                  onClick={() => setQuestionBankVisible(false)}
+                  className="text-green-800 hover:text-green-600 flex items-center"
+                >
+                  Back to Quizzes
+                </button>
+              </div>
             </div>
 
             {/* ==================== QUIZ DETAILS SECTION ==================== */}
@@ -441,47 +545,14 @@ export default function QuizEditor() {
                 quizDescription={quizDescription}
                 onNameChange={setQuizName}
                 onDescriptionChange={setQuizDescription}
-                onSave={async () => {
-                  try {
-                    const response = await fetch(
-                      `${API_BASE_URL}/quizzes/${currentQuiz.id}`,
-                      {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          name: quizName,
-                          description: quizDescription,
-                        }),
-                      }
-                    );
-
-                    if (!response.ok) {
-                      throw new Error("Failed to update quiz details");
-                    }
-
-                    // Update the current quiz
-                    setCurrentQuiz({
-                      ...currentQuiz,
-                      name: quizName,
-                      description: quizDescription,
-                    });
-
-                    alert("Quiz details updated successfully");
-                  } catch (err) {
-                    console.error("Error updating quiz details:", err);
-                    alert(`Error: ${err.message}`);
-                  }
-                }}
                 isEditing={true}
+                hideButtons={true}
               />
             </div>
 
             {/* ==================== QUESTIONS SECTION ==================== */}
             <div className="p-6">
               <h3 className="text-lg font-medium mb-4">Quiz Questions</h3>
-
               {/* Questions List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {loading ? (
@@ -511,8 +582,7 @@ export default function QuizEditor() {
                     />
                   ))
                 )}
-              </div>
-
+              </div>{" "}
               {/* Add New Question Button */}
               <div className="mt-6">
                 <button

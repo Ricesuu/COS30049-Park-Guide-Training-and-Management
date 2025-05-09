@@ -7,6 +7,7 @@ const QuizForm = ({
   onDescriptionChange,
   onSave,
   isEditing,
+  hideButtons = false,
 }) => {
   return (
     <div className="space-y-4">
@@ -44,7 +45,16 @@ const QuizForm = ({
         ></textarea>
       </div>
 
-      {/* Remove the extra save button here - it's redundant with the modal footer */}
+      {!hideButtons && onSave && (
+        <div className="flex justify-end">
+          <button
+            className="bg-green-800 text-white px-4 py-2 rounded hover:bg-green-700"
+            onClick={onSave}
+          >
+            {isEditing ? "Update" : "Create"} Quiz
+          </button>
+        </div>
+      )}
     </div>
   );
 };
