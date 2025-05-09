@@ -23,6 +23,9 @@ export default function Sidebar() {
         <Link to="/admin/info-manager">
           <p className="block text-white hover:text-green-300 p-4">Info Manager</p>
         </Link>
+        <Link to="/admin/assign-course">
+          <p className="block text-white hover:text-green-300 p-4">Assign Courses</p>
+        </Link>
         <Link to="/admin/course-manager">
           <p className="block text-white hover:text-green-300 p-4">Course Manager</p>
         </Link>

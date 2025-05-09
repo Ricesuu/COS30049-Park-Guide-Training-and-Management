@@ -18,6 +18,7 @@ import InfoDetail from "./pages/admin/InfoDetail";
 import ParkGuides from "./pages/admin/ParkGuides";
 import ParkGuideDetails from "./pages/admin/ParkGuideDetails";
 import IoTHub from "./pages/admin/IoTHub";
+import AssignCourse from "./pages/admin/AdminAssignCourses"
 import CourseManager from "./pages/admin/CourseManager";
 import QuizEditor from "./pages/admin/QuizEditor";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -63,6 +64,7 @@ function AppRoutes() {
         <Route path="info-manager/:title" element={<InfoDetail />} />
         <Route path="park-guides" element={<ParkGuides />} />
         <Route path="guides/:id" element={<ParkGuideDetails />} />
+        <Route path="assign-course" element={<AssignCourse />} />
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
       </Route>
