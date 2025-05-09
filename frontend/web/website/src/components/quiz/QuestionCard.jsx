@@ -37,39 +37,46 @@ const QuestionCard = ({ question, index, onEdit, onDuplicate, onDelete }) => {
           </button>
         </div>
       </div>
-
       {/* ====== Question Text ====== */}
       <p className="mb-4 text-green-800 font-medium">{question.text}</p>
-
-      {/* ====== Question Options ====== */}
+      {/* ====== Question Options ====== */}{" "}
       <div className="space-y-2">
         {question.options.map((option, optIndex) => {
-          // Force convert to boolean
-          const isCorrect = option.isCorrect === true;
-
-          // Inline styles to guarantee the styling works
+          // More robust way to determine if an option is correct
+          // Handle all possible formats of correct answer flags (isCorrect, is_correct)
+          const isCorrect =
+            option.isCorrect === true ||
+            option.isCorrect === 1 ||
+            option.isCorrect === "true" ||
+            option.is_correct === true ||
+            option.is_correct === 1 ||
+            option.is_correct === "true"; // Enhanced styling with stronger green highlighting for correct answers
           const optionStyle = {
             padding: "0.75rem 1rem",
             display: "flex",
             alignItems: "center",
-            borderRadius: "0.25rem",
-            backgroundColor: isCorrect ? "#22c55e" : "white",
+            borderRadius: "0.375rem",
+            backgroundColor: isCorrect ? "#22c55e" : "white", // Green background for correct answers
             color: isCorrect ? "white" : "#065f46",
             fontWeight: isCorrect ? "500" : "normal",
-            boxShadow: isCorrect ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
-            border: isCorrect ? "1px solid #16a34a" : "1px solid #e5e7eb",
-            marginBottom: "0.5rem",
+            boxShadow: isCorrect
+              ? "0 4px 8px -1px rgba(34, 197, 94, 0.3)"
+              : "none", // Enhanced shadow with green tint
+            border: isCorrect ? "2px solid #16a34a" : "1px solid #e5e7eb", // Thicker border for correct answers
+            marginBottom: "0.75rem",
+            transition: "all 0.3s ease-in-out",
           };
-
           const letterStyle = {
-            marginRight: "0.5rem",
+            marginRight: "0.75rem",
             fontWeight: isCorrect ? "bold" : "normal",
+            fontSize: isCorrect ? "1.1rem" : "1rem",
+            textShadow: isCorrect ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
           };
 
           const textStyle = {
-            fontWeight: isCorrect ? "500" : "normal",
+            fontWeight: isCorrect ? "600" : "normal",
+            flex: 1,
           };
-
           const badgeStyle = {
             marginLeft: "auto",
             color: "white",
@@ -78,10 +85,16 @@ const QuestionCard = ({ question, index, onEdit, onDuplicate, onDelete }) => {
             padding: "0.25rem 0.75rem",
             borderRadius: "0.25rem",
             fontSize: "0.75rem",
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+            border: "1px solid #0f5c2d",
           };
-
           return (
-            <div key={optIndex} style={optionStyle}>
+            <div
+              key={optIndex}
+              style={optionStyle}
+              className={isCorrect ? "correct-answer" : ""}
+              data-correct={isCorrect ? "true" : "false"}
+            >
               <span style={letterStyle}>
                 {String.fromCharCode(65 + optIndex)}.
               </span>
@@ -91,7 +104,6 @@ const QuestionCard = ({ question, index, onEdit, onDuplicate, onDelete }) => {
           );
         })}
       </div>
-
       {/* ====== Question Explanation ====== */}
       {question.explanation && (
         <div className="mt-4 pt-3 border-t border-green-100">

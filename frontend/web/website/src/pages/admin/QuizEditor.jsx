@@ -368,26 +368,47 @@ export default function QuizEditor() {
       if (!existingQuestion) {
         throw new Error("Question not found");
       }
-
       console.log("Question data found:", existingQuestion);
+      console.log("Original options:", existingQuestion.options);
 
       // Process options to ensure they're in the correct format
       let processedOptions = [];
-
       if (existingQuestion.type === "true-false") {
         // True/False questions should have exactly two options
+        const trueOption = existingQuestion.options.find(
+          (o) => o.text === "True"
+        );
+        const falseOption = existingQuestion.options.find(
+          (o) => o.text === "False"
+        );
+
+        // Properly detect correct answers for true/false options
+        const isTrueCorrect =
+          trueOption &&
+          (trueOption.isCorrect === true ||
+            trueOption.isCorrect === 1 ||
+            trueOption.isCorrect === "true" ||
+            trueOption.is_correct === true ||
+            trueOption.is_correct === 1 ||
+            trueOption.is_correct === "true");
+
+        const isFalseCorrect =
+          falseOption &&
+          (falseOption.isCorrect === true ||
+            falseOption.isCorrect === 1 ||
+            falseOption.isCorrect === "true" ||
+            falseOption.is_correct === true ||
+            falseOption.is_correct === 1 ||
+            falseOption.is_correct === "true");
+
         processedOptions = [
           {
             text: "True",
-            isCorrect:
-              existingQuestion.options.find((o) => o.text === "True")
-                ?.isCorrect || false,
+            isCorrect: isTrueCorrect || false,
           },
           {
             text: "False",
-            isCorrect:
-              existingQuestion.options.find((o) => o.text === "False")
-                ?.isCorrect || false,
+            isCorrect: isFalseCorrect || false,
           },
         ];
 
@@ -396,11 +417,22 @@ export default function QuizEditor() {
           processedOptions[0].isCorrect = true;
         }
       } else {
-        // Multiple choice
-        processedOptions = existingQuestion.options.map((opt) => ({
-          ...opt,
-          isCorrect: Boolean(opt.isCorrect),
-        }));
+        // Multiple choice with enhanced detection of correct answers
+        processedOptions = existingQuestion.options.map((opt) => {
+          // Handle both isCorrect and is_correct with proper coercion
+          const isOptionCorrect =
+            opt.isCorrect === true ||
+            opt.isCorrect === 1 ||
+            opt.isCorrect === "true" ||
+            opt.is_correct === true ||
+            opt.is_correct === 1 ||
+            opt.is_correct === "true";
+
+          return {
+            ...opt,
+            isCorrect: isOptionCorrect,
+          };
+        });
 
         // Ensure at least one option is marked as correct
         if (!processedOptions.some((opt) => opt.isCorrect === true)) {
@@ -409,8 +441,11 @@ export default function QuizEditor() {
           }
         }
       }
-
       console.log("Processed options:", processedOptions);
+      console.log(
+        "Correct options:",
+        processedOptions.filter((opt) => opt.isCorrect)
+      );
 
       // Set all the form data BEFORE opening the modal
       setEditingQuestionId(questionId);
