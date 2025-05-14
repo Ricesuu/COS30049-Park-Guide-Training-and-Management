@@ -99,11 +99,9 @@ export const useLoginHandler = () => {
                 );
                 await auth.signOut();
                 return;
-            }
-
-            const routeMap = {
+            }            const routeMap = {
                 admin: "/admin-dashboard",
-                park_guide: "/pg-dashboard/with-layout",
+                park_guide: "/pg-dashboard",
             };
 
             const targetRoute = routeMap[userData.role];

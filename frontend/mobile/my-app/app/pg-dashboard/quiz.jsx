@@ -6,14 +6,13 @@ import {
     Text,
     StyleSheet,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useLocalSearchParams } from "expo-router";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const Quiz = () => {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const { certName } = route.params || {};
+    const params = useLocalSearchParams();
+    const certName = params.certName;
 
     console.log("Quiz loaded for certificate:", certName); // for debugging
 

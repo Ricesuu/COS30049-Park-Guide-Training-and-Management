@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     Modal,
 } from "react-native";
-import Header from "../../../components/PGdashboard/PGDashboardHome/Header";
+import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 
 const PlantInfo = () => {
     const [selectedPlant, setSelectedPlant] = useState(null);
@@ -19,7 +19,7 @@ const PlantInfo = () => {
             name: "Phalaenopsis Orchid",
             description:
                 "Also known as the 'Moth Orchid', it is one of the most popular orchids.",
-            image: require("../../../assets/images/phalaenopsis.jpg"),
+            image: require("../../assets/images/phalaenopsis.jpg"),
             scientificName: "Phalaenopsis",
             habitat: "Tropical Asia and Australia",
             funFact:
@@ -29,7 +29,7 @@ const PlantInfo = () => {
             name: "Cattleya Orchid",
             description:
                 "Known as the 'Queen of Orchids', it is famous for its large, fragrant flowers.",
-            image: require("../../../assets/images/cattleya.jpg"),
+            image: require("../../assets/images/cattleya.jpg"),
             scientificName: "Cattleya",
             habitat: "Tropical America",
             funFact:
@@ -38,7 +38,7 @@ const PlantInfo = () => {
         {
             name: "Dendrobium Orchid",
             description: "A diverse genus of orchids with over 1,800 species.",
-            image: require("../../../assets/images/dendrobium.jpg"),
+            image: require("../../assets/images/dendrobium.jpg"),
             scientificName: "Dendrobium",
             habitat: "Asia, Australia, and the Pacific Islands",
             funFact:
@@ -102,6 +102,12 @@ const PlantInfo = () => {
                 >
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={closeModal}
+                            >
+                                <Text style={styles.closeButtonText}>×</Text>
+                            </TouchableOpacity>
                             <Text style={styles.modalTitle}>
                                 {selectedPlant.name}
                             </Text>
@@ -109,28 +115,34 @@ const PlantInfo = () => {
                                 source={selectedPlant.image}
                                 style={styles.modalImage}
                             />
-                            <Text style={styles.modalText}>
-                                <Text style={styles.boldText}>
-                                    Scientific Name:{" "}
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>
+                                    Scientific Name:
                                 </Text>
-                                {selectedPlant.scientificName}
-                            </Text>
-                            <Text style={styles.modalText}>
-                                <Text style={styles.boldText}>Habitat: </Text>
-                                {selectedPlant.habitat}
-                            </Text>
-                            <Text style={styles.modalText}>
-                                <Text style={styles.boldText}>Fun Fact: </Text>
-                                {selectedPlant.funFact}
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={closeModal}
-                            >
-                                <Text style={styles.closeButtonText}>
-                                    Close
+                                <Text style={styles.infoText}>
+                                    {selectedPlant.scientificName}
                                 </Text>
-                            </TouchableOpacity>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>Habitat:</Text>
+                                <Text style={styles.infoText}>
+                                    {selectedPlant.habitat}
+                                </Text>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>
+                                    Description:
+                                </Text>
+                                <Text style={styles.infoText}>
+                                    {selectedPlant.description}
+                                </Text>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>Fun Fact:</Text>
+                                <Text style={styles.infoText}>
+                                    {selectedPlant.funFact}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </Modal>
@@ -152,52 +164,54 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     title: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 10,
-        textAlign: "center",
-        color: "#333",
+        marginBottom: 20,
+        color: "rgb(22, 163, 74)",
     },
     plantItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10,
-        padding: 10,
+        marginBottom: 20,
         backgroundColor: "#f9f9f9",
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#ddd",
+        borderRadius: 10,
+        padding: 10,
+        flexDirection: "row",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     plantImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 5,
-        marginRight: 10,
+        width: 80,
+        height: 80,
+        borderRadius: 10,
     },
     plantDetails: {
+        marginLeft: 10,
         flex: 1,
     },
     plantName: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "bold",
-        color: "#555",
+        color: "rgb(22, 163, 74)",
     },
     plantDescription: {
         fontSize: 14,
-        color: "#888",
-        marginBottom: 5,
+        marginTop: 4,
+        color: "#666",
     },
     infoButton: {
-        marginTop: 5,
+        backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 5,
         paddingHorizontal: 10,
-        backgroundColor: "rgb(22, 163, 74)",
         borderRadius: 5,
+        marginTop: 5,
+        alignSelf: "flex-start",
     },
     infoButtonText: {
         color: "white",
+        fontSize: 12,
         fontWeight: "bold",
-        fontSize: 14,
     },
     modalContainer: {
         flex: 1,
@@ -206,44 +220,45 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     modalContent: {
-        width: "90%",
         backgroundColor: "white",
-        borderRadius: 10,
+        width: "90%",
+        borderRadius: 20,
         padding: 20,
-        alignItems: "center",
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 10,
-        color: "rgb(22, 163, 74)",
-    },
-    modalImage: {
-        width: 150,
-        height: 150,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    modalText: {
-        fontSize: 16,
-        color: "#555",
-        marginBottom: 5,
-        textAlign: "center",
-    },
-    boldText: {
-        fontWeight: "bold",
     },
     closeButton: {
-        marginTop: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        backgroundColor: "rgb(22, 163, 74)",
-        borderRadius: 5,
+        position: "absolute",
+        right: 15,
+        top: 15,
     },
     closeButtonText: {
-        color: "white",
+        fontSize: 24,
         fontWeight: "bold",
-        fontSize: 14,
+        color: "rgb(22, 163, 74)",
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+        marginBottom: 15,
+        marginTop: 10,
+    },
+    modalImage: {
+        width: "100%",
+        height: 200,
+        borderRadius: 10,
+        marginBottom: 15,
+    },
+    infoItem: {
+        marginBottom: 10,
+    },
+    infoLabel: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+    },
+    infoText: {
+        fontSize: 16,
+        color: "#333",
     },
 });
 

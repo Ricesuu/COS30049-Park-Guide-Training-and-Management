@@ -1,20 +1,133 @@
-// app/index.jsx
-import { useEffect } from "react";
-import { useRouter, useNavigationContainerRef } from "expo-router";
+import React, { useState } from "react";
+import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
+import Header from "../../components/PGdashboard/PGDashboardHome/Header";
+import ProfileView from "../../components/PGdashboard/PGDashboardHome/ProfileView";
+import CertContainer from "../../components/PGdashboard/PGDashboardHome/certcontainer";
+import AnnounContainer from "../../components/PGdashboard/PGDashboardHome/announcontainer";
+import { auth } from "../../lib/Firebase";
 
-export default function Index() {
-    const router = useRouter();
-    const navigationRef = useNavigationContainerRef();
+const HomePage = () => {
+    const { authUser } = useAuth();
+    
+    // Example certifications data
+    const certifications = [
+        {
+            name: "First Aid Certification",
+            expiryDate: "2025-12-31",
+            image: require("../../assets/images/firstaid.jpg"),
+        },
+        {
+            name: "Semenggoh Wildlife Centre Certification",
+            expiryDate: "2026-06-30",
+            image: require("../../assets/images/Semenggoh.jpeg"),
+        },
+    ];
 
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (navigationRef.isReady()) {
-                router.replace("/with-layout");
-            }
-        }, 0); // queue it after mount
+    const announcements = [
+        {
+            title: "System Maintenance",
+            date: "2025-05-02",
+            description:
+                "The system will be down for maintenance from 2 AM to 4 AM.",
+            priority: "high", // Red circle
+        },
+        {
+            title: "New Feature Release",
+            date: "2025-05-01",
+            description:
+                "We are excited to announce a new feature coming soon!",
+            priority: "mid", // Orange circle
+        },
+        {
+            title: "Weekly Update",
+            date: "2025-04-30",
+            description: "Here is your weekly update on system performance.",
+            priority: "low", // Green circle
+        },
+    ];
 
-        return () => clearTimeout(timeout);
-    }, [navigationRef, router]);
+    return (
+        <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Header */}
+                <Header />
 
-    return null;
-}
+                {/* Dashboard Section */}
+                <View
+                    style={{
+                        backgroundColor: "white",
+                        borderTopLeftRadius: 30,
+                        borderTopRightRadius: 30,
+                        marginTop: -5,
+                        paddingBottom: 120,
+                        zIndex: 1,
+                        elevation: 10,
+                        padding: 20,
+                        flex: 1,
+                    }}
+                >
+                    {/* Profile View */}
+                    <ProfileView
+                        fullName="John Doe"
+                        guideId="PG12345"
+                        profilePhoto={require("../../assets/images/Ruiziq.jpg")}
+                    />
+
+                    {/* Certifications Container */}
+                    <CertContainer certifications={certifications} />                    {/* Announcements Container */}
+                    <AnnounContainer announcements={announcements} />                    {/* Logout Button */}
+                    <TouchableOpacity 
+                        style={styles.logoutButton}
+                        onPress={() => {
+                            Alert.alert(
+                                "Logout",
+                                "Are you sure you want to logout?",
+                                [
+                                    {
+                                        text: "Cancel",
+                                        style: "cancel"
+                                    },
+                                    { 
+                                        text: "Logout", 
+                                        onPress: async () => {
+                                            try {
+                                                console.log("Signing out user");
+                                                await auth.signOut();
+                                                // The rest will be handled by the AuthContext's onAuthStateChanged
+                                            } catch (error) {
+                                                console.error("Error signing out:", error);
+                                            }
+                                        }
+                                    }
+                                ]
+                            );
+                        }}
+                    >
+                        <Text style={styles.logoutButtonText}>Logout</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    logoutButton: {
+        backgroundColor: "#e74c3c",
+        padding: 15,
+        borderRadius: 10,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    logoutButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+});
+
+export default HomePage;

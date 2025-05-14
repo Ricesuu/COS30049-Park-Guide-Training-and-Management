@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import { Tabs, useRouter } from "expo-router";
 import { BackHandler, Alert } from "react-native";
-import MainTabBar from "../../components/ADMINdashboard/MainTabBar";
+import PGMainTabBar from "../../components/PGdashboard/PGMainTabBar";
 
-const _layout = () => {
+const PGDashboardLayout = () => {
     const router = useRouter();
 
     // Handle back button press
@@ -38,16 +38,18 @@ const _layout = () => {
     return (
         <Tabs
             screenOptions={{ headerShown: false }}
-            tabBar={(props) => <MainTabBar {...props} />}
+            tabBar={(props) => <PGMainTabBar {...props} />}
             style={{ zIndex: 999 }}
         >
             <Tabs.Screen name="index" options={{ title: "Home" }} />
-            <Tabs.Screen name="approvals" options={{ title: "Approvals" }} />
-            <Tabs.Screen name="manage" options={{ title: "Manage" }} />
-            <Tabs.Screen name="monitor" options={{ title: "Monitor" }} />
-            <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+            <Tabs.Screen name="module" options={{ title: "Module" }} />
+            <Tabs.Screen name="certificate" options={{ title: "Certificate" }} />
+            <Tabs.Screen name="plantinfo" options={{ title: "Plant Info" }} />
+            <Tabs.Screen name="identification" options={{ title: "Identification" }} />
+            <Tabs.Screen name="payment" options={{ title: "Payment" }} />
+            <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
         </Tabs>
     );
 };
 
-export default _layout;
+export default PGDashboardLayout;

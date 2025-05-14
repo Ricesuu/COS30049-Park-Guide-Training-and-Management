@@ -1,9 +1,10 @@
 import React, { useRef, useState } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import { View, ScrollView, RefreshControl, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Import useNavigation
 import Header from "../../components/ADMINdashboard/AdminDashboardHome/Header";
 import PendingApprovals from "../../components/ADMINdashboard/AdminDashboardHome/PendingApprovals";
 import IoTMonitoring from "../../components/ADMINdashboard/AdminDashboardHome/IoTMonitoring";
+import { auth } from "../../lib/Firebase";
 
 const HomePage = () => {
     const navigation = useNavigation(); // Use the navigation hook
@@ -50,8 +51,7 @@ const HomePage = () => {
                         padding: 20,
                         flex: 1,
                     }}
-                >
-                    <PendingApprovals
+                >                    <PendingApprovals
                         ref={pendingApprovalsRef}
                         navigation={navigation} // Pass navigation to PendingApprovals
                     />
@@ -61,5 +61,20 @@ const HomePage = () => {
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    logoutButton: {
+        backgroundColor: "#e74c3c",
+        padding: 15,
+        borderRadius: 10,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    logoutButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+});
 
 export default HomePage;

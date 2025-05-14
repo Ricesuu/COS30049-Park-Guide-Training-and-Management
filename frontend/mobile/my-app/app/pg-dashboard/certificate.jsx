@@ -8,11 +8,11 @@ import {
     TouchableOpacity,
     Modal,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import Header from "../../../components/PGdashboard/PGDashboardHome/Header";
+import { useRouter } from "expo-router";
+import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 
 const Certificate = () => {
-    const navigation = useNavigation();
+    const router = useRouter();
     const [selectedCert, setSelectedCert] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -20,7 +20,7 @@ const Certificate = () => {
         {
             name: "First Aid Certification",
             expiryDate: "2025-12-31",
-            image: require("../../../assets/images/firstaid.jpg"),
+            image: require("../../assets/images/firstaid.jpg"),
             obtained: true,
             description:
                 "This certification covers essential first aid skills, including CPR and wound care.",
@@ -28,7 +28,7 @@ const Certificate = () => {
         {
             name: "Semenggoh Wildlife Centre Certification",
             expiryDate: "2026-06-30",
-            image: require("../../../assets/images/Semenggoh.jpeg"),
+            image: require("../../assets/images/Semenggoh.jpeg"),
             obtained: true,
             description:
                 "This certification focuses on wildlife conservation and safety practices.",
@@ -36,7 +36,7 @@ const Certificate = () => {
         {
             name: "Wildlife Safety Certification",
             expiryDate: null,
-            image: require("../../../assets/images/wildlife_safety.jpg"),
+            image: require("../../assets/images/wildlife_safety.jpg"),
             obtained: false,
             description:
                 "Learn how to stay safe while interacting with wildlife in natural habitats.",
@@ -44,7 +44,7 @@ const Certificate = () => {
         {
             name: "Advanced Park Guide Certification",
             expiryDate: null,
-            image: require("../../../assets/images/advanced_guide.png"),
+            image: require("../../assets/images/advanced_guide.png"),
             obtained: false,
             description:
                 "This certification provides advanced skills for park guides, including navigation and leadership.",
@@ -96,8 +96,9 @@ const Certificate = () => {
                                     <TouchableOpacity
                                         style={styles.quizButton}
                                         onPress={() =>
-                                            navigation.navigate("quiz", {
-                                                certName: cert.name,
+                                            router.push({
+                                                pathname: '/pg-dashboard/quiz',
+                                                params: { certName: cert.name }
                                             })
                                         }
                                     >
@@ -112,7 +113,7 @@ const Certificate = () => {
                 </View>
             </ScrollView>
 
-            {/* Modal for Certification Details */}
+            {/* Modal for Certificate Details */}
             {selectedCert && (
                 <Modal
                     animationType="slide"
@@ -122,6 +123,12 @@ const Certificate = () => {
                 >
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={closeModal}
+                            >
+                                <Text style={styles.closeButtonText}>×</Text>
+                            </TouchableOpacity>
                             <Text style={styles.modalTitle}>
                                 {selectedCert.name}
                             </Text>
@@ -129,23 +136,36 @@ const Certificate = () => {
                                 source={selectedCert.image}
                                 style={styles.modalImage}
                             />
-                            <Text style={styles.modalText}>
+                            <Text style={styles.modalExpiry}>
+                                Expiry Date: {selectedCert.expiryDate}
+                            </Text>
+                            <Text style={styles.modalDescription}>
                                 {selectedCert.description}
                             </Text>
-                            {selectedCert.expiryDate && (
-                                <Text style={styles.modalText}>
-                                    <Text style={styles.boldText}>
-                                        Expiry Date:{" "}
-                                    </Text>
-                                    {selectedCert.expiryDate}
-                                </Text>
-                            )}
                             <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={closeModal}
+                                style={styles.downloadButton}
+                                onPress={() => {
+                                    // Handle certificate download
+                                    console.log(
+                                        `Download certificate: ${selectedCert.name}`
+                                    );
+                                }}
                             >
-                                <Text style={styles.closeButtonText}>
-                                    Close
+                                <Text style={styles.downloadButtonText}>
+                                    Download Certificate
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.renewButton}
+                                onPress={() => {
+                                    // Handle certificate renewal
+                                    console.log(
+                                        `Renew certificate: ${selectedCert.name}`
+                                    );
+                                }}
+                            >
+                                <Text style={styles.renewButtonText}>
+                                    Renew Certificate
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -169,63 +189,67 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     title: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 10,
-        textAlign: "center",
-        color: "#333",
+        marginBottom: 20,
+        color: "rgb(22, 163, 74)",
     },
     certItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10,
-        padding: 10,
+        marginBottom: 20,
         backgroundColor: "#f9f9f9",
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#ddd",
+        borderRadius: 10,
+        padding: 10,
+        flexDirection: "row",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     certImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 5,
-        marginRight: 10,
+        width: 80,
+        height: 80,
+        borderRadius: 10,
     },
     certDetails: {
+        marginLeft: 10,
         flex: 1,
     },
     certName: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "bold",
-        color: "#555",
+        color: "rgb(22, 163, 74)",
     },
     certExpiry: {
         fontSize: 14,
-        color: "#888",
-    },
-    quizButton: {
-        marginTop: 5,
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        backgroundColor: "rgb(22, 163, 74)",
-        borderRadius: 5,
-    },
-    quizButtonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 14,
+        marginTop: 4,
+        color: "#666",
     },
     infoButton: {
-        marginTop: 5,
+        backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 5,
         paddingHorizontal: 10,
-        backgroundColor: "#007BFF",
         borderRadius: 5,
+        marginTop: 5,
+        alignSelf: "flex-start",
     },
     infoButtonText: {
         color: "white",
+        fontSize: 12,
         fontWeight: "bold",
-        fontSize: 14,
+    },
+    quizButton: {
+        backgroundColor: "#f0ad4e",
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 5,
+        marginTop: 5,
+        alignSelf: "flex-start",
+    },
+    quizButtonText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "bold",
     },
     modalContainer: {
         flex: 1,
@@ -234,44 +258,68 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     modalContent: {
-        width: "90%",
         backgroundColor: "white",
-        borderRadius: 10,
+        width: "90%",
+        borderRadius: 20,
         padding: 20,
         alignItems: "center",
     },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 10,
-        color: "rgb(22, 163, 74)",
-    },
-    modalImage: {
-        width: 150,
-        height: 150,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    modalText: {
-        fontSize: 16,
-        color: "#555",
-        marginBottom: 5,
-        textAlign: "center",
-    },
-    boldText: {
-        fontWeight: "bold",
-    },
     closeButton: {
-        marginTop: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        backgroundColor: "rgb(22, 163, 74)",
-        borderRadius: 5,
+        position: "absolute",
+        right: 15,
+        top: 15,
     },
     closeButtonText: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+        marginBottom: 15,
+        marginTop: 10,
+    },
+    modalImage: {
+        width: 200,
+        height: 150,
+        borderRadius: 10,
+        marginBottom: 15,
+    },
+    modalExpiry: {
+        fontSize: 16,
+        color: "#666",
+        marginBottom: 10,
+    },
+    modalDescription: {
+        fontSize: 16,
+        color: "#333",
+        marginBottom: 15,
+        textAlign: "center",
+    },
+    downloadButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        padding: 10,
+        borderRadius: 10,
+        width: "100%",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    downloadButtonText: {
         color: "white",
         fontWeight: "bold",
-        fontSize: 14,
+    },
+    renewButton: {
+        backgroundColor: "#f0ad4e",
+        padding: 10,
+        borderRadius: 10,
+        width: "100%",
+        alignItems: "center",
+    },
+    renewButtonText: {
+        color: "white",
+        fontWeight: "bold",
     },
 });
 

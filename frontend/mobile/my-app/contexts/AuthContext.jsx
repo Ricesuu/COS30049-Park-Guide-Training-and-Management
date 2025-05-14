@@ -26,13 +26,11 @@ export const AuthProvider = ({ children }) => {
                 setRole(data.role);
                 setStatus(data.status);
                 await AsyncStorage.setItem("userRole", data.role);
-                await AsyncStorage.setItem("userStatus", data.status);
-
-                // Auto-redirect based on role
+                await AsyncStorage.setItem("userStatus", data.status);                // Auto-redirect based on role
                 if (data.status === "approved") {
                     const routes = {
                         admin: "/admin-dashboard",
-                        park_guide: "/pg-dashboard/with-layout"
+                        park_guide: "/pg-dashboard"
                     };
                     if (routes[data.role]) {
                         router.replace(routes[data.role]);
@@ -63,12 +61,11 @@ export const AuthProvider = ({ children }) => {
                     console.log("📦 Found stored credentials");
                     setRole(storedRole);
                     setStatus(storedStatus);
-                    
-                    // Auto-redirect if credentials exist
+                      // Auto-redirect if credentials exist
                     if (storedStatus === "approved") {
                         const routes = {
                             admin: "/admin-dashboard",
-                            park_guide: "/pg-dashboard/with-layout"
+                            park_guide: "/pg-dashboard"
                         };
                         if (routes[storedRole]) {
                             router.replace(routes[storedRole]);

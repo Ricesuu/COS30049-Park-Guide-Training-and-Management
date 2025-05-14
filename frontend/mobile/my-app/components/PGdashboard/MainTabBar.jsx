@@ -3,12 +3,12 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome5 } from "@expo/vector-icons"; // Import FontAwesome5
 
-import HomePage from "../../app/pg-dashboard/with-layout/index";
-import Module from "../../app/pg-dashboard/with-layout/module";
-import Certificate from "../../app/pg-dashboard/with-layout/certificate";
-import PlantInfo from "../../app/pg-dashboard/with-layout/plantinfo";
-import Identification from "../../app/pg-dashboard/with-layout/identification";
-import Payment from "../../app/pg-dashboard/with-layout/payment"; // Import your Payment screen
+import HomePage from "../../app/pg-dashboard/index";
+import Module from "../../app/pg-dashboard/module";
+import Certificate from "../../app/pg-dashboard/certificate";
+import PlantInfo from "../../app/pg-dashboard/plantinfo";
+import Identification from "../../app/pg-dashboard/identification";
+import Payment from "../../app/pg-dashboard/payment"; // Import your Payment screen
 
 const Tab = createBottomTabNavigator();
 
@@ -45,8 +45,7 @@ const MainTabBar = () => {
             })}
         >
             <Tab.Screen name="Module" component={Module} />
-            <Tab.Screen name="Certificate" component={Certificate} />
-            <Tab.Screen name="Home" component={HomePage} />
+            <Tab.Screen name="Certificate" component={Certificate} />            <Tab.Screen name="Home" component={HomePage} />
             <Tab.Screen name="Plant Info" component={PlantInfo} />
             <Tab.Screen name="Identification" component={Identification} />
             <Tab.Screen name="Payment" component={Payment} />
