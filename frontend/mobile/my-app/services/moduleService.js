@@ -48,7 +48,13 @@ export const fetchAvailableModules = async () => {
       }
     });
     
-    return response.data;
+    // Ensure all modules have price property
+    const modules = response.data.map(module => ({
+      ...module,
+      price: module.price !== undefined ? module.price : 0
+    }));
+    
+    return modules;
   } catch (error) {
     console.error('Error fetching available modules:', error);
     throw error;

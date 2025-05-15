@@ -114,9 +114,8 @@ const ModuleMarketplace = () => {
                                 <View style={styles.moduleDetails}>
                                     <Text style={styles.moduleName}>
                                         {module.name}
-                                    </Text>
-                                    <Text style={styles.modulePrice}>
-                                        ${module.price.toFixed(2)}
+                                    </Text>                                    <Text style={styles.modulePrice}>
+                                        ${typeof module.price === 'number' ? module.price.toFixed(2) : '0.00'}
                                     </Text>
                                     <Text style={styles.moduleDescription}>
                                         {module.description}
