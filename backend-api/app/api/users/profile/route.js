@@ -7,8 +7,8 @@ import admin from "@/lib/firebaseAdmin";
 export async function GET(request) {
     let connection;
     try {
-        // Authenticate and ensure the user is an admin
-        const { uid, role } = await assertUser(request, ["admin"]);
+        // Authenticate and allow both admin and park_guide roles
+        const { uid, role } = await assertUser(request, ["admin", "park_guide"]);
 
         // Get the user's profile data
         connection = await getConnection();
@@ -28,7 +28,7 @@ export async function GET(request) {
 
         return NextResponse.json(rows[0]);
     } catch (error) {
-        console.error("Error fetching admin profile:", error);
+        console.error("Error fetching user profile:", error);
         return NextResponse.json(
             { error: error.message || "Failed to fetch profile" },
             { status: error.status || 500 }
@@ -42,8 +42,8 @@ export async function GET(request) {
 export async function PUT(request) {
     let connection;
     try {
-        // Authenticate and ensure the user is an admin
-        const { uid, role } = await assertUser(request, ["admin"]);
+        // Authenticate and allow both admin and park_guide roles
+        const { uid, role } = await assertUser(request, ["admin", "park_guide"]);
         const body = await request.json();
 
         const { first_name, last_name } = body;
@@ -80,7 +80,7 @@ export async function PUT(request) {
             },
         });
     } catch (error) {
-        console.error("Error updating admin profile:", error);
+        console.error("Error updating user profile:", error);
         return NextResponse.json(
             { error: error.message || "Failed to update profile" },
             { status: error.status || 500 }

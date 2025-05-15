@@ -44,6 +44,12 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
         quiz: (props) => (
             <Ionicons name={props.focused ? "help-circle" : "help-circle-outline"} size={24} color={props.color} />
         ),
+        profile: (props) => (
+            <Ionicons name={props.focused ? "person" : "person-outline"} size={24} color={props.color} />
+        ),
+        "module-marketplace": (props) => (
+            <Ionicons name={props.focused ? "cart" : "cart-outline"} size={24} color={props.color} />
+        )
     };
 
     // Render the tab bar
@@ -56,12 +62,12 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                         ? options.tabBarLabel
                         : options.title !== undefined
                         ? options.title
-                        : route.name;
+                        : route.name;                const isFocused = state.index === index;
 
-                const isFocused = state.index === index;
-
-                if (["_sitemap", "+not-found"].includes(route.name))
+                // Skip rendering tab items for hidden routes or system routes
+                if (["_sitemap", "+not-found", "module-marketplace", "edit-profile", "quiz"].includes(route.name) || options.href === null) {
                     return null;
+                }
 
                 // Animation setup
                 const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -115,14 +121,18 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                             style={{
                                 transform: [{ scale: scaleAnim }],
                                 alignItems: "center",
-                            }}
-                        >
-                            {icons[route.name]({
-                                focused: isFocused,
-                                color: isFocused
-                                    ? activeColour
-                                    : inactiveColour,
-                            })}
+                            }}                        >                {/* Render the appropriate icon or a default icon if not found */}
+                            {typeof icons[route.name] === 'function' ? 
+                                icons[route.name]({
+                                    focused: isFocused,
+                                    color: isFocused ? activeColour : inactiveColour,
+                                }) : 
+                                <Ionicons 
+                                    name={isFocused ? "apps" : "apps-outline"} 
+                                    size={24} 
+                                    color={isFocused ? activeColour : inactiveColour} 
+                                />
+                            }
                             <Text
                                 style={{
                                     color: isFocused

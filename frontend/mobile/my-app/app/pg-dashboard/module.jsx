@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     View,
     ScrollView,
@@ -8,39 +8,42 @@ import {
     TouchableOpacity,
     Modal,
     TextInput,
+    ActivityIndicator,
+    Alert
 } from "react-native";
 import { Video } from "expo-av";
+import { useRouter } from "expo-router";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
+import { fetchUserModules, submitComment } from "../../services/moduleService";
 
 const Module = () => {
     const [selectedModule, setSelectedModule] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [comment, setComment] = useState("");
+    const [userModules, setUserModules] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const videoRef = useRef(null);
+    const router = useRouter();
 
-    const modules = [
-        {
-            name: "First Aid Module",
-            description:
-                "Learn essential first aid skills, including CPR and wound care.",
-            image: require("../../assets/images/firstaid.jpg"),
-            video: require("../../assets/videos/firstaid.mp4"),
-        },
-        {
-            name: "Wildlife Safety Module",
-            description:
-                "Understand how to stay safe while interacting with wildlife.",
-            image: require("../../assets/images/wildlife_safety.jpg"),
-            video: require("../../assets/videos/wildlife_safety.mp4"),
-        },
-        {
-            name: "Advanced Park Guide Module",
-            description:
-                "Master advanced skills for park guides, including navigation and leadership.",
-            image: require("../../assets/images/advanced_guide.png"),
-            video: require("../../assets/videos/advanced_navigation.mp4"),
-        },
-    ];
+    useEffect(() => {
+        loadUserModules();
+    }, []);
+
+    const loadUserModules = async () => {
+        setIsLoading(true);
+        try {
+            const modules = await fetchUserModules();
+            setUserModules(modules);
+            setError(null);
+        } catch (error) {
+            setError("Failed to load your modules. Please try again later.");
+            console.error("Error loading modules:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const openModal = (module) => {
         setSelectedModule(module);
@@ -59,6 +62,51 @@ const Module = () => {
         }
     };
 
+    const handleBrowseModules = () => {
+        // Navigate to module marketplace
+        router.push("/pg-dashboard/module-marketplace");
+    };
+
+    const handleSubmitComment = async () => {
+        if (!comment.trim()) {
+            Alert.alert("Error", "Please enter a comment before submitting.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await submitComment(selectedModule.id, comment);
+            Alert.alert("Success", "Your comment has been submitted successfully.");
+            setComment(""); // Clear comment field after submission
+        } catch (error) {
+            Alert.alert("Error", "Failed to submit comment. Please try again later.");
+            console.error("Error submitting comment:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleTakeQuiz = () => {
+        // Navigate to the quiz page with the module ID
+        router.push(`/pg-dashboard/quiz?moduleId=${selectedModule.id}`);
+    };
+
+    const renderEmptyState = () => (
+        <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptyStateTitle}>No Modules Found</Text>
+            <Text style={styles.emptyStateText}>
+                You haven't purchased any modules yet. Browse our marketplace to find modules
+                that can help you improve your park guide skills.
+            </Text>
+            <TouchableOpacity
+                style={styles.browseButton}
+                onPress={handleBrowseModules}
+            >
+                <Text style={styles.browseButtonText}>Browse Modules</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
@@ -67,34 +115,54 @@ const Module = () => {
             >
                 <Header />
                 <View style={styles.dashboard}>
-                    <Text style={styles.title}>Modules</Text>
-                    {modules.map((module, index) => (
-                        <View key={index} style={styles.moduleItem}>
-                            <Image
-                                source={module.image}
-                                style={styles.moduleImage}
-                            />
-                            <View style={styles.moduleDetails}>
-                                <Text style={styles.moduleName}>
-                                    {module.name}
-                                </Text>
-                                <Text style={styles.moduleDescription}>
-                                    {module.description}
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.infoButton}
-                                    onPress={() => openModal(module)}
-                                >
-                                    <Text style={styles.infoButtonText}>
-                                        View Module
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+                    <Text style={styles.title}>Your Modules</Text>
+                    
+                    {isLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
+                            <Text style={styles.loadingText}>Loading your modules...</Text>
                         </View>
-                    ))}
+                    ) : error ? (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{error}</Text>
+                            <TouchableOpacity
+                                style={styles.retryButton}
+                                onPress={loadUserModules}
+                            >
+                                <Text style={styles.retryButtonText}>Retry</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : userModules.length === 0 ? (
+                        renderEmptyState()
+                    ) : (
+                        userModules.map((module, index) => (
+                            <View key={index} style={styles.moduleItem}>
+                                <Image
+                                    source={{ uri: module.imageUrl }}
+                                    style={styles.moduleImage}
+                                    defaultSource={require('../../assets/images/module-placeholder.png')}
+                                />
+                                <View style={styles.moduleDetails}>
+                                    <Text style={styles.moduleName}>
+                                        {module.name}
+                                    </Text>
+                                    <Text style={styles.moduleDescription}>
+                                        {module.description}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.infoButton}
+                                        onPress={() => openModal(module)}
+                                    >
+                                        <Text style={styles.infoButtonText}>
+                                            View Module
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))
+                    )}
                 </View>
             </ScrollView>
-
             {/* Modal for Module Details */}
             {selectedModule && (
                 <Modal
@@ -122,7 +190,7 @@ const Module = () => {
                             >
                                 <Video
                                     ref={videoRef}
-                                    source={selectedModule.video}
+                                    source={{ uri: selectedModule.videoUrl }}
                                     rate={1.0}
                                     volume={1.0}
                                     isMuted={false}
@@ -148,28 +216,26 @@ const Module = () => {
 
                             <TouchableOpacity
                                 style={styles.submitButton}
-                                onPress={() => {
-                                    // Handle comment submission
-                                    console.log(
-                                        `Comment for ${selectedModule.name}: ${comment}`
-                                    );
-                                    setComment(""); // Clear comment field after submission
-                                }}
+                                onPress={handleSubmitComment}
+                                disabled={isSubmitting}
                             >
-                                <Text style={styles.submitButtonText}>
-                                    Submit Comment
-                                </Text>
+                                {isSubmitting ? (
+                                    <ActivityIndicator size="small" color="white" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>
+                                        Submit Comment
+                                    </Text>
+                                )}
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={styles.quizButton}
                                 onPress={() => {
-                                    // Handle navigate to quiz
-                                    console.log(
-                                        `Navigate to quiz for ${selectedModule.name}`
-                                    );
                                     closeModal(); // Close the modal before navigating
-                                    // navigation.navigate("Quiz", { moduleName: selectedModule.name });
+                                    router.push({
+                                        pathname: "/pg-dashboard/quiz",
+                                        params: { moduleId: selectedModule.id }
+                                    });
                                 }}
                             >
                                 <Text style={styles.quizButtonText}>
@@ -202,6 +268,68 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         color: "rgb(22, 163, 74)",
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#666',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 15,
+    },
+    retryButton: {
+        backgroundColor: 'rgb(22, 163, 74)',
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    retryButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    emptyStateTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 10,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    browseButton: {
+        backgroundColor: 'rgb(22, 163, 74)',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 10,
+    },
+    browseButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
     moduleItem: {
         marginBottom: 20,
         backgroundColor: "#f9f9f9",
@@ -218,6 +346,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 10,
+        backgroundColor: '#e0e0e0', // Placeholder color
     },
     moduleDetails: {
         marginLeft: 10,

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "backend-api": "file:",
     "firebase-admin": "^13.3.0",
     "formidable": "^3.5.4",
     "mysql2": "^3.14.0",

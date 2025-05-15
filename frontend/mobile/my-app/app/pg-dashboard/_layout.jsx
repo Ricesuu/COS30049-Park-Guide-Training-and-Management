@@ -33,9 +33,7 @@ const PGDashboardLayout = () => {
         );
 
         return () => backHandler.remove();
-    }, []);
-
-    return (
+    }, []);    return (
         <Tabs
             screenOptions={{ headerShown: false }}
             tabBar={(props) => <PGMainTabBar {...props} />}
@@ -48,6 +46,23 @@ const PGDashboardLayout = () => {
             <Tabs.Screen name="identification" options={{ title: "Identification" }} />
             <Tabs.Screen name="payment" options={{ title: "Payment" }} />
             <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
+            <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+            
+            {/* Screens that are not in the tab bar */}
+            <Tabs.Screen 
+                name="module-marketplace" 
+                options={{ 
+                    href: null,  // This prevents it from appearing in the tab bar
+                    title: "Marketplace" 
+                }} 
+            />
+            <Tabs.Screen 
+                name="edit-profile" 
+                options={{ 
+                    href: null,  // This prevents it from appearing in the tab bar
+                    title: "Edit Profile" 
+                }} 
+            />
         </Tabs>
     );
 };
