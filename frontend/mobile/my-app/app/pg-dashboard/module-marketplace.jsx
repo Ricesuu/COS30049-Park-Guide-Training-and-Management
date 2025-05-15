@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 import { fetchAvailableModules, purchaseModule } from "../../services/moduleService";
+import { formatPrice } from "../../utils/priceFormatter";
 
 const ModuleMarketplace = () => {
     const [availableModules, setAvailableModules] = useState([]);
@@ -22,12 +23,11 @@ const ModuleMarketplace = () => {
 
     useEffect(() => {
         loadAvailableModules();
-    }, []);
-
-    const loadAvailableModules = async () => {
+    }, []);    const loadAvailableModules = async () => {
         setIsLoading(true);
         try {
             const modules = await fetchAvailableModules();
+            console.log("Loaded modules:", modules); // Debug logging
             setAvailableModules(modules);
             setError(null);
         } catch (error) {
@@ -36,14 +36,15 @@ const ModuleMarketplace = () => {
         } finally {
             setIsLoading(false);
         }
-    };    const handlePurchase = async (moduleId, moduleName, price) => {
+    };
+      const handlePurchase = async (moduleId, moduleName, price) => {
         setPurchasing(moduleId);
         try {
             // Simple payment details for the module
             const paymentDetails = {
                 moduleName: moduleName,
                 paymentMethod: 'Credit Card',
-                amount: price,
+                amount: price || 0,
                 // We'll simulate a receipt image by not providing one
             };
             
@@ -110,18 +111,19 @@ const ModuleMarketplace = () => {
                                     source={{ uri: module.imageUrl }}
                                     style={styles.moduleImage}
                                     defaultSource={require('../../assets/images/module-placeholder.png')}
-                                />
-                                <View style={styles.moduleDetails}>
+                                />                                <View style={styles.moduleDetails}>
                                     <Text style={styles.moduleName}>
                                         {module.name}
-                                    </Text>                                    <Text style={styles.modulePrice}>
-                                        ${typeof module.price === 'number' ? module.price.toFixed(2) : '0.00'}
+                                    </Text>
+                                    <Text style={styles.modulePrice}>
+                                        {formatPrice(module.price)}
                                     </Text>
                                     <Text style={styles.moduleDescription}>
                                         {module.description}
-                                    </Text>                                    <TouchableOpacity
+                                    </Text>
+                                    <TouchableOpacity
                                         style={styles.purchaseButton}
-                                        onPress={() => handlePurchase(module.id, module.name, module.price)}
+                                        onPress={() => handlePurchase(module.id, module.name, module.price || 0)}
                                         disabled={purchasing === module.id || module.purchase_status === 'purchased'}
                                     >
                                         {purchasing === module.id ? (
