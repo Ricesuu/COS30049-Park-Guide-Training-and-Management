@@ -122,7 +122,7 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="p-4 text-green-950">
+    <div className="p-4 text-green-950 w-full">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-green-900 font-bold text-lg mb-4">Course List</h1>
 
@@ -136,27 +136,19 @@ export default function CoursesPage() {
           Create New Course
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <div className="overflow-hidden rounded-lg">
-          <table className="w-full border-collapse rounded">
+      <div className="overflow-x-auto w-full">
+        <div className="rounded-lg">
+          <table className="border-collapse rounded w-full table-auto">
             <thead>
               <tr className="border-b-2 border-green-800 bg-green-50">
                 <th className="text-left py-3 px-4 text-green-800">CourseID</th>
                 <th className="text-left py-3 px-4 text-green-800">Title</th>
-                <th className="text-left py-3 px-4 text-green-800">
-                  Description
-                </th>
-                <th className="text-left py-3 px-4 text-green-800">
-                  Difficulty
-                </th>
+                <th className="text-left py-3 px-4 text-green-800">Description</th>
+                <th className="text-left py-3 px-4 text-green-800">Difficulty</th>
                 <th className="text-left py-3 px-4 text-green-800">Aspect</th>
-                <th className="text-left py-3 px-4 text-green-800">
-                  Associated Quiz
-                </th>
-                <th className="text-left py-3 px-4 text-green-800">
-                  YouTube Link
-                </th>
-                <th className="text-left py-3 px-4 text-green-800">Action</th>
+                <th className="text-left py-3 px-4 text-green-800">Associated Quiz</th>
+                <th className="text-left py-3 px-4 text-green-800">YouTube Link</th>
+                <th className="text-left py-3 px-4 text-green-800 whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -164,7 +156,7 @@ export default function CoursesPage() {
                 <tr key={course.module_id} className="hover:bg-gray-50">
                   <td className="py-3 px-4">{course.module_code}</td>
                   <td className="py-3 px-4">{course.module_name}</td>
-                  <td className="py-3 px-4">{course.description}</td>
+                  <td className="py-3 px-4 max-w-xs truncate">{course.description}</td>
                   <td className="py-3 px-4">{course.difficulty}</td>
                   <td className="py-3 px-4">{course.aspect}</td>
                   <td className="py-3 px-4">{course.quiz_name || "No quiz"}</td>
@@ -180,19 +172,21 @@ export default function CoursesPage() {
                         : course.video_url}
                     </a>
                   </td>
-                  <td className="py-3 px-4 flex gap-2">
-                    <button
-                      onClick={() => handleEditClick(course)}
-                      className="px-4 py-2 text-green-800 hover:text-green-600 bg-green-100 hover:bg-green-200 transition-colors rounded "
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCourse(course.module_id)}
-                      className="px-4 py-2 text-red-800 hover:text-red-600 bg-red-100 hover:bg-red-200 transition-colors rounded"
-                    >
-                      Delete
-                    </button>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditClick(course)}
+                        className="px-4 py-2 text-green-800 hover:text-green-600 bg-green-100 hover:bg-green-200 transition-colors rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCourse(course.module_id)}
+                        className="px-4 py-2 text-red-800 hover:text-red-600 bg-red-100 hover:bg-red-200 transition-colors rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
