@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map - Park Guide Training and Management</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="auth-nav.js"></script>
+
+    <!-- Map Scripts-->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+  </head>
+  <body class="about-page">
+    <!-- SECTION 1: NAVIGATION BAR -->
+    <nav class="navbar">
+      <div class="nav-left">
+        <div class="logo">SFC</div>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="info.html">Info</a></li>
+          <li><a href="map.html" class="active">Map</a></li>
+          <li><a href="feedback.html">Feedback</a></li>
+          <li id="admin-nav" style="display: none">
+            <a href="#" onclick="goToAdminDash()">Admin Dashboard</a>
+          </li>
+        </ul>
+      </div>
+      <div class="nav-right">
+        <div class="search-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <button class="login-btn">Log In</button>
+        <button
+          class="contact-btn"
+          onclick="window.location.href='contact.html'"
+        >
+          Contact
+        </button>
+      </div>
+    </nav>
+
+    <!-- SECTION 2: HERO SECTION -->
+    <section class="map-main">
+      <div class="map-container">
+        <h3 class="subheading">Map</h3>
+        <h1>Semenggoh Wildlife Reserve</h1>
+        <p>
+          Discover the beauty of our wildlife reserve through our interactive
+          map.
+        </p>
+
+        <!-- Map Container -->
+        <div id="map" style></div>
+
+        <script>
+          // Initialize the map
+          var map = L.map("map", {
+            crs: L.CRS.Simple,
+            minZoom: -2,
+            maxZoom: 0.5,
+          });
+          var bounds = [
+            [0, 0],
+            [2529, 4873],
+          ];
+          var image = L.imageOverlay("images/map.jpg", bounds).addTo(map);
+          map.fitBounds(bounds);
+
+          // Map markers
+          var marker1 = L.marker([1066, 224]).addTo(map);
+          var marker2 = L.marker([690, 600]).addTo(map);
+          var marker3 = L.marker([996, 315]).addTo(map);
+          var marker4 = L.marker([1056, 450]).addTo(map);
+          var marker5 = L.marker([1700, 1100]).addTo(map);
+          var marker6 = L.marker([1160, 1037]).addTo(map);
+          var marker7 = L.marker([800, 1120]).addTo(map);
+          var marker8 = L.marker([1050, 1450]).addTo(map);
+          var marker9 = L.marker([560, 2250]).addTo(map);
+
+          // Marker popups
+          marker1.bindPopup(
+            "<b>Regional Office</b><br>The administration office can be found here"
+          );
+          marker2.bindPopup(
+            "<b>Mixed Planting Garden</b><br>A variety of plants can be found here"
+          );
+          marker3.bindPopup(
+            "<b>Nephentes Garden</b><br>Nephentes plants are cultivated here"
+          );
+          marker4.bindPopup(
+            "<b>Wild Orchid Garden</b><br>wildin' <br> <img src = 'images/mhm.jpg' height='150px'>"
+          );
+          marker5.bindPopup(
+            "<b>Arboretum</b><br>Various trees and shrubs may be found here"
+          );
+          marker6.bindPopup(
+            "<b>Ethnobotanical Garden</b><br>Culturally-related plants and native trees are cultivated here"
+          );
+          marker7.bindPopup(
+            "<b>Ferns and Aroids Garden</b><br>A myriad of ferns and arums can be found here"
+          );
+          marker8.bindPopup(
+            "<b>Bamboo and Fiscus Garden</b><br>A variety of bamboos can be found here"
+          );
+          marker9.bindPopup(
+            "<b>Wild Fruits Garden</b><br>GYAAAAATTTTTT <img src = 'images/yes.jpg' height='150px'>"
+          );
+        </script>
+      </div>
+    </section>
+
+    <!-- SECTION 5: FOOTER -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-left">
+          <div class="logo">SFC</div>
+          <div class="contact-info">
+            <p><i class="fas fa-envelope"></i> lorem@ipsum.com</p>
+            <p><i class="fas fa-phone"></i> +1 (123) 456-7890</p>
+            <p>
+              <i class="fas fa-map-marker-alt"></i> Lorem ipsum dolor sit amet
+            </p>
+          </div>
+        </div>
+        <div class="footer-right">
+          <div class="footer-column">
+            <h3>Navigation</h3>
+            <ul>
+              <li><a href="index.html">Home</a></li>
+              <li><a href="about.html">About</a></li>
+              <li><a href="info.html">Info</a></li>
+              <li><a href="map.html">Map</a></li>
+              <li><a href="feedback.html">Feedback</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Social Media</h3>
+            <div class="social-icons">
+              <a href="#"><i class="fab fa-instagram"></i></a>
+              <a href="#"><i class="fab fa-facebook"></i></a>
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+            </div>
+            <div class="legal-links">
+              <a href="#">Terms and Conditions</a>
+              <a href="#">Privacy Policy</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        <p>&copy; 2025 SFC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
