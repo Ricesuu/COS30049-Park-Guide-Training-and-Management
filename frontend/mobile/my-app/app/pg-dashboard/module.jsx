@@ -29,9 +29,7 @@ const Module = () => {
 
     useEffect(() => {
         loadUserModules();
-    }, []);
-
-    const loadUserModules = async () => {
+    }, []);    const loadUserModules = async () => {
         setIsLoading(true);
         try {
             const modules = await fetchUserModules();
@@ -60,9 +58,7 @@ const Module = () => {
         if (videoRef.current) {
             await videoRef.current.presentFullscreenPlayer();
         }
-    };
-
-    const handleBrowseModules = () => {
+    };    const handleBrowseModules = () => {
         // Navigate to module marketplace
         router.push("/pg-dashboard/module-marketplace");
     };
@@ -113,9 +109,16 @@ const Module = () => {
                 contentContainerStyle={{ flexGrow: 1 }}
                 showsVerticalScrollIndicator={false}
             >
-                <Header />
-                <View style={styles.dashboard}>
-                    <Text style={styles.title}>Your Modules</Text>
+                <Header />                <View style={styles.dashboard}>
+                    <View style={styles.headerRow}>
+                        <Text style={styles.title}>Your Modules</Text>
+                        <TouchableOpacity
+                            style={styles.browseModulesButton}
+                            onPress={handleBrowseModules}
+                        >
+                            <Text style={styles.browseModulesButtonText}>Browse More Modules</Text>
+                        </TouchableOpacity>
+                    </View>
                     
                     {isLoading ? (
                         <View style={styles.loadingContainer}>
@@ -262,11 +265,27 @@ const styles = StyleSheet.create({
         padding: 20,
         flex: 1,
     },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
     title: {
         fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 20,
         color: "rgb(22, 163, 74)",
+    },
+    browseModulesButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    browseModulesButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 14,
     },
     loadingContainer: {
         flex: 1,

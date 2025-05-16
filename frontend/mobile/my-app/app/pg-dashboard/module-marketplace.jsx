@@ -36,35 +36,18 @@ const ModuleMarketplace = () => {
         } finally {
             setIsLoading(false);
         }
-    };
-      const handlePurchase = async (moduleId, moduleName, price) => {
-        setPurchasing(moduleId);
-        try {
-            // Simple payment details for the module
-            const paymentDetails = {
+    };      const handlePurchase = async (moduleId, moduleName, price) => {
+        // Navigate to payment screen with module details
+        router.push({
+            pathname: "/pg-dashboard/payment",
+            params: {
+                moduleId: moduleId,
                 moduleName: moduleName,
-                paymentMethod: 'Credit Card',
-                amount: price || 0,
-                // We'll simulate a receipt image by not providing one
-            };
-            
-            await purchaseModule(moduleId, paymentDetails);
-            Alert.alert(
-                "Success",
-                "Module purchased successfully! It will now appear in your modules.",
-                [
-                    { 
-                        text: "Go to My Modules", 
-                        onPress: () => router.replace("/pg-dashboard/module") 
-                    }
-                ]
-            );
-        } catch (error) {
-            Alert.alert("Purchase Failed", "Unable to purchase this module. Please try again later.");
-        } finally {
-            setPurchasing(null);
-        }
-    };
+                price: price || 0,
+                returnTo: "module-marketplace"
+            }
+        });
+      };
 
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>

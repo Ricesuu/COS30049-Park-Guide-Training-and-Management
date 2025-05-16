@@ -39,16 +39,13 @@ const PGDashboardLayout = () => {
             tabBar={(props) => <PGMainTabBar {...props} />}
             style={{ zIndex: 999 }}
         >
-            <Tabs.Screen name="index" options={{ title: "Home" }} />
-            <Tabs.Screen name="module" options={{ title: "Module" }} />
+            <Tabs.Screen name="index" options={{ title: "Home" }} />            <Tabs.Screen name="module" options={{ title: "Module" }} />
             <Tabs.Screen name="certificate" options={{ title: "Certificate" }} />
             <Tabs.Screen name="plantinfo" options={{ title: "Plant Info" }} />
             <Tabs.Screen name="identification" options={{ title: "Identification" }} />
-            <Tabs.Screen name="payment" options={{ title: "Payment" }} />
             <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
             <Tabs.Screen name="profile" options={{ title: "Profile" }} />
-            
-            {/* Screens that are not in the tab bar */}
+              {/* Screens that are not in the tab bar */}
             <Tabs.Screen 
                 name="module-marketplace" 
                 options={{ 
@@ -57,8 +54,15 @@ const PGDashboardLayout = () => {
                 }} 
             />
             <Tabs.Screen 
-                name="edit-profile" 
+                name="payment" 
                 options={{ 
+                    href: null,  // This prevents it from appearing in the tab bar
+                    title: "Payment" 
+                }} 
+            />
+            <Tabs.Screen 
+                name="edit-profile" 
+                options={{
                     href: null,  // This prevents it from appearing in the tab bar
                     title: "Edit Profile" 
                 }} 

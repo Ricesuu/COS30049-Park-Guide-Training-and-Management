@@ -62,10 +62,8 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                         ? options.tabBarLabel
                         : options.title !== undefined
                         ? options.title
-                        : route.name;                const isFocused = state.index === index;
-
-                // Skip rendering tab items for hidden routes or system routes
-                if (["_sitemap", "+not-found", "module-marketplace", "edit-profile", "quiz"].includes(route.name) || options.href === null) {
+                        : route.name;                const isFocused = state.index === index;                // Skip rendering tab items for hidden routes or system routes
+                if (["_sitemap", "+not-found", "module-marketplace", "edit-profile", "payment", "quiz"].includes(route.name) || options.href === null) {
                     return null;
                 }
 
