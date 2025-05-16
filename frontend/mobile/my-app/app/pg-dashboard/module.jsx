@@ -9,37 +9,51 @@ import {
     Modal,
     TextInput,
     ActivityIndicator,
-    Alert
+    Alert,
+    RefreshControl
 } from "react-native";
 import { Video } from "expo-av";
 import { useRouter } from "expo-router";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 import { fetchUserModules, submitComment } from "../../services/moduleService";
 
-const Module = () => {
-    const [selectedModule, setSelectedModule] = useState(null);
+const Module = () => {    const [selectedModule, setSelectedModule] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [comment, setComment] = useState("");
     const [userModules, setUserModules] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const videoRef = useRef(null);
     const router = useRouter();
 
     useEffect(() => {
         loadUserModules();
-    }, []);    const loadUserModules = async () => {
-        setIsLoading(true);
+        
+        // Set up a periodic refresh if needed
+        const refreshInterval = setInterval(() => {
+            loadUserModules(true);  // Quiet refresh (no loading indicator)
+        }, 30000);  // Refresh every 30 seconds
+        
+        return () => clearInterval(refreshInterval);
+    }, []);
+    
+    const loadUserModules = async (quiet = false) => {
+        if (!quiet) setIsLoading(true);
         try {
             const modules = await fetchUserModules();
+            console.log("Loaded modules:", modules);
             setUserModules(modules);
             setError(null);
         } catch (error) {
-            setError("Failed to load your modules. Please try again later.");
             console.error("Error loading modules:", error);
+            if (!quiet) {
+                setError("Failed to load your modules. Please try again later.");
+            }
         } finally {
-            setIsLoading(false);
+            if (!quiet) setIsLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -101,15 +115,24 @@ const Module = () => {
                 <Text style={styles.browseButtonText}>Browse Modules</Text>
             </TouchableOpacity>
         </View>
-    );
-
-    return (
+    );    return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            setRefreshing(true);
+                            loadUserModules();
+                        }}
+                        colors={["rgb(22, 163, 74)"]}
+                        tintColor="rgb(22, 163, 74)"
+                    />
+                }
             >
-                <Header />                <View style={styles.dashboard}>
+                <Header /><View style={styles.dashboard}>
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>Your Modules</Text>
                         <TouchableOpacity
@@ -134,35 +157,39 @@ const Module = () => {
                             >
                                 <Text style={styles.retryButtonText}>Retry</Text>
                             </TouchableOpacity>
-                        </View>
-                    ) : userModules.length === 0 ? (
+                        </View>                    ) : userModules.length === 0 ? (
                         renderEmptyState()
                     ) : (
-                        userModules.map((module, index) => (
-                            <View key={index} style={styles.moduleItem}>
-                                <Image
-                                    source={{ uri: module.imageUrl }}
-                                    style={styles.moduleImage}
-                                    defaultSource={require('../../assets/images/module-placeholder.png')}
-                                />
-                                <View style={styles.moduleDetails}>
-                                    <Text style={styles.moduleName}>
-                                        {module.name}
-                                    </Text>
-                                    <Text style={styles.moduleDescription}>
-                                        {module.description}
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={styles.infoButton}
-                                        onPress={() => openModal(module)}
-                                    >
-                                        <Text style={styles.infoButtonText}>
-                                            View Module
+                        <View>
+                            <Text style={styles.moduleCount}>
+                                {userModules.length} {userModules.length === 1 ? 'module' : 'modules'} found
+                            </Text>
+                            {userModules.map((module, index) => (
+                                <View key={index} style={styles.moduleItem}>                                    <Image
+                                        source={{ uri: module.imageUrl }}
+                                        style={styles.moduleImage}
+                                        defaultSource={require('../../assets/images/module-placeholder.png')}
+                                        onError={(e) => console.log("Image failed to load:", e.nativeEvent.error)}
+                                    />
+                                    <View style={styles.moduleDetails}>
+                                        <Text style={styles.moduleName}>
+                                            {module.name}
                                         </Text>
-                                    </TouchableOpacity>
+                                        <Text style={styles.moduleDescription}>
+                                            {module.description}
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.infoButton}
+                                            onPress={() => openModal(module)}
+                                        >
+                                            <Text style={styles.infoButtonText}>
+                                                View Module
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
-                        ))
+                            ))}
+                        </View>
                     )}
                 </View>
             </ScrollView>
@@ -319,6 +346,11 @@ const styles = StyleSheet.create({
     retryButtonText: {
         color: 'white',
         fontWeight: 'bold',
+    },    moduleCount: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 15,
+        fontStyle: 'italic'
     },
     emptyStateContainer: {
         flex: 1,

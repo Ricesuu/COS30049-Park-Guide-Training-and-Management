@@ -37,13 +37,18 @@ const ModuleMarketplace = () => {
             setIsLoading(false);
         }
     };      const handlePurchase = async (moduleId, moduleName, price) => {
+        // Ensure price is a valid number
+        const numericPrice = typeof price === 'string' ? parseFloat(price) : (price || 0);
+        
+        console.log(`Initiating purchase for module: ${moduleId}, ${moduleName}, price: ${numericPrice}`);
+        
         // Navigate to payment screen with module details
         router.push({
             pathname: "/pg-dashboard/payment",
             params: {
                 moduleId: moduleId,
                 moduleName: moduleName,
-                price: price || 0,
+                price: numericPrice,
                 returnTo: "module-marketplace"
             }
         });

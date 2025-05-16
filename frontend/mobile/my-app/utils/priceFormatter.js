@@ -3,10 +3,10 @@
  * Safely format a price value to 2 decimal places
  * 
  * @param {*} price - The price value to format
- * @param {string} [prefix='$'] - Currency symbol to prepend to price
+ * @param {string} [prefix='RM'] - Currency symbol to prepend to price
  * @returns {string} - Formatted price string
  */
-export const formatPrice = (price, prefix = '$') => {
+export const formatPrice = (price, prefix = 'RM') => {
   // Handle null, undefined, non-numeric values
   if (price === null || price === undefined || isNaN(price)) {
     return `${prefix}0.00`;

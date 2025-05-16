@@ -51,8 +51,7 @@ export async function POST(req) {
 
     const decodedToken = await admin.auth().verifyIdToken(token);
     const userUid = decodedToken.uid;    // 🧾 Parse form data
-    const formData = await req.formData();
-    const paymentPurpose = formData.get("paymentPurpose");
+    const formData = await req.formData();    const paymentPurpose = formData.get("paymentPurpose");
     const paymentMethod = formData.get("paymentMethod");
     const amountPaid = formData.get("amountPaid");
     const receipt = formData.get("receipt");
@@ -60,6 +59,11 @@ export async function POST(req) {
 
     if (!paymentPurpose || !paymentMethod || !amountPaid || !receipt) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // Log the moduleId if present
+    if (moduleId) {
+      console.log(`Processing payment with moduleId: ${moduleId}`);
     }
 
     // ✅ Validate image
@@ -94,9 +98,7 @@ export async function POST(req) {
        (user_id, uid, paymentPurpose, paymentMethod, amountPaid, receipt_image, paymentStatus, transaction_date, module_id)
        VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), ?)`,
       [userId, userUid, paymentPurpose, paymentMethod, amountPaid, buffer, moduleId]
-    );
-    
-    // If this is a module purchase, create a ModulePurchases record
+    );      // If this is a module purchase, create a ModulePurchases record
     if (moduleId) {
       try {
         // Check if the module exists
@@ -106,12 +108,28 @@ export async function POST(req) {
         );
         
         if (moduleCheck.length > 0) {
-          // Insert purchase record
-          await connection.execute(
-            `INSERT INTO ModulePurchases (user_id, module_id, payment_id)
-             VALUES (?, ?, ?)`,
+          console.log(`Creating module purchase record for moduleId: ${moduleId}, userId: ${userId}, paymentId: ${result.insertId}`);
+          
+          // Check if a purchase record already exists
+          const [existingPurchase] = await connection.execute(
+            `SELECT purchase_id FROM ModulePurchases 
+             WHERE user_id = ? AND module_id = ? AND payment_id = ?`,
             [userId, moduleId, result.insertId]
           );
+          
+          if (existingPurchase.length === 0) {
+            // Insert purchase record
+            await connection.execute(
+              `INSERT INTO ModulePurchases (user_id, module_id, payment_id, status)
+               VALUES (?, ?, ?, 'pending')`,
+              [userId, moduleId, result.insertId]
+            );
+            console.log(`ModulePurchases record created successfully`);
+          } else {
+            console.log(`ModulePurchases record already exists for this transaction`);
+          }
+        } else {
+          console.error(`Module with ID ${moduleId} not found in TrainingModules table`);
         }
       } catch (error) {
         console.error("Error creating module purchase record:", error);

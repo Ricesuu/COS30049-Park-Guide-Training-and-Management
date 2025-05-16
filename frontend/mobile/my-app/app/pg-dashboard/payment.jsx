@@ -17,12 +17,17 @@ export const Payment = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Extract module information from params if coming from marketplace
+    // Extract module information from params if coming from marketplace
   const moduleId = params.moduleId;
   const moduleName = params.moduleName;
   const price = params.price ? parseFloat(params.price) : 0;
   const returnTo = params.returnTo;
+  
+  useEffect(() => {
+    if (moduleId && moduleName) {
+      console.log("Module purchase info from params:", { moduleId, moduleName, price });
+    }
+  }, [moduleId, moduleName, price]);
   
   const {
     transactions,
@@ -69,8 +74,7 @@ export const Payment = () => {
     } finally {
       setIsProcessing(false);
     }
-  };
-    // Show module purchase info if coming from marketplace
+  };  // Show module purchase info if coming from marketplace
   const renderModulePurchaseInfo = () => {
     if (!moduleId) return null;
     
@@ -79,6 +83,7 @@ export const Payment = () => {
         <Text className="text-lg font-bold text-gray-800">Module: {moduleName}</Text>
         <Text className="text-md text-gray-700">Price: {formatPrice(price)}</Text>
         <Text className="text-md text-gray-700 mb-2">Upload receipt to complete purchase</Text>
+        <Text className="text-sm text-gray-500">Module ID: {moduleId}</Text>
       </View>
     );
   };
@@ -103,11 +108,15 @@ export const Payment = () => {
                 source={require("../../assets/qr-code-payment.png")}
                 className="w-60 h-60 rounded-lg p-4"
                 resizeMode="contain"
-              />
-            </LinearGradient>
+              />            </LinearGradient>
 
-            {/* Payment Form receives refreshTransactions */}
-            <PaymentForm refreshTransactions={refreshTransactions} />
+            {/* Payment Form receives refreshTransactions and module info */}
+            <PaymentForm 
+              refreshTransactions={refreshTransactions} 
+              moduleId={moduleId}
+              moduleName={moduleName}
+              modulePrice={price}
+            />
 
             {/* Transaction History receives the rest */}
             <TransactionHistory

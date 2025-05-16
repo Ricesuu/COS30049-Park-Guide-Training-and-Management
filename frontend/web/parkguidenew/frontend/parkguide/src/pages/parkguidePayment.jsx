@@ -114,16 +114,15 @@ const ParkguidePayment = () => {
       <div className="payment-main-content">
         <div className="payment-container">
           <h2 className="payment-title">Payment for {certTitle}</h2>
-          
-          <div className="payment-summary">
+            <div className="payment-summary">
             <h3>Order Summary</h3>
             <div className="payment-item">
               <span>{certTitle} Certificate</span>
-              <span>${certPrice.toFixed(2)}</span>
+              <span>RM{certPrice.toFixed(2)}</span>
             </div>
             <div className="payment-total">
               <span>Total</span>
-              <span>${certPrice.toFixed(2)}</span>
+              <span>RM{certPrice.toFixed(2)}</span>
             </div>
           </div>
           
@@ -254,9 +253,8 @@ const ParkguidePayment = () => {
                 </div>
               </div>
             </div>
-            
-            <button type="submit" className="pay-button" disabled={isProcessing}>
-              {isProcessing ? 'Processing...' : `Pay $${certPrice.toFixed(2)}`}
+              <button type="submit" className="pay-button" disabled={isProcessing}>
+              {isProcessing ? 'Processing...' : `Pay RM${certPrice.toFixed(2)}`}
             </button>
           </form>
         </div>

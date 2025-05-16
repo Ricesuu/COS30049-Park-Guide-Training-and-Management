@@ -94,9 +94,7 @@ const TransactionApproval = () => {
 
     useEffect(() => {
         fetchTransactions();
-    }, []);
-
-    // Handle approve action
+    }, []);    // Handle approve action
     const handleApprove = async (id) => {
         try {
             console.log(`Approving transaction ${id}...`);
@@ -126,7 +124,8 @@ const TransactionApproval = () => {
                 );
             }
 
-            console.log(`Transaction ${id} approved successfully`);
+            const responseData = await response.json();
+            console.log(`Transaction ${id} approved successfully:`, responseData);
 
             // Refresh the transactions list after approval
             fetchTransactions();

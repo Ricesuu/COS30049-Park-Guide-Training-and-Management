@@ -405,8 +405,7 @@ const Profile = () => {
                 {payment.paymentStatus.toUpperCase()}
               </Text>
             </View>
-            <View style={styles.paymentDetails}>
-              <Text style={styles.paymentMethod}>
+            <View style={styles.paymentDetails}>              <Text style={styles.paymentMethod}>
                 <Ionicons 
                   name={
                     payment.paymentMethod === "credit" ? "card" :
@@ -419,7 +418,7 @@ const Profile = () => {
                 {payment.paymentMethod === "e_wallet" ? "E-Wallet" : 
                  payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)} 
               </Text>
-              <Text style={styles.paymentAmount}>${payment.amountPaid}</Text>
+              <Text style={styles.paymentAmount}>RM{parseFloat(payment.amountPaid).toFixed(2)}</Text>
             </View>
             <Text style={styles.paymentDate}>
               {new Date(payment.transaction_date).toLocaleDateString()}

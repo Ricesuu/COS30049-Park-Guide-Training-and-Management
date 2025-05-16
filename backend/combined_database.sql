@@ -21,13 +21,16 @@ SET time_zone = "+00:00";
 -- Database: `park_guide_management`
 --
 
+CREATE DATABASE IF NOT EXISTS `park_guide_management`;
+USE `park_guide_management`;
+
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `activealerts`
 --
 
-CREATE TABLE `activealerts` (
+CREATE TABLE IF NOT EXISTS `activealerts` (
   `alert_id` int(11) NOT NULL,
   `park_id` int(11) NOT NULL,
   `sensor_type` varchar(50) NOT NULL,
@@ -45,7 +48,7 @@ CREATE TABLE `activealerts` (
 -- Table structure for table `alertthresholds`
 --
 
-CREATE TABLE `alertthresholds` (
+CREATE TABLE IF NOT EXISTS `alertthresholds` (
   `threshold_id` int(11) NOT NULL,
   `sensor_type` varchar(50) NOT NULL,
   `park_id` int(11) NOT NULL,
@@ -78,7 +81,7 @@ INSERT INTO `alertthresholds` (`threshold_id`, `sensor_type`, `park_id`, `min_th
 -- Table structure for table `certifications`
 --
 
-CREATE TABLE `certifications` (
+CREATE TABLE IF NOT EXISTS `certifications` (
   `cert_id` int(11) NOT NULL,
   `guide_id` int(11) NOT NULL,
   `module_id` int(11) NOT NULL,
@@ -92,7 +95,7 @@ CREATE TABLE `certifications` (
 -- Table structure for table `guidebook`
 --
 
-CREATE TABLE `guidebook` (
+CREATE TABLE IF NOT EXISTS `guidebook` (
   `guidebook_id` int(11) NOT NULL,
   `park_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
@@ -114,7 +117,7 @@ INSERT INTO `guidebook` (`guidebook_id`, `park_id`, `title`, `content`, `multime
 -- Table structure for table `guidetrainingprogress`
 --
 
-CREATE TABLE `guidetrainingprogress` (
+CREATE TABLE IF NOT EXISTS `guidetrainingprogress` (
   `progress_id` int(11) NOT NULL,
   `guide_id` int(11) NOT NULL,
   `module_id` int(11) NOT NULL,
@@ -129,7 +132,7 @@ CREATE TABLE `guidetrainingprogress` (
 -- Table structure for table `iotmonitoring`
 --
 
-CREATE TABLE `iotmonitoring` (
+CREATE TABLE IF NOT EXISTS `iotmonitoring` (
   `sensor_id` int(11) NOT NULL,
   `park_id` int(11) NOT NULL,
   `sensor_type` enum('temperature','humidity','soil moisture','motion') NOT NULL,
@@ -169,7 +172,7 @@ INSERT INTO `iotmonitoring` (`sensor_id`, `park_id`, `sensor_type`, `recorded_va
 -- Table structure for table `modulepurchases`
 --
 
-CREATE TABLE `modulepurchases` (
+CREATE TABLE IF NOT EXISTS `modulepurchases` (
   `purchase_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `module_id` int(11) NOT NULL,
@@ -192,7 +195,8 @@ CREATE TRIGGER `after_module_purchase_creation` AFTER INSERT ON `modulepurchases
   FROM ParkGuides pg
   WHERE pg.user_id = NEW.user_id
   LIMIT 1;
-    -- If guide_id found, insert a record into GuideTrainingProgress
+  
+  -- If guide_id found, insert a record into GuideTrainingProgress
   IF guide_id IS NOT NULL THEN
     INSERT IGNORE INTO GuideTrainingProgress
       (guide_id, module_id, status, start_date)
@@ -206,10 +210,10 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `multilicensetrainingexemptions`
+-- Table structure for table `multillicensetrainingexemptions`
 --
 
-CREATE TABLE `multilicensetrainingexemptions` (
+CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
   `exemption_id` int(11) NOT NULL,
   `guide_id` int(11) NOT NULL,
   `training_id` int(11) NOT NULL,
@@ -222,7 +226,7 @@ CREATE TABLE `multilicensetrainingexemptions` (
 -- Table structure for table `parkguides`
 --
 
-CREATE TABLE `parkguides` (
+CREATE TABLE IF NOT EXISTS `parkguides` (
   `guide_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
@@ -243,7 +247,7 @@ INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `licens
 -- Table structure for table `parks`
 --
 
-CREATE TABLE `parks` (
+CREATE TABLE IF NOT EXISTS `parks` (
   `park_id` int(11) NOT NULL,
   `park_name` varchar(255) NOT NULL,
   `location` text NOT NULL,
@@ -265,7 +269,7 @@ INSERT INTO `parks` (`park_id`, `park_name`, `location`, `description`, `wildlif
 -- Table structure for table `paymenttransactions`
 --
 
-CREATE TABLE `paymenttransactions` (
+CREATE TABLE IF NOT EXISTS `paymenttransactions` (
   `payment_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `uid` varchar(255) NOT NULL,
@@ -338,7 +342,7 @@ CREATE TABLE `pendingmodulepayments` (
 -- Table structure for table `quizansweroptions`
 --
 
-CREATE TABLE `quizansweroptions` (
+CREATE TABLE IF NOT EXISTS `quizansweroptions` (
   `option_id` int(11) NOT NULL,
   `question_id` int(11) NOT NULL,
   `option_text` text NOT NULL,
@@ -396,7 +400,7 @@ INSERT INTO `quizansweroptions` (`option_id`, `question_id`, `option_text`, `is_
 -- Table structure for table `quizattempts`
 --
 
-CREATE TABLE `quizattempts` (
+CREATE TABLE IF NOT EXISTS `quizattempts` (
   `attempt_id` int(11) NOT NULL,
   `quiz_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
@@ -447,7 +451,7 @@ DELIMITER ;
 -- Table structure for table `quizquestions`
 --
 
-CREATE TABLE `quizquestions` (
+CREATE TABLE IF NOT EXISTS `quizquestions` (
   `question_id` int(11) NOT NULL,
   `quiz_id` int(11) NOT NULL,
   `question_text` text NOT NULL,
@@ -480,7 +484,7 @@ INSERT INTO `quizquestions` (`question_id`, `quiz_id`, `question_text`, `questio
 -- Table structure for table `quizresponses`
 --
 
-CREATE TABLE `quizresponses` (
+CREATE TABLE IF NOT EXISTS `quizresponses` (
   `response_id` int(11) NOT NULL,
   `attempt_id` int(11) NOT NULL,
   `question_id` int(11) NOT NULL,
@@ -495,7 +499,7 @@ CREATE TABLE `quizresponses` (
 -- Table structure for table `quizzes`
 --
 
-CREATE TABLE `quizzes` (
+CREATE TABLE IF NOT EXISTS `quizzes` (
   `quiz_id` int(11) NOT NULL,
   `module_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
@@ -524,7 +528,7 @@ INSERT INTO `quizzes` (`quiz_id`, `module_id`, `title`, `description`, `pass_per
 -- Table structure for table `trainingmodules`
 --
 
-CREATE TABLE `trainingmodules` (
+CREATE TABLE IF NOT EXISTS `trainingmodules` (
   `module_id` int(11) NOT NULL,
   `module_name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
@@ -579,7 +583,7 @@ CREATE TABLE `usermoduleaccess` (
 -- Table structure for table `users`
 --
 
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `user_id` int(11) NOT NULL,
   `uid` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
@@ -607,7 +611,7 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 -- Table structure for table `visitorfeedback`
 --
 
-CREATE TABLE `visitorfeedback` (
+CREATE TABLE IF NOT EXISTS `visitorfeedback` (
   `feedback_id` int(11) NOT NULL,
   `visitor_id` int(11) NOT NULL,
   `guide_id` int(11) NOT NULL,
@@ -634,6 +638,395 @@ DROP TABLE IF EXISTS `usermoduleaccess`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccess`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`user_id` AS `user_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `tm`.`duration` AS `duration`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on(`mp`.`user_id` = `u`.`user_id`)) join `trainingmodules` `tm` on(`mp`.`module_id` = `tm`.`module_id`)) join `paymenttransactions` `pt` on(`mp`.`payment_id` = `pt`.`payment_id`)) WHERE `mp`.`is_active` = 1 AND `mp`.`status` = 'active' ;
 
+-- --------------------------------------------------------
+
+--
+-- Structure for view `usermoduleaccessbyuid`
+--
+
+DROP VIEW IF EXISTS `usermoduleaccessbyuid`;
+CREATE VIEW `usermoduleaccessbyuid` AS
+SELECT 
+    `mp`.`purchase_id`,
+    `u`.`uid`,
+    `tm`.`module_id`,
+    `tm`.`module_name`,
+    `tm`.`description`,
+    `tm`.`duration`,
+    `tm`.`price`,
+    `mp`.`status`,
+    `mp`.`purchase_date`,
+    `mp`.`completion_percentage`,
+    `pt`.`payment_id`,
+    `pt`.`paymentStatus`
+FROM 
+    `modulepurchases` `mp`
+    JOIN `users` `u` ON `mp`.`user_id` = `u`.`user_id`
+    JOIN `trainingmodules` `tm` ON `mp`.`module_id` = `tm`.`module_id`
+    JOIN `paymenttransactions` `pt` ON `mp`.`payment_id` = `pt`.`payment_id`
+WHERE 
+    `mp`.`is_active` = 1;
+    
+-- --------------------------------------------------------
+
+--
+-- Structure for view `moduleprogressbyguide`
+--
+
+DROP VIEW IF EXISTS `moduleprogressbyguide`;
+CREATE VIEW `moduleprogressbyguide` AS
+SELECT 
+    `gtp`.`progress_id`,
+    `pg`.`guide_id`,
+    `u`.`uid`,
+    `u`.`first_name`,
+    `u`.`last_name`,
+    `tm`.`module_id`,
+    `tm`.`module_name`,
+    `tm`.`duration`,
+    `gtp`.`status`,
+    `gtp`.`start_date`,
+    `gtp`.`completion_date`,
+    `mp`.`completion_percentage`
+FROM 
+    `guidetrainingprogress` `gtp`
+    JOIN `parkguides` `pg` ON `gtp`.`guide_id` = `pg`.`guide_id`
+    JOIN `users` `u` ON `pg`.`user_id` = `u`.`user_id`
+    JOIN `trainingmodules` `tm` ON `gtp`.`module_id` = `tm`.`module_id`
+    LEFT JOIN `modulepurchases` `mp` ON `mp`.`user_id` = `u`.`user_id` AND `mp`.`module_id` = `tm`.`module_id`
+WHERE 
+    `mp`.`is_active` = 1 OR `mp`.`is_active` IS NULL;
+
+--
+-- Structure for view `usermodulequizprogress`
+--
+
+DROP VIEW IF EXISTS `usermodulequizprogress`;
+CREATE VIEW `usermodulequizprogress` AS
+SELECT 
+    `u`.`uid`,
+    `u`.`user_id`,
+    `u`.`first_name`,
+    `u`.`last_name`,
+    `tm`.`module_id`,
+    `tm`.`module_name`,
+    `q`.`quiz_id`,
+    `q`.`title` AS `quiz_title`,
+    `q`.`is_certification_quiz`,
+    `qa`.`attempt_id`,
+    `qa`.`score`,
+    `qa`.`passed`,
+    `qa`.`attempt_number`,
+    `qa`.`start_time` AS `attempt_start_time`,
+    `qa`.`end_time` AS `attempt_end_time`,
+    `mp`.`completion_percentage`
+FROM 
+    `users` `u`
+    JOIN `modulepurchases` `mp` ON `u`.`user_id` = `mp`.`user_id`
+    JOIN `trainingmodules` `tm` ON `mp`.`module_id` = `tm`.`module_id`
+    JOIN `quizzes` `q` ON `tm`.`module_id` = `q`.`module_id`
+    LEFT JOIN `quizattempts` `qa` ON `q`.`quiz_id` = `qa`.`quiz_id` AND `u`.`user_id` = `qa`.`user_id`
+WHERE 
+    `mp`.`is_active` = 1 AND `mp`.`status` = 'active';
+
+-- --------------------------------------------------------
+
+--
+-- Stored procedures for module management
+--
+
+DELIMITER $$
+
+--
+-- Procedure to get all modules available for a user (purchased and available to purchase)
+--
+DROP PROCEDURE IF EXISTS `GetUserModuleStatus`$$
+CREATE PROCEDURE `GetUserModuleStatus` (IN user_uid VARCHAR(255))
+BEGIN
+    -- Get user ID from UID
+    DECLARE user_id_var INT;
+    
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid;
+    
+    -- If user exists, get module information
+    IF user_id_var IS NOT NULL THEN
+        -- Get all modules, with purchase status
+        SELECT 
+            tm.module_id,
+            tm.module_name,
+            tm.description,
+            tm.duration,
+            tm.price,
+            tm.is_premium,
+            CASE 
+                WHEN mp.purchase_id IS NOT NULL THEN 'purchased'
+                ELSE 'available'
+            END AS purchase_status,
+            IFNULL(mp.completion_percentage, 0) AS completion_percentage,
+            IFNULL(mp.status, 'not_purchased') AS module_status,
+            IFNULL(mp.purchase_date, NULL) AS purchase_date
+        FROM 
+            trainingmodules tm
+            LEFT JOIN (
+                SELECT mp.* 
+                FROM modulepurchases mp 
+                WHERE mp.user_id = user_id_var AND mp.is_active = 1
+            ) mp ON tm.module_id = mp.module_id
+        ORDER BY 
+            tm.is_premium ASC, 
+            tm.module_name ASC;
+    ELSE
+        -- If user doesn't exist, return empty result
+        SELECT NULL AS module_id;
+    END IF;
+END$$
+
+--
+-- Procedure to get detailed quiz information for a module
+--
+DROP PROCEDURE IF EXISTS `GetModuleQuizInfo`$$
+CREATE PROCEDURE `GetModuleQuizInfo` (IN module_id_param INT, IN user_uid_param VARCHAR(255))
+BEGIN
+    DECLARE user_id_var INT;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Get all quizzes for this module
+    SELECT 
+        q.quiz_id,
+        q.title,
+        q.description,
+        q.pass_percentage,
+        q.attempts_allowed,
+        q.is_certification_quiz,
+        MAX(qa.score) AS highest_score,
+        CASE 
+            WHEN MAX(CASE WHEN qa.passed = 1 THEN 1 ELSE 0 END) = 1 THEN 'passed'
+            WHEN COUNT(qa.attempt_id) >= q.attempts_allowed THEN 'max_attempts_reached'
+            WHEN COUNT(qa.attempt_id) > 0 THEN 'in_progress'
+            ELSE 'not_attempted'
+        END AS attempt_status,
+        COUNT(qa.attempt_id) AS attempt_count
+    FROM 
+        quizzes q
+        LEFT JOIN quizattempts qa ON q.quiz_id = qa.quiz_id AND qa.user_id = user_id_var
+    WHERE 
+        q.module_id = module_id_param
+    GROUP BY 
+        q.quiz_id, q.title, q.description, q.pass_percentage, q.attempts_allowed, q.is_certification_quiz;
+END$$
+
+--
+-- Procedure to initiate module purchase process
+--
+DROP PROCEDURE IF EXISTS `InitiateModulePurchase`$$
+CREATE PROCEDURE `InitiateModulePurchase` (
+    IN user_uid_param VARCHAR(255),
+    IN module_id_param INT,
+    IN payment_method_param ENUM('debit', 'credit', 'e_wallet'),
+    IN amount_paid_param DECIMAL(10,2),
+    IN receipt_image_blob LONGBLOB
+)
+BEGIN
+    DECLARE user_id_var INT;
+    DECLARE payment_id_var INT;
+    DECLARE already_purchased BOOLEAN DEFAULT FALSE;
+    
+    -- Transaction to ensure all operations succeed or fail together
+    START TRANSACTION;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has already purchased the module
+    SELECT COUNT(*) > 0 INTO already_purchased
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+    
+    IF user_id_var IS NOT NULL AND NOT already_purchased THEN
+        -- Create payment transaction record
+        INSERT INTO paymenttransactions (
+            user_id, 
+            uid, 
+            paymentPurpose, 
+            paymentMethod, 
+            amountPaid, 
+            receipt_image, 
+            paymentStatus,
+            module_id
+        ) VALUES (
+            user_id_var,
+            user_uid_param,
+            'module_purchase',
+            payment_method_param,
+            amount_paid_param,
+            receipt_image_blob,
+            'pending',
+            module_id_param
+        );
+        
+        -- Get the inserted payment ID
+        SET payment_id_var = LAST_INSERT_ID();
+        
+        -- Create module purchase record with pending status
+        INSERT INTO modulepurchases (
+            user_id,
+            module_id,
+            payment_id,
+            status,
+            is_active
+        ) VALUES (
+            user_id_var,
+            module_id_param,
+            payment_id_var,
+            'pending',
+            1
+        );
+        
+        -- Return the payment ID for reference
+        SELECT 
+            'success' AS result,
+            payment_id_var AS payment_id,
+            'Module purchase initiated, payment pending approval' AS message;
+        
+        COMMIT;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF already_purchased THEN
+            SELECT 'error' AS result, 'Module already purchased by this user' AS message;
+        END IF;
+        
+        ROLLBACK;
+    END IF;
+END$$
+
+--
+-- Procedure to approve a pending module payment
+--
+DROP PROCEDURE IF EXISTS `ApproveModulePayment`$$
+CREATE PROCEDURE `ApproveModulePayment` (IN payment_id_param INT)
+BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Update payment status to approved
+        UPDATE paymenttransactions
+        SET paymentStatus = 'approved'
+        WHERE payment_id = payment_id_param;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment approved successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot approve payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+--
+-- Procedure to reject a pending module payment
+--
+DROP PROCEDURE IF EXISTS `RejectModulePayment`$$
+CREATE PROCEDURE `RejectModulePayment` (IN payment_id_param INT, IN rejection_reason VARCHAR(255))
+BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Start transaction to ensure all operations succeed or fail together
+        START TRANSACTION;
+        
+        -- Update payment status to rejected
+        UPDATE paymenttransactions
+        SET 
+            paymentStatus = 'rejected'
+        WHERE payment_id = payment_id_param;
+        
+        -- Update module purchase status to revoked
+        UPDATE modulepurchases
+        SET 
+            status = 'revoked',
+            is_active = 0
+        WHERE payment_id = payment_id_param;
+        
+        COMMIT;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment rejected successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot reject payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+--
+-- Procedure to update module completion percentage
+--
+DROP PROCEDURE IF EXISTS `UpdateModuleCompletionPercentage`$$
+CREATE PROCEDURE `UpdateModuleCompletionPercentage` (
+    IN user_uid_param VARCHAR(255),
+    IN module_id_param INT,
+    IN completion_percentage_param DECIMAL(5,2)
+)
+BEGIN
+    DECLARE user_id_var INT;
+    DECLARE module_purchase_exists BOOLEAN DEFAULT FALSE;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has purchased the module
+    SELECT COUNT(*) > 0 INTO module_purchase_exists
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1 AND status = 'active';
+    
+    IF user_id_var IS NOT NULL AND module_purchase_exists THEN
+        -- Update completion percentage
+        UPDATE modulepurchases
+        SET completion_percentage = completion_percentage_param
+        WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Module completion percentage updated successfully' AS message;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF NOT module_purchase_exists THEN
+            SELECT 'error' AS result, 'Active module purchase not found for this user' AS message;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
 --
 -- Indexes for dumped tables
 --
@@ -644,7 +1037,9 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 ALTER TABLE `activealerts`
   ADD PRIMARY KEY (`alert_id`),
   ADD KEY `park_id` (`park_id`),
-  ADD KEY `threshold_id` (`threshold_id`);
+  ADD KEY `threshold_id` (`threshold_id`),
+  ADD KEY `idx_activealerts_severity` (`severity`),
+  ADD KEY `idx_activealerts_is_acknowledged` (`is_acknowledged`);
 
 --
 -- Indexes for table `alertthresholds`
@@ -652,7 +1047,9 @@ ALTER TABLE `activealerts`
 ALTER TABLE `alertthresholds`
   ADD PRIMARY KEY (`threshold_id`),
   ADD UNIQUE KEY `unique_threshold` (`sensor_type`,`park_id`),
-  ADD KEY `park_id` (`park_id`);
+  ADD KEY `park_id` (`park_id`),
+  ADD KEY `idx_alertthresholds_sensor_type` (`sensor_type`),
+  ADD KEY `idx_alertthresholds_is_enabled` (`is_enabled`);
 
 --
 -- Indexes for table `certifications`
@@ -660,7 +1057,8 @@ ALTER TABLE `alertthresholds`
 ALTER TABLE `certifications`
   ADD PRIMARY KEY (`cert_id`),
   ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `module_id` (`module_id`);
+  ADD KEY `module_id` (`module_id`),
+  ADD KEY `idx_certifications_expiry_date` (`expiry_date`);
 
 --
 -- Indexes for table `guidebook`
@@ -675,14 +1073,18 @@ ALTER TABLE `guidebook`
 ALTER TABLE `guidetrainingprogress`
   ADD PRIMARY KEY (`progress_id`),
   ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `module_id` (`module_id`);
+  ADD KEY `module_id` (`module_id`),
+  ADD KEY `idx_guidetrainingprogress_status` (`status`),
+  ADD KEY `idx_guidetrainingprogress_completion_date` (`completion_date`);
 
 --
 -- Indexes for table `iotmonitoring`
 --
 ALTER TABLE `iotmonitoring`
   ADD PRIMARY KEY (`sensor_id`),
-  ADD KEY `park_id` (`park_id`);
+  ADD KEY `park_id` (`park_id`),
+  ADD KEY `idx_iotmonitoring_sensor_type` (`sensor_type`),
+  ADD KEY `idx_iotmonitoring_recorded_at` (`recorded_at`);
 
 --
 -- Indexes for table `modulepurchases`
@@ -691,7 +1093,10 @@ ALTER TABLE `modulepurchases`
   ADD PRIMARY KEY (`purchase_id`),
   ADD UNIQUE KEY `unique_user_module` (`user_id`,`module_id`),
   ADD KEY `module_id` (`module_id`),
-  ADD KEY `payment_id` (`payment_id`);
+  ADD KEY `payment_id` (`payment_id`),
+  ADD KEY `idx_modulepurchases_status` (`status`),
+  ADD KEY `idx_modulepurchases_is_active` (`is_active`),
+  ADD KEY `idx_modulepurchases_purchase_date` (`purchase_date`);
 
 --
 -- Indexes for table `multilicensetrainingexemptions`
@@ -707,7 +1112,9 @@ ALTER TABLE `multilicensetrainingexemptions`
 --
 ALTER TABLE `parkguides`
   ADD PRIMARY KEY (`guide_id`),
-  ADD UNIQUE KEY `user_id` (`user_id`);
+  ADD UNIQUE KEY `user_id` (`user_id`),
+  ADD KEY `idx_parkguides_certification_status` (`certification_status`),
+  ADD KEY `idx_parkguides_license_expiry_date` (`license_expiry_date`);
 
 --
 -- Indexes for table `parks`
@@ -721,14 +1128,18 @@ ALTER TABLE `parks`
 ALTER TABLE `paymenttransactions`
   ADD PRIMARY KEY (`payment_id`),
   ADD KEY `user_id` (`user_id`),
-  ADD KEY `fk_module` (`module_id`);
+  ADD KEY `fk_module` (`module_id`),
+  ADD KEY `idx_paymenttransactions_uid` (`uid`),
+  ADD KEY `idx_paymenttransactions_paymentStatus` (`paymentStatus`),
+  ADD KEY `idx_paymenttransactions_transaction_date` (`transaction_date`);
 
 --
 -- Indexes for table `quizansweroptions`
 --
 ALTER TABLE `quizansweroptions`
   ADD PRIMARY KEY (`option_id`),
-  ADD KEY `question_id` (`question_id`);
+  ADD KEY `question_id` (`question_id`),
+  ADD KEY `idx_quizansweroptions_is_correct` (`is_correct`);
 
 --
 -- Indexes for table `quizattempts`
@@ -737,7 +1148,9 @@ ALTER TABLE `quizattempts`
   ADD PRIMARY KEY (`attempt_id`),
   ADD KEY `quiz_id` (`quiz_id`),
   ADD KEY `user_id` (`user_id`),
-  ADD KEY `guide_id` (`guide_id`);
+  ADD KEY `guide_id` (`guide_id`),
+  ADD KEY `idx_quizattempts_passed` (`passed`),
+  ADD KEY `idx_quizattempts_start_time` (`start_time`);
 
 --
 -- Indexes for table `quizquestions`
@@ -753,20 +1166,24 @@ ALTER TABLE `quizresponses`
   ADD PRIMARY KEY (`response_id`),
   ADD KEY `attempt_id` (`attempt_id`),
   ADD KEY `question_id` (`question_id`),
-  ADD KEY `selected_option_id` (`selected_option_id`);
+  ADD KEY `selected_option_id` (`selected_option_id`),
+  ADD KEY `idx_quizresponses_is_correct` (`is_correct`);
 
 --
 -- Indexes for table `quizzes`
 --
 ALTER TABLE `quizzes`
   ADD PRIMARY KEY (`quiz_id`),
-  ADD KEY `module_id` (`module_id`);
+  ADD KEY `module_id` (`module_id`),
+  ADD KEY `idx_quizzes_is_certification_quiz` (`is_certification_quiz`);
 
 --
 -- Indexes for table `trainingmodules`
 --
 ALTER TABLE `trainingmodules`
-  ADD PRIMARY KEY (`module_id`);
+  ADD PRIMARY KEY (`module_id`),
+  ADD KEY `idx_trainingmodules_is_premium` (`is_premium`),
+  ADD KEY `idx_trainingmodules_created_at` (`created_at`);
 
 --
 -- Indexes for table `users`
@@ -774,7 +1191,10 @@ ALTER TABLE `trainingmodules`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
   ADD UNIQUE KEY `uid` (`uid`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_users_role` (`role`),
+  ADD KEY `idx_users_status` (`status`),
+  ADD KEY `idx_users_created_at` (`created_at`);
 
 --
 -- Indexes for table `visitorfeedback`
@@ -782,7 +1202,9 @@ ALTER TABLE `users`
 ALTER TABLE `visitorfeedback`
   ADD PRIMARY KEY (`feedback_id`),
   ADD KEY `visitor_id` (`visitor_id`),
-  ADD KEY `guide_id` (`guide_id`);
+  ADD KEY `guide_id` (`guide_id`),
+  ADD KEY `idx_visitorfeedback_rating` (`rating`),
+  ADD KEY `idx_visitorfeedback_submitted_at` (`submitted_at`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -1015,6 +1437,16 @@ ALTER TABLE `visitorfeedback`
   ADD CONSTRAINT `visitorfeedback_ibfk_1` FOREIGN KEY (`visitor_id`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `visitorfeedback_ibfk_2` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`);
 COMMIT;
+
+-- --------------------------------------------------------
+
+--
+-- SQL validation check
+--
+
+SELECT 'SQL syntax check complete' AS validation_result;
+
+-- --------------------------------------------------------
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
