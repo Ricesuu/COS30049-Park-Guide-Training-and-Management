@@ -10,14 +10,18 @@ import {
     TextInput,
     ActivityIndicator,
     Alert,
-    RefreshControl
+    RefreshControl,
 } from "react-native";
 import { Video } from "expo-av";
 import { useRouter } from "expo-router";
-import Header from "../../components/PGdashboard/PGDashboardHome/Header";
-import { fetchUserModules, submitComment } from "../../services/moduleService";
+import Header from "../../../components/PGdashboard/PGDashboardHome/Header";
+import {
+    fetchUserModules,
+    submitComment,
+} from "../../../services/moduleService";
 
-const Module = () => {    const [selectedModule, setSelectedModule] = useState(null);
+const ModuleIndex = () => {
+    const [selectedModule, setSelectedModule] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [comment, setComment] = useState("");
     const [userModules, setUserModules] = useState([]);
@@ -30,15 +34,15 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
 
     useEffect(() => {
         loadUserModules();
-        
+
         // Set up a periodic refresh if needed
         const refreshInterval = setInterval(() => {
-            loadUserModules(true);  // Quiet refresh (no loading indicator)
-        }, 30000);  // Refresh every 30 seconds
-        
+            loadUserModules(true); // Quiet refresh (no loading indicator)
+        }, 30000); // Refresh every 30 seconds
+
         return () => clearInterval(refreshInterval);
     }, []);
-    
+
     const loadUserModules = async (quiet = false) => {
         if (!quiet) setIsLoading(true);
         try {
@@ -49,7 +53,9 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
         } catch (error) {
             console.error("Error loading modules:", error);
             if (!quiet) {
-                setError("Failed to load your modules. Please try again later.");
+                setError(
+                    "Failed to load your modules. Please try again later."
+                );
             }
         } finally {
             if (!quiet) setIsLoading(false);
@@ -72,9 +78,11 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
         if (videoRef.current) {
             await videoRef.current.presentFullscreenPlayer();
         }
-    };    const handleBrowseModules = () => {
-        // Navigate to module marketplace
-        router.push("/pg-dashboard/module-marketplace");
+    };
+    const handleBrowseModules = () => {
+        // Navigate to module marketplace (now a separate page)
+        console.log("Navigating to module marketplace...");
+        router.push("/pg-dashboard/marketplace");
     };
 
     const handleSubmitComment = async () => {
@@ -86,27 +94,32 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
         setIsSubmitting(true);
         try {
             await submitComment(selectedModule.id, comment);
-            Alert.alert("Success", "Your comment has been submitted successfully.");
+            Alert.alert(
+                "Success",
+                "Your comment has been submitted successfully."
+            );
             setComment(""); // Clear comment field after submission
         } catch (error) {
-            Alert.alert("Error", "Failed to submit comment. Please try again later.");
+            Alert.alert(
+                "Error",
+                "Failed to submit comment. Please try again later."
+            );
             console.error("Error submitting comment:", error);
         } finally {
             setIsSubmitting(false);
         }
     };
-
     const handleTakeQuiz = () => {
-        // Navigate to the quiz page with the module ID
-        router.push(`/pg-dashboard/quiz?moduleId=${selectedModule.id}`);
+        // Navigate to the quiz page with the module ID (updated path)
+        router.push(`/pg-dashboard/module/quiz?moduleId=${selectedModule.id}`);
     };
-
     const renderEmptyState = () => (
         <View style={styles.emptyStateContainer}>
             <Text style={styles.emptyStateTitle}>No Modules Found</Text>
             <Text style={styles.emptyStateText}>
-                You haven't purchased any modules yet. Browse our marketplace to find modules
-                that can help you improve your park guide skills.
+                You haven't sign up for any modules yet. Browse our marketplace
+                to find modules that can help you improve your park guide
+                skills.
             </Text>
             <TouchableOpacity
                 style={styles.browseButton}
@@ -115,8 +128,10 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
                 <Text style={styles.browseButtonText}>Browse Modules</Text>
             </TouchableOpacity>
         </View>
-    );    return (
-        <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
+    );
+
+    return (
+        <>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
                 showsVerticalScrollIndicator={false}
@@ -132,21 +147,16 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
                     />
                 }
             >
-                <Header /><View style={styles.dashboard}>
-                    <View style={styles.headerRow}>
-                        <Text style={styles.title}>Your Modules</Text>
-                        <TouchableOpacity
-                            style={styles.browseModulesButton}
-                            onPress={handleBrowseModules}
-                        >
-                            <Text style={styles.browseModulesButtonText}>Browse More Modules</Text>
-                        </TouchableOpacity>
-                    </View>
-                    
+                <View>
                     {isLoading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
-                            <Text style={styles.loadingText}>Loading your modules...</Text>
+                            <ActivityIndicator
+                                size="large"
+                                color="rgb(22, 163, 74)"
+                            />
+                            <Text style={styles.loadingText}>
+                                Loading your modules...
+                            </Text>
                         </View>
                     ) : error ? (
                         <View style={styles.errorContainer}>
@@ -155,21 +165,47 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
                                 style={styles.retryButton}
                                 onPress={loadUserModules}
                             >
-                                <Text style={styles.retryButtonText}>Retry</Text>
+                                <Text style={styles.retryButtonText}>
+                                    Retry
+                                </Text>
                             </TouchableOpacity>
-                        </View>                    ) : userModules.length === 0 ? (
+                        </View>
+                    ) : userModules.length === 0 ? (
                         renderEmptyState()
                     ) : (
                         <View>
+                            <View style={styles.headerRow}>
+                                <Text style={styles.title}>Your Modules</Text>
+                                <TouchableOpacity
+                                    style={styles.browseModulesButton}
+                                    onPress={handleBrowseModules}
+                                >
+                                    <Text
+                                        style={styles.browseModulesButtonText}
+                                    >
+                                        Browse More Modules
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                             <Text style={styles.moduleCount}>
-                                {userModules.length} {userModules.length === 1 ? 'module' : 'modules'} found
+                                {userModules.length}{" "}
+                                {userModules.length === 1
+                                    ? "module"
+                                    : "modules"}{" "}
+                                found
                             </Text>
                             {userModules.map((module, index) => (
-                                <View key={index} style={styles.moduleItem}>                                    <Image
+                                <View key={index} style={styles.moduleItem}>
+                                    <Image
                                         source={{ uri: module.imageUrl }}
                                         style={styles.moduleImage}
-                                        defaultSource={require('../../assets/images/module-placeholder.png')}
-                                        onError={(e) => console.log("Image failed to load:", e.nativeEvent.error)}
+                                        defaultSource={require("../../../assets/images/module-placeholder.png")}
+                                        onError={(e) =>
+                                            console.log(
+                                                "Image failed to load:",
+                                                e.nativeEvent.error
+                                            )
+                                        }
                                     />
                                     <View style={styles.moduleDetails}>
                                         <Text style={styles.moduleName}>
@@ -250,7 +286,10 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
-                                    <ActivityIndicator size="small" color="white" />
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="white"
+                                    />
                                 ) : (
                                     <Text style={styles.submitButtonText}>
                                         Submit Comment
@@ -260,13 +299,7 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
 
                             <TouchableOpacity
                                 style={styles.quizButton}
-                                onPress={() => {
-                                    closeModal(); // Close the modal before navigating
-                                    router.push({
-                                        pathname: "/pg-dashboard/quiz",
-                                        params: { moduleId: selectedModule.id }
-                                    });
-                                }}
+                                onPress={handleTakeQuiz}
                             >
                                 <Text style={styles.quizButtonText}>
                                     Take Quiz
@@ -276,7 +309,7 @@ const Module = () => {    const [selectedModule, setSelectedModule] = useState(n
                     </View>
                 </Modal>
             )}
-        </View>
+        </>
     );
 };
 
@@ -292,94 +325,33 @@ const styles = StyleSheet.create({
         padding: 20,
         flex: 1,
     },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
     title: {
         fontSize: 24,
         fontWeight: "bold",
         color: "rgb(22, 163, 74)",
+        marginBottom: 5,
+    },
+    headerRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 5,
     },
     browseModulesButton: {
-        backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
+        paddingHorizontal: 15,
+        backgroundColor: "rgb(22, 163, 74)",
+        borderRadius: 10,
     },
     browseModulesButtonText: {
         color: "white",
         fontWeight: "bold",
         fontSize: 14,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    loadingText: {
-        marginTop: 10,
+    moduleCount: {
         fontSize: 16,
-        color: '#666',
-    },
-    errorContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        color: 'red',
-        fontSize: 16,
-        textAlign: 'center',
+        color: "#666",
         marginBottom: 15,
-    },
-    retryButton: {
-        backgroundColor: 'rgb(22, 163, 74)',
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-    },
-    retryButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },    moduleCount: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 15,
-        fontStyle: 'italic'
-    },
-    emptyStateContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyStateTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 10,
-    },
-    emptyStateText: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    browseButton: {
-        backgroundColor: 'rgb(22, 163, 74)',
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 10,
-    },
-    browseButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
     },
     moduleItem: {
         marginBottom: 20,
@@ -397,48 +369,48 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 10,
-        backgroundColor: '#e0e0e0', // Placeholder color
+        backgroundColor: "#e0e0e0",
     },
     moduleDetails: {
         marginLeft: 10,
         flex: 1,
     },
     moduleName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "bold",
         color: "rgb(22, 163, 74)",
     },
     moduleDescription: {
         fontSize: 14,
-        marginTop: 4,
         color: "#666",
+        marginTop: 5,
+        marginBottom: 10,
     },
     infoButton: {
         backgroundColor: "rgb(22, 163, 74)",
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 15,
         borderRadius: 5,
-        marginTop: 5,
         alignSelf: "flex-start",
     },
     infoButtonText: {
         color: "white",
-        fontSize: 12,
         fontWeight: "bold",
+        fontSize: 14,
     },
     modalContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        padding: 20,
     },
     modalContent: {
         backgroundColor: "white",
-        width: "90%",
-        maxHeight: "90%",
         borderRadius: 20,
         padding: 20,
-        alignItems: "center",
+        width: "100%",
+        maxHeight: "90%",
     },
     closeButton: {
         position: "absolute",
@@ -456,13 +428,15 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "rgb(22, 163, 74)",
         marginBottom: 15,
+        paddingRight: 30, // Make space for close button
     },
     videoContainer: {
         width: "100%",
-        aspectRatio: 16 / 9,
-        marginBottom: 15,
+        height: 200,
         borderRadius: 10,
         overflow: "hidden",
+        marginBottom: 15,
+        backgroundColor: "#000",
     },
     video: {
         width: "100%",
@@ -471,41 +445,104 @@ const styles = StyleSheet.create({
     modalDescription: {
         fontSize: 16,
         color: "#333",
-        marginBottom: 15,
-        textAlign: "center",
+        marginBottom: 20,
     },
     commentInput: {
-        width: "100%",
-        height: 80,
         borderWidth: 1,
         borderColor: "#ddd",
         borderRadius: 10,
         padding: 10,
+        fontSize: 14,
+        minHeight: 80,
+        maxHeight: 120,
         marginBottom: 15,
+        textAlignVertical: "top",
     },
     submitButton: {
         backgroundColor: "rgb(22, 163, 74)",
-        padding: 10,
+        paddingVertical: 10,
         borderRadius: 10,
-        width: "100%",
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: 15,
     },
     submitButtonText: {
         color: "white",
         fontWeight: "bold",
+        fontSize: 16,
     },
     quizButton: {
-        backgroundColor: "#f0ad4e",
-        padding: 10,
+        backgroundColor: "#2980b9", // Different color for distinction
+        paddingVertical: 10,
         borderRadius: 10,
-        width: "100%",
         alignItems: "center",
     },
     quizButtonText: {
         color: "white",
         fontWeight: "bold",
+        fontSize: 16,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: "#666",
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    errorText: {
+        color: "red",
+        fontSize: 16,
+        textAlign: "center",
+        marginBottom: 15,
+    },
+    retryButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    retryButtonText: {
+        color: "white",
+        fontWeight: "bold",
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    emptyStateTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 10,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        marginBottom: 20,
+    },
+    browseButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        paddingVertical: 10,
+        paddingHorizontal: 25,
+        borderRadius: 10,
+    },
+    browseButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
     },
 });
 
-export default Module;
+export default ModuleIndex;

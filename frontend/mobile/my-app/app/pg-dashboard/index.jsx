@@ -1,15 +1,21 @@
 import React, { useState } from "react";
-import { View, ScrollView, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
+import {
+    View,
+    ScrollView,
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    Alert,
+} from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
 import ProfileView from "../../components/PGdashboard/PGDashboardHome/ProfileView";
 import CertContainer from "../../components/PGdashboard/PGDashboardHome/certcontainer";
 import AnnounContainer from "../../components/PGdashboard/PGDashboardHome/announcontainer";
-import { auth } from "../../lib/Firebase";
 
 const HomePage = () => {
     const { authUser } = useAuth();
-    
+
     // Example certifications data
     const certifications = [
         {
@@ -76,39 +82,10 @@ const HomePage = () => {
                         guideId="PG12345"
                         profilePhoto={require("../../assets/images/Ruiziq.jpg")}
                     />
-
                     {/* Certifications Container */}
-                    <CertContainer certifications={certifications} />                    {/* Announcements Container */}
-                    <AnnounContainer announcements={announcements} />                    {/* Logout Button */}
-                    <TouchableOpacity 
-                        style={styles.logoutButton}
-                        onPress={() => {
-                            Alert.alert(
-                                "Logout",
-                                "Are you sure you want to logout?",
-                                [
-                                    {
-                                        text: "Cancel",
-                                        style: "cancel"
-                                    },
-                                    { 
-                                        text: "Logout", 
-                                        onPress: async () => {
-                                            try {
-                                                console.log("Signing out user");
-                                                await auth.signOut();
-                                                // The rest will be handled by the AuthContext's onAuthStateChanged
-                                            } catch (error) {
-                                                console.error("Error signing out:", error);
-                                            }
-                                        }
-                                    }
-                                ]
-                            );
-                        }}
-                    >
-                        <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity>
+                    <CertContainer certifications={certifications} />{" "}
+                    {/* Announcements Container */}
+                    <AnnounContainer announcements={announcements} />{" "}
                 </View>
             </ScrollView>
         </View>
