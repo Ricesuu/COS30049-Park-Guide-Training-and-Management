@@ -10,9 +10,7 @@ const AssignedParkCard = ({ assignedPark }) => {
             <View style={styles.parkHeader}>
                 <FontAwesome5 name="tree" size={24} color="rgb(22, 163, 74)" />
                 <Text style={styles.parkName}>
-                    {assignedPark && assignedPark.park_name
-                        ? assignedPark.park_name
-                        : "No park assigned"}
+                    {assignedPark?.park_name || "No park assigned"}
                 </Text>
             </View>
         </View>

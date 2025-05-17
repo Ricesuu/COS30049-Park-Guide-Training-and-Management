@@ -50,17 +50,15 @@ const ModuleDetailModal = ({
                                 useNativeControls
                                 resizeMode="contain"
                                 style={styles.video}
-                            />
+                            />{" "}
                         </View>
                     )}
-
                     <View style={styles.moduleDetails}>
                         <Text style={styles.sectionTitle}>Description</Text>
                         <Text style={styles.description}>
                             {module?.description}
                         </Text>
-
-                        {module?.objectives && (
+                        {module?.objectives ? (
                             <>
                                 <Text style={styles.sectionTitle}>
                                     Learning Objectives
@@ -69,8 +67,7 @@ const ModuleDetailModal = ({
                                     {module.objectives}
                                 </Text>
                             </>
-                        )}
-
+                        ) : null}
                         <Text style={styles.sectionTitle}>Complete Status</Text>
                         <View style={styles.statusContainer}>
                             <View
@@ -89,7 +86,6 @@ const ModuleDetailModal = ({
                                     : "In Progress"}
                             </Text>
                         </View>
-
                         <Text style={styles.sectionTitle}>Leave a Comment</Text>
                         <TextInput
                             style={styles.commentInput}
@@ -98,7 +94,6 @@ const ModuleDetailModal = ({
                             value={commentValue}
                             onChangeText={onCommentChange}
                         />
-
                         <TouchableOpacity
                             style={[
                                 styles.submitButton,

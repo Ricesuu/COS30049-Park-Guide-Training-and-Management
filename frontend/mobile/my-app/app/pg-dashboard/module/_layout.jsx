@@ -18,15 +18,13 @@ const ModuleLayout = () => {
                         contentStyle: { backgroundColor: "transparent" },
                     }}
                 >
-                    {/* The default screen for modules (user's enrolled modules) */}
                     <Stack.Screen
                         name="index"
                         options={{
                             title: "Your Modules",
                             animation: "slide_from_right",
                         }}
-                    />{" "}
-                    {/* Quiz page for modules */}
+                    />
                     <Stack.Screen
                         name="quiz"
                         options={{
@@ -34,7 +32,6 @@ const ModuleLayout = () => {
                             animation: "slide_from_bottom",
                         }}
                     />
-                    {/* Module marketplace page */}
                     <Stack.Screen
                         name="marketplace"
                         options={{

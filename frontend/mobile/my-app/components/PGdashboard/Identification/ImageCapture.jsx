@@ -56,9 +56,8 @@ const ImageCapture = ({
                 >
                     <MaterialIcons name="search" size={24} color="white" />
                     <Text style={styles.buttonText}>Identify</Text>
-                </TouchableOpacity>
-
-                {image && (
+                </TouchableOpacity>{" "}
+                {image ? (
                     <TouchableOpacity
                         style={styles.resetButton}
                         onPress={resetIdentification}
@@ -67,7 +66,7 @@ const ImageCapture = ({
                         <MaterialIcons name="refresh" size={24} color="white" />
                         <Text style={styles.buttonText}>Reset</Text>
                     </TouchableOpacity>
-                )}
+                ) : null}
             </View>
         </>
     );

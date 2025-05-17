@@ -34,10 +34,7 @@ const Quiz = () => {
     const [correctCount, setCorrectCount] = useState(0);
     const [wrongCount, setWrongCount] = useState(0);
 
-    console.log("Quiz loaded for module:", moduleId, moduleName);
-
     // For now, we'll use static questions based on module ID
-    // In a real app, these would come from an API
     useEffect(() => {
         // Simulate loading questions from API
         setLoading(true);
@@ -114,19 +111,15 @@ const Quiz = () => {
         const currentQuestion = questions[currentQuestionIndex];
 
         // Check if answer is correct
-        if (selectedOption === currentQuestion.correctAnswer) {
-            setCorrectCount(correctCount + 1);
-        } else {
-            setWrongCount(wrongCount + 1);
-        }
+        selectedOption === currentQuestion.correctAnswer
+            ? setCorrectCount(correctCount + 1)
+            : setWrongCount(wrongCount + 1);
 
         // Move to next question or finish quiz
-        if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
-            setSelectedOption(null); // Reset selection for next question
-        } else {
-            setIsQuizComplete(true);
-        }
+        currentQuestionIndex < questions.length - 1
+            ? (setCurrentQuestionIndex(currentQuestionIndex + 1),
+              setSelectedOption(null))
+            : setIsQuizComplete(true);
     };
 
     const handleSubmitQuiz = async () => {
@@ -161,105 +154,90 @@ const Quiz = () => {
     };
 
     const renderQuizContent = () => {
-        if (loading) {
-            return (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
-                    <Text style={styles.loadingText}>
-                        Loading quiz questions...
+        // For quiz completion summary
+        const totalQuestions = questions.length;
+        const scorePercentage = isQuizComplete
+            ? Math.round((correctCount / totalQuestions) * 100)
+            : 0;
+        const isPassing = scorePercentage >= 70; // Assuming 70% is passing
+
+        // Current question reference
+        const currentQuestion =
+            currentQuestionIndex < questions.length
+                ? questions[currentQuestionIndex]
+                : null;
+
+        return loading ? (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
+                <Text style={styles.loadingText}>
+                    Loading quiz questions...
+                </Text>
+            </View>
+        ) : error ? (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => router.push("/pg-dashboard/module")}
+                >
+                    <Text style={styles.buttonText}>Back to Modules</Text>
+                </TouchableOpacity>
+            </View>
+        ) : isQuizComplete ? (
+            <View style={styles.completionContainer}>
+                <Text style={styles.completionTitle}>Quiz Complete!</Text>
+
+                <View style={styles.scoreContainer}>
+                    <Text style={styles.scoreText}>
+                        Your Score: {scorePercentage}%
+                    </Text>
+                    <Text
+                        style={[
+                            styles.resultText,
+                            isPassing ? styles.passingText : styles.failingText,
+                        ]}
+                    >
+                        {isPassing ? "PASSED" : "FAILED"}
                     </Text>
                 </View>
-            );
-        }
 
-        if (error) {
-            return (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => router.push("/pg-dashboard/module")}
-                    >
-                        <Text style={styles.buttonText}>Back to Modules</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-
-        if (isQuizComplete) {
-            // Quiz completion summary
-            const totalQuestions = questions.length;
-            const scorePercentage = Math.round(
-                (correctCount / totalQuestions) * 100
-            );
-            const isPassing = scorePercentage >= 70; // Assuming 70% is passing
-
-            return (
-                <View style={styles.completionContainer}>
-                    <Text style={styles.completionTitle}>Quiz Complete!</Text>
-
-                    <View style={styles.scoreContainer}>
-                        <Text style={styles.scoreText}>
-                            Your Score: {scorePercentage}%
-                        </Text>
-                        <Text
-                            style={[
-                                styles.resultText,
-                                isPassing
-                                    ? styles.passingText
-                                    : styles.failingText,
-                            ]}
-                        >
-                            {isPassing ? "PASSED" : "FAILED"}
-                        </Text>
+                <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{correctCount}</Text>
+                        <Text style={styles.statLabel}>Correct</Text>
                     </View>
-
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{correctCount}</Text>
-                            <Text style={styles.statLabel}>Correct</Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{wrongCount}</Text>
-                            <Text style={styles.statLabel}>Incorrect</Text>
-                        </View>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statValue}>
-                                {totalQuestions}
-                            </Text>
-                            <Text style={styles.statLabel}>Total</Text>
-                        </View>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{wrongCount}</Text>
+                        <Text style={styles.statLabel}>Incorrect</Text>
                     </View>
-
-                    <TouchableOpacity
-                        style={[styles.button, styles.submitButton]}
-                        onPress={handleSubmitQuiz}
-                        disabled={submitting}
-                    >
-                        {submitting ? (
-                            <ActivityIndicator size="small" color="white" />
-                        ) : (
-                            <Text style={styles.buttonText}>
-                                Submit Results
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => router.push("/pg-dashboard/module")}
-                        disabled={submitting}
-                    >
-                        <Text style={styles.buttonText}>Back to Modules</Text>
-                    </TouchableOpacity>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{totalQuestions}</Text>
+                        <Text style={styles.statLabel}>Total</Text>
+                    </View>
                 </View>
-            );
-        }
 
-        // Active quiz question
-        const currentQuestion = questions[currentQuestionIndex];
+                <TouchableOpacity
+                    style={[styles.button, styles.submitButton]}
+                    onPress={handleSubmitQuiz}
+                    disabled={submitting}
+                >
+                    {submitting ? (
+                        <ActivityIndicator size="small" color="white" />
+                    ) : (
+                        <Text style={styles.buttonText}>Submit Results</Text>
+                    )}
+                </TouchableOpacity>
 
-        return (
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => router.push("/pg-dashboard/module")}
+                    disabled={submitting}
+                >
+                    <Text style={styles.buttonText}>Back to Modules</Text>
+                </TouchableOpacity>
+            </View>
+        ) : (
             <View>
                 <View style={styles.progressContainer}>
                     <Text style={styles.progressText}>
@@ -283,10 +261,10 @@ const Quiz = () => {
                 </View>
 
                 <Text style={styles.questionText}>
-                    {currentQuestion.question}
+                    {currentQuestion?.question}
                 </Text>
 
-                {currentQuestion.options.map((option, index) => (
+                {currentQuestion?.options.map((option, index) => (
                     <TouchableOpacity
                         key={index}
                         style={[

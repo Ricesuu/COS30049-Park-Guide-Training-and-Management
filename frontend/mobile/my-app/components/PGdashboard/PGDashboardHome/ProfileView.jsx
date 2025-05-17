@@ -1,17 +1,24 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
+import { LogBox } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const ProfileView = ({ fullName, guideId, profilePhoto }) => {
     return (
         <View style={styles.container}>
-            {/* Profile Photo */}
-            <Image source={profilePhoto} style={styles.profilePhoto} />
-
-            {/* Full Name */}
-            <Text style={styles.fullName}>{fullName}</Text>
-
-            {/* Park Guide ID */}
-            <Text style={styles.guideId}>ID: {guideId}</Text>
+            {profilePhoto ? (
+                <Image source={profilePhoto} style={styles.profilePhoto} />
+            ) : (
+                <View style={[styles.profilePhoto, styles.noPhotoPlaceholder]}>
+                    <Text style={styles.placeholderText}>
+                        {fullName ? fullName.charAt(0).toUpperCase() : "PG"}
+                    </Text>
+                </View>
+            )}
+            <Text style={styles.fullName}>{fullName || "Unknown Guide"}</Text>
+            <Text style={styles.guideId}>ID: {guideId || "Not Available"}</Text>
         </View>
     );
 };
@@ -33,6 +40,16 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         marginBottom: 15,
+    },
+    noPhotoPlaceholder: {
+        backgroundColor: "rgb(22, 163, 74)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    placeholderText: {
+        fontSize: 40,
+        fontWeight: "bold",
+        color: "white",
     },
     fullName: {
         fontSize: 18,

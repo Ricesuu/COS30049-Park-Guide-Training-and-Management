@@ -4,9 +4,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const CertificationsCard = ({ certifications }) => {
-    if (certifications.length === 0) return null;
-
-    return (
+    return certifications && certifications.length > 0 ? (
         <View style={styles.detailsCard}>
             <Text style={styles.sectionTitle}>My Certifications</Text>
             {certifications.map((cert, index) => (
@@ -26,19 +24,19 @@ const CertificationsCard = ({ certifications }) => {
                                 cert.issued_date || cert.issue_date
                             ).toLocaleDateString()}
                         </Text>
-                        {cert.expiry_date && (
+                        {cert.expiry_date ? (
                             <Text style={styles.certDate}>
                                 Expires:{" "}
                                 {new Date(
                                     cert.expiry_date
                                 ).toLocaleDateString()}
                             </Text>
-                        )}
+                        ) : null}
                     </View>
                 </View>
             ))}
         </View>
-    );
+    ) : null;
 };
 
 const styles = StyleSheet.create({

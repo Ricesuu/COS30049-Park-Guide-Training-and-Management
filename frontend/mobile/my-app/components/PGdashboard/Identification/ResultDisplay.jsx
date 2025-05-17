@@ -18,7 +18,6 @@ const ResultDisplay = ({ loading, identificationResult }) => {
 
     const { name, scientificName, confidence, description, careInstructions } =
         identificationResult;
-
     const confidencePercentage = Math.round(confidence * 100);
 
     return (
@@ -27,12 +26,14 @@ const ResultDisplay = ({ loading, identificationResult }) => {
 
             <View style={styles.resultSection}>
                 <Text style={styles.label}>Name:</Text>
-                <Text style={styles.value}>{name}</Text>
+                <Text style={styles.value}>{name || "Unknown"}</Text>
             </View>
 
             <View style={styles.resultSection}>
                 <Text style={styles.label}>Scientific Name:</Text>
-                <Text style={styles.valueItalic}>{scientificName}</Text>
+                <Text style={styles.valueItalic}>
+                    {scientificName || "Not available"}
+                </Text>
             </View>
 
             <View style={styles.resultSection}>
@@ -94,65 +95,59 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     resultTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "bold",
-        marginBottom: 10,
         color: "rgb(22, 163, 74)",
+        marginBottom: 15,
+        textAlign: "center",
     },
     resultSection: {
-        marginBottom: 10,
+        marginBottom: 12,
     },
     label: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: "bold",
-        color: "#374151",
-        marginBottom: 2,
+        color: "#333",
+        marginBottom: 3,
     },
     value: {
         fontSize: 16,
-        color: "#111827",
+        color: "#444",
     },
     valueItalic: {
         fontSize: 16,
-        color: "#111827",
+        color: "#444",
         fontStyle: "italic",
     },
+    description: {
+        fontSize: 15,
+        color: "#444",
+        lineHeight: 20,
+    },
     confidenceContainer: {
+        flexDirection: "row",
+        alignItems: "center",
         height: 20,
-        backgroundColor: "#f3f4f6",
-        borderRadius: 10,
-        overflow: "hidden",
-        position: "relative",
         marginTop: 5,
     },
     confidenceBar: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        borderRadius: 10,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 8,
     },
     highConfidence: {
-        backgroundColor: "rgb(22, 163, 74)",
+        backgroundColor: "#22c55e", // Green
     },
     mediumConfidence: {
-        backgroundColor: "#f59e0b",
+        backgroundColor: "#f59e0b", // Yellow/Orange
     },
     lowConfidence: {
-        backgroundColor: "#ef4444",
+        backgroundColor: "#ef4444", // Red
     },
     confidenceText: {
-        position: "absolute",
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 12,
-        left: 8,
-        top: 2,
-    },
-    description: {
         fontSize: 14,
-        color: "#374151",
-        lineHeight: 20,
+        fontWeight: "bold",
+        color: "#333",
     },
 });
 

@@ -3,6 +3,10 @@ import React from "react";
 import { TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../../contexts/AuthContext";
+import { LogBox } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const LogoutButton = () => {
     const router = useRouter();
@@ -20,8 +24,16 @@ const LogoutButton = () => {
                 {
                     text: "Logout",
                     onPress: async () => {
-                        await signOut();
-                        router.replace("/");
+                        try {
+                            await signOut();
+                            router.replace("/");
+                        } catch (error) {
+                            console.error("Logout failed:", error);
+                            Alert.alert(
+                                "Error",
+                                "Failed to logout. Please try again."
+                            );
+                        }
                     },
                 },
             ],

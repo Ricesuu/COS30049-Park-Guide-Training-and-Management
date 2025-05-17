@@ -17,7 +17,6 @@ const ModuleCard = ({ module, onPress }) => {
             style={styles.moduleCard}
             onPress={() => onPress(module)}
         >
-            {" "}
             <Image
                 source={
                     module.imageUrl || module.image_url
@@ -26,15 +25,14 @@ const ModuleCard = ({ module, onPress }) => {
                 }
                 style={styles.moduleImage}
                 resizeMode="cover"
-            />{" "}
+            />
             <View style={styles.moduleInfo}>
-                {" "}
                 <Text style={styles.moduleTitle}>
                     {module.name || module.title || "Unnamed Module"}
                 </Text>
                 <Text style={styles.moduleDescription} numberOfLines={2}>
                     {module.description || "No description available"}
-                </Text>{" "}
+                </Text>
                 <View style={styles.moduleProgressContainer}>
                     <Progress.Bar
                         progress={(module.progress || 0) / 100}

@@ -6,19 +6,14 @@ import Header from "../PGDashboardHome/Header";
 const Dashboard = ({ children, noScroll }) => {
     const Content = () => (
         <View style={styles.container}>
-            {/* Header */}
             <Header />
-
-            {/* Dashboard Content Section */}
             <View style={styles.dashboard}>{children}</View>
         </View>
     );
 
-    if (noScroll) {
-        return <Content />;
-    }
-
-    return (
+    return noScroll ? (
+        <Content />
+    ) : (
         <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}

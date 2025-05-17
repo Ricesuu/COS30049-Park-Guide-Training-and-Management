@@ -35,7 +35,7 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                         >
                             {role === "park_guide"
                                 ? "PARK GUIDE"
-                                : role.toUpperCase()}
+                                : role?.toUpperCase() || "UNKNOWN"}
                         </Text>
                         <Text
                             style={[
@@ -47,15 +47,13 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                                     : styles.rejectedBadge,
                             ]}
                         >
-                            {status.toUpperCase()}
+                            {status?.toUpperCase() || "UNKNOWN"}
                         </Text>
                     </View>
                 </View>
             </View>
-
             <View style={styles.detailsCard}>
                 <Text style={styles.sectionTitle}>Account Details</Text>
-
                 <View style={styles.detailRow}>
                     <MaterialIcons
                         name="email"
@@ -63,9 +61,10 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                         color="rgb(22, 163, 74)"
                     />
                     <Text style={styles.detailLabel}>Email:</Text>
-                    <Text style={styles.detailValue}>{email}</Text>
+                    <Text style={styles.detailValue}>
+                        {email || "Not provided"}
+                    </Text>
                 </View>
-
                 <View style={styles.detailRow}>
                     <MaterialIcons
                         name="person"
@@ -76,10 +75,11 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                     <Text style={styles.detailValue}>
                         {role === "park_guide"
                             ? "Park Guide"
-                            : role.charAt(0).toUpperCase() + role.slice(1)}
+                            : role
+                            ? role.charAt(0).toUpperCase() + role.slice(1)
+                            : "Unknown"}
                     </Text>
                 </View>
-
                 <View style={styles.detailRow}>
                     <MaterialIcons
                         name="date-range"
@@ -87,9 +87,10 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                         color="rgb(22, 163, 74)"
                     />
                     <Text style={styles.detailLabel}>Member Since:</Text>
-                    <Text style={styles.detailValue}>{createdDate}</Text>
+                    <Text style={styles.detailValue}>
+                        {createdDate || "Unknown"}
+                    </Text>
                 </View>
-
                 {parkGuideInfo && (
                     <>
                         <View style={styles.detailRow}>
@@ -114,9 +115,13 @@ const UserInfoCard = ({ userProfile, parkGuideInfo }) => {
                                 ]}
                             >
                                 {parkGuideInfo.certification_status
-                                    .charAt(0)
-                                    .toUpperCase() +
-                                    parkGuideInfo.certification_status.slice(1)}
+                                    ? parkGuideInfo.certification_status
+                                          .charAt(0)
+                                          .toUpperCase() +
+                                      parkGuideInfo.certification_status.slice(
+                                          1
+                                      )
+                                    : "Unknown"}
                             </Text>
                         </View>
 

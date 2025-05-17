@@ -10,9 +10,7 @@ import {
 } from "react-native";
 
 const PlantDetailModal = ({ plant, visible, onClose }) => {
-    if (!plant) return null;
-
-    return (
+    return plant ? (
         <Modal
             animationType="slide"
             transparent={true}
@@ -50,7 +48,7 @@ const PlantDetailModal = ({ plant, visible, onClose }) => {
                 </View>
             </View>
         </Modal>
-    );
+    ) : null;
 };
 
 const styles = StyleSheet.create({

@@ -91,7 +91,6 @@ const ModuleMarketplace = () => {
     const handleBackToModules = () => {
         router.push("/pg-dashboard/module");
     };
-
     return (
         <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}

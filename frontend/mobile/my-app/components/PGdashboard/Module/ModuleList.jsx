@@ -20,30 +20,19 @@ const ModuleList = ({
     refreshing,
     onBrowseModules,
 }) => {
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#16a34a" />
-                <Text style={styles.loadingText}>Loading modules...</Text>
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity
-                    style={styles.retryButton}
-                    onPress={onRefresh}
-                >
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    return (
+    return isLoading ? (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#16a34a" />
+            <Text style={styles.loadingText}>Loading modules...</Text>
+        </View>
+    ) : error ? (
+        <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+        </View>
+    ) : (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Modules</Text>

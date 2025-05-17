@@ -35,8 +35,7 @@ const ProfileDashboard = ({
                             <AntDesign name="logout" size={20} color="white" />
                             <Text style={styles.logoutText}>Logout</Text>
                         </TouchableOpacity>
-                    </View>
-
+                    </View>{" "}
                     {isLoading ? (
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator
@@ -60,7 +59,7 @@ const ProfileDashboard = ({
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        <>{children}</>
+                        children
                     )}
                 </View>
             </ScrollView>
