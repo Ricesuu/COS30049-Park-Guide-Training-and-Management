@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     ScrollView,
@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
     fetchAvailableModules,
     purchaseModule,
@@ -26,10 +26,27 @@ const ModuleMarketplace = () => {
     useEffect(() => {
         console.log("Module marketplace mounted, loading available modules...");
         loadAvailableModules();
-    }, []);
+    }, []); // Reset purchasing state when screen comes into focus or loses focus
+    useFocusEffect(
+        useCallback(() => {
+            console.log(
+                "Module marketplace screen focused, resetting purchasing state"
+            );
+            setPurchasing(null);
+
+            // Also reset when screen loses focus
+            return () => {
+                console.log(
+                    "Module marketplace screen unfocused, cleaning up state"
+                );
+                setPurchasing(null);
+            };
+        }, [])
+    );
 
     const loadAvailableModules = async () => {
         setIsLoading(true);
+        setPurchasing(null); // Also reset purchasing state when reloading data
         try {
             console.log("Fetching available modules...");
             const modules = await fetchAvailableModules();
@@ -48,18 +65,23 @@ const ModuleMarketplace = () => {
             setIsLoading(false);
         }
     };
-
     const handlePurchase = async (moduleId, moduleName, price) => {
         setPurchasing(moduleId);
-        router.push({
-            pathname: "/pg-dashboard/payment",
-            params: {
-                moduleId,
-                moduleName,
-                price,
-                returnTo: "/pg-dashboard/marketplace/",
-            },
-        });
+        // Use try/catch to ensure we reset purchasing state if navigation fails
+        try {
+            router.push({
+                pathname: "/pg-dashboard/payment",
+                params: {
+                    moduleId,
+                    moduleName,
+                    price,
+                    returnTo: "/pg-dashboard/marketplace/",
+                },
+            });
+        } catch (error) {
+            console.error("Error navigating to payment page:", error);
+            setPurchasing(null);
+        }
     };
 
     const handleBackToModules = () => {
