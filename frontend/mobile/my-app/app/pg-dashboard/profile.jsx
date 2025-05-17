@@ -72,7 +72,6 @@ const Profile = () => {
             throw error;
         }
     };
-
     const fetchParkGuideInfo = async () => {
         try {
             const token = await AsyncStorage.getItem("authToken");
@@ -90,11 +89,24 @@ const Profile = () => {
                 }
             );
 
-            setParkGuideInfo(response.data);
+            setParkGuideInfo(response.data); // If park guide has an assigned park, fetch it
+            if (response.data) {
+                console.log("Park guide info received:", response.data);
 
-            // If park guide has an assigned park, fetch it
-            if (response.data && response.data.assigned_park) {
-                fetchAssignedPark(response.data.assigned_park, token);
+                if (
+                    response.data.assigned_park &&
+                    response.data.assigned_park !== "Unassigned" &&
+                    response.data.assigned_park !== "unassigned" &&
+                    response.data.assigned_park !== "null"
+                ) {
+                    console.log(
+                        `Assigned park detected: ${response.data.assigned_park}`
+                    );
+                    fetchAssignedPark(response.data.assigned_park, token);
+                } else {
+                    console.log("No assigned park found for this guide");
+                    setAssignedPark(null);
+                }
             }
 
             return response.data;
@@ -104,10 +116,27 @@ const Profile = () => {
             return null;
         }
     };
-
     const fetchAssignedPark = async (parkId, token) => {
         try {
-            if (!parkId || !token) return;
+            if (!parkId || !token) {
+                console.log("Missing parkId or token for fetching park info");
+                setAssignedPark(null);
+                return;
+            }
+
+            // Add better logging to debug the park ID
+            console.log(`Fetching park with ID: ${parkId}`);
+
+            // Check if parkId is valid
+            if (
+                parkId === "Unassigned" ||
+                parkId === "unassigned" ||
+                parkId === "null"
+            ) {
+                console.log("Park guide is not assigned to a specific park");
+                setAssignedPark(null);
+                return;
+            }
 
             const response = await axios.get(`${API_URL}/api/parks/${parkId}`, {
                 headers: {
@@ -118,6 +147,8 @@ const Profile = () => {
             setAssignedPark(response.data);
         } catch (error) {
             console.error("Error fetching assigned park:", error);
+            // Just set to null to show "No park assigned" in our component
+            setAssignedPark(null);
         }
     };
 
