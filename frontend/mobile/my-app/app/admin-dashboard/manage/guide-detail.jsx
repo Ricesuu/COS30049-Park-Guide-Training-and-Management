@@ -6,11 +6,18 @@ import {
     ScrollView,
     ActivityIndicator,
     TouchableOpacity,
+    LogBox,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchData } from "../../../src/api/api";
+import axios from "axios";
 import { API_URL } from "../../../src/constants/constants";
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
+import AssignedParkCard from "../../../components/ADMINdashboard/AdminDashboardManage/AssignedParkCard";
+import CertificationsCard from "../../../components/ADMINdashboard/AdminDashboardManage/CertificationsCard";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const GuideDetail = () => {
     const { id } = useLocalSearchParams();
@@ -21,6 +28,17 @@ const GuideDetail = () => {
     const [error, setError] = useState(null);
     const [parkChanged, setParkChanged] = useState(false);
     const [selectedPark, setSelectedPark] = useState("");
+    const [certifications, setCertifications] = useState([]);
+
+    // Helper function to safely format dates
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "N/A";
+        try {
+            return new Date(dateStr).toLocaleDateString();
+        } catch (e) {
+            return "Invalid date";
+        }
+    };
 
     // Fetch guide details and training modules
     useEffect(() => {
@@ -87,6 +105,34 @@ const GuideDetail = () => {
                             });
                         }
                     });
+                } // Fetch certifications for this guide
+                try {
+                    // Use direct axios call with proper error handling to handle 404 responses
+                    const certificationsUrl = `${API_URL}/api/certifications/user/${currentGuide.guide_id}`;
+                    try {
+                        const response = await axios.get(certificationsUrl);
+                        // API will now return an empty array instead of 404 when no certifications exist
+                        setCertifications(response.data || []);
+                    } catch (certError) {
+                        if (
+                            certError.response &&
+                            certError.response.status === 404
+                        ) {
+                            console.log(
+                                "No certifications found for this guide - returning empty array"
+                            );
+                            setCertifications([]);
+                        } else {
+                            console.warn(
+                                "Warning: Error fetching certifications:",
+                                certError.message
+                            );
+                            setCertifications([]);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error in certification fetch block:", error);
+                    setCertifications([]);
                 }
 
                 setTrainingModules(enrolledModules);
@@ -241,17 +287,14 @@ const GuideDetail = () => {
                 {/* Basic Information Card */}
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-xl font-bold mb-4">{guide.name}</Text>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Email:</Text>
                         <Text className="text-gray-700">{guide.email}</Text>
                     </View>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Role:</Text>
                         <Text className="text-gray-700">{guide.role}</Text>
                     </View>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Status:</Text>
                         <Text
@@ -266,7 +309,6 @@ const GuideDetail = () => {
                             {guide.status}
                         </Text>
                     </View>
-
                     {/* Only show license expiry for guides who are not in training */}
                     {guide.status !== "Training" &&
                         guide.license_expiry_date && (
@@ -275,57 +317,24 @@ const GuideDetail = () => {
                                     License Expiry:
                                 </Text>
                                 <Text className="text-gray-700">
-                                    {new Date(
-                                        guide.license_expiry_date
-                                    ).toLocaleDateString()}
-                                </Text>
+                                    {formatDate(guide.license_expiry_date)}
+                                </Text>{" "}
                             </View>
                         )}
-
-                    {/* Only show park assignment for guides who are not in training */}
-                    {guide.status !== "Training" && (
-                        <View className="flex-row mb-2">
-                            <Text className="font-semibold w-1/3">
-                                Park Assignment:
-                            </Text>
-                            <View className="flex-1">
-                                <TouchableOpacity
-                                    className="border border-gray-300 rounded px-3 py-2"
-                                    onPress={() => {
-                                        // You could implement a park selection modal/dropdown here
-                                        // For now, we'll just use a simple prompt
-                                        const newPark = prompt(
-                                            "Enter park name:",
-                                            selectedPark
-                                        );
-                                        if (
-                                            newPark !== null &&
-                                            newPark !== selectedPark
-                                        ) {
-                                            setSelectedPark(newPark);
-                                            setParkChanged(true);
-                                        }
-                                    }}
-                                >
-                                    <Text>
-                                        {selectedPark || "Not assigned"}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                {parkChanged && (
-                                    <TouchableOpacity
-                                        className="mt-2 bg-green-600 rounded px-3 py-2"
-                                        onPress={handleSave}
-                                    >
-                                        <Text className="text-white text-center">
-                                            Save Changes
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        </View>
-                    )}
                 </View>
+
+                {/* Guide Assigned Park Section */}
+                <AssignedParkCard
+                    guide={guide}
+                    selectedPark={selectedPark}
+                    setSelectedPark={setSelectedPark}
+                    parkChanged={parkChanged}
+                    setParkChanged={setParkChanged}
+                    handleSave={handleSave}
+                />
+
+                {/* Certifications Section */}
+                <CertificationsCard certifications={certifications} />
 
                 {/* Training Modules Section */}
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
@@ -351,12 +360,13 @@ const GuideDetail = () => {
                                 </Text>
                                 <Text className="text-gray-600 text-sm mb-1">
                                     Duration: {module.duration || "N/A"} minutes
-                                </Text>
+                                </Text>{" "}
                                 <Text className="text-sm mb-1">
-                                    {module.is_required
-                                        ? "Required"
-                                        : "Optional"}{" "}
-                                    module
+                                    {`${
+                                        module.is_required
+                                            ? "Required"
+                                            : "Optional"
+                                    } module`}
                                 </Text>
                                 <View className="flex-row justify-between items-center mt-2">
                                     <Text
@@ -369,9 +379,7 @@ const GuideDetail = () => {
                                     {module.completion_date && (
                                         <Text className="text-gray-600 text-sm">
                                             Completed:{" "}
-                                            {new Date(
-                                                module.completion_date
-                                            ).toLocaleDateString()}
+                                            {formatDate(module.completion_date)}
                                         </Text>
                                     )}
                                 </View>

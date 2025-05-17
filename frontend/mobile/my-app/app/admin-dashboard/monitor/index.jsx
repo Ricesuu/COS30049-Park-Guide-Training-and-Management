@@ -1,5 +1,9 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { LogBox } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import IoTMonitoringPage from "../../../components/ADMINdashboard/AdminDashboardMonitoring/IoTMonitoringPage";
 import ThresholdSettingsPage from "../../../components/ADMINdashboard/AdminDashboardMonitoring/ThresholdSettingsPage";
 import TrendsPage from "./trends";
