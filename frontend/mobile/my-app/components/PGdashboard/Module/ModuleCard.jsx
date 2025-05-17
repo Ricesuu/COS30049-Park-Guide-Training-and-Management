@@ -16,25 +16,28 @@ const ModuleCard = ({ module, onPress }) => {
         <TouchableOpacity
             style={styles.moduleCard}
             onPress={() => onPress(module)}
-        >            <Image
+        >
+            {" "}
+            <Image
                 source={
-                    module.image_url
-                        ? { uri: module.image_url }
+                    module.imageUrl || module.image_url
+                        ? { uri: module.imageUrl || module.image_url }
                         : require("../../../assets/images/module-placeholder.png")
                 }
                 style={styles.moduleImage}
                 resizeMode="cover"
-            />
-
+            />{" "}
             <View style={styles.moduleInfo}>
-                <Text style={styles.moduleTitle}>{module.title}</Text>
+                {" "}
+                <Text style={styles.moduleTitle}>
+                    {module.name || module.title || "Unnamed Module"}
+                </Text>
                 <Text style={styles.moduleDescription} numberOfLines={2}>
                     {module.description || "No description available"}
-                </Text>
-
+                </Text>{" "}
                 <View style={styles.moduleProgressContainer}>
                     <Progress.Bar
-                        progress={module.progress / 100}
+                        progress={(module.progress || 0) / 100}
                         width={null}
                         color="#16a34a"
                         unfilledColor="#E0E0E0"
@@ -42,10 +45,11 @@ const ModuleCard = ({ module, onPress }) => {
                         height={8}
                     />
                     <Text style={styles.moduleProgressText}>
-                        {module.progress}%
+                        {module.progress !== undefined
+                            ? `${module.progress}%`
+                            : "0%"}
                     </Text>
                 </View>
-
                 {module.is_completed && (
                     <View style={styles.completedBadge}>
                         <AntDesign
@@ -63,7 +67,7 @@ const ModuleCard = ({ module, onPress }) => {
 
 const styles = StyleSheet.create({
     moduleCard: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#F5F5F4",
         borderRadius: 10,
         marginBottom: 15,
         shadowColor: "#000",

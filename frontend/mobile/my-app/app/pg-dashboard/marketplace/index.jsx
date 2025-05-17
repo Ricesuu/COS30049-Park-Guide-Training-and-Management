@@ -62,7 +62,40 @@ const ModuleMarketplace = () => {
         } finally {
             setIsLoading(false);
         }
+    }; // Handle free module enrollments directly without payment
+    const handleFreeEnrollment = async (moduleId, moduleName) => {
+        setPurchasing(moduleId);
+        try {
+            // Import the direct enrollment function from moduleService
+            const {
+                directEnrollModule,
+            } = require("../../../services/moduleService");
+
+            // Call direct enrollment for free modules
+            await directEnrollModule(moduleId, moduleName);
+
+            // Show success message
+            Alert.alert(
+                "Enrollment Successful",
+                `You have successfully enrolled in ${moduleName}!`,
+                [
+                    {
+                        text: "View My Modules",
+                        onPress: () => router.replace("/pg-dashboard/module"),
+                    },
+                ]
+            );
+        } catch (error) {
+            console.error("Error enrolling in free module:", error);
+            Alert.alert(
+                "Enrollment Failed",
+                "Unable to enroll in this module. Please try again later."
+            );
+        } finally {
+            setPurchasing(null);
+        }
     };
+
     const handlePurchase = async (moduleId, moduleName, price) => {
         setPurchasing(moduleId);
         // Use try/catch to ensure we reset purchasing state if navigation fails
@@ -151,15 +184,20 @@ const ModuleMarketplace = () => {
                                         numberOfLines={2}
                                     >
                                         {module.description}
-                                    </Text>
+                                    </Text>{" "}
                                     <TouchableOpacity
                                         style={styles.purchaseButton}
                                         onPress={() =>
-                                            handlePurchase(
-                                                module.id,
-                                                module.name,
-                                                module.price
-                                            )
+                                            module.price === 0
+                                                ? handleFreeEnrollment(
+                                                      module.id,
+                                                      module.name
+                                                  )
+                                                : handlePurchase(
+                                                      module.id,
+                                                      module.name,
+                                                      module.price
+                                                  )
                                         }
                                         disabled={purchasing === module.id}
                                     >
@@ -174,7 +212,9 @@ const ModuleMarketplace = () => {
                                                     styles.purchaseButtonText
                                                 }
                                             >
-                                                Purchase
+                                                {module.price === 0
+                                                    ? "Sign Up for Free"
+                                                    : "Sign Up for Module"}
                                             </Text>
                                         )}
                                     </TouchableOpacity>
