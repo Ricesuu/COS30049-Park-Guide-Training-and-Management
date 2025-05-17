@@ -1,17 +1,11 @@
 import React, { useState } from "react";
-import {
-    View,
-    ScrollView,
-    TouchableOpacity,
-    Text,
-    StyleSheet,
-    Alert,
-} from "react-native";
+import { StyleSheet } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import Header from "../../components/PGdashboard/PGDashboardHome/Header";
+import Dashboard from "../../components/PGdashboard/Common/Dashboard";
 import ProfileView from "../../components/PGdashboard/PGDashboardHome/ProfileView";
 import CertContainer from "../../components/PGdashboard/PGDashboardHome/certcontainer";
 import AnnounContainer from "../../components/PGdashboard/PGDashboardHome/announcontainer";
+import LogoutButton from "../../components/PGdashboard/Common/LogoutButton";
 
 const HomePage = () => {
     const { authUser } = useAuth();
@@ -54,41 +48,20 @@ const HomePage = () => {
     ];
 
     return (
-        <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
-            <ScrollView
-                contentContainerStyle={{ flexGrow: 1 }}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Header */}
-                <Header />
-
-                {/* Dashboard Section */}
-                <View
-                    style={{
-                        backgroundColor: "white",
-                        borderTopLeftRadius: 30,
-                        borderTopRightRadius: 30,
-                        marginTop: -5,
-                        paddingBottom: 120,
-                        zIndex: 1,
-                        elevation: 10,
-                        padding: 20,
-                        flex: 1,
-                    }}
-                >
-                    {/* Profile View */}
-                    <ProfileView
-                        fullName="John Doe"
-                        guideId="PG12345"
-                        profilePhoto={require("../../assets/images/Ruiziq.jpg")}
-                    />
-                    {/* Certifications Container */}
-                    <CertContainer certifications={certifications} />{" "}
-                    {/* Announcements Container */}
-                    <AnnounContainer announcements={announcements} />{" "}
-                </View>
-            </ScrollView>
-        </View>
+        <Dashboard>
+            {/* Profile View */}
+            <ProfileView
+                fullName="John Doe"
+                guideId="PG12345"
+                profilePhoto={require("../../assets/images/Ruiziq.jpg")}
+            />
+            {/* Certifications Container */}
+            <CertContainer certifications={certifications} />
+            {/* Announcements Container */}
+            <AnnounContainer announcements={announcements} />
+            {/* Logout Button */}
+            <LogoutButton />
+        </Dashboard>
     );
 };
 

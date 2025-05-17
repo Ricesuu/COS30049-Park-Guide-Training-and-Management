@@ -25,14 +25,21 @@ const ModuleLayout = () => {
                             title: "Your Modules",
                             animation: "slide_from_right",
                         }}
-                    />
-
+                    />{" "}
                     {/* Quiz page for modules */}
                     <Stack.Screen
                         name="quiz"
                         options={{
                             title: "Module Quiz",
                             animation: "slide_from_bottom",
+                        }}
+                    />
+                    {/* Module marketplace page */}
+                    <Stack.Screen
+                        name="marketplace"
+                        options={{
+                            title: "Module Marketplace",
+                            animation: "slide_from_right",
                         }}
                     />
                 </Stack>

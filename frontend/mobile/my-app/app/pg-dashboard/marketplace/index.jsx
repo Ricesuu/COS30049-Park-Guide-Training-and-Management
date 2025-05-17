@@ -56,7 +56,7 @@ const ModuleMarketplace = () => {
                 moduleId,
                 moduleName,
                 price,
-                returnTo: "/pg-dashboard/marketplace",
+                returnTo: "/pg-dashboard/marketplace/",
             },
         });
     };
