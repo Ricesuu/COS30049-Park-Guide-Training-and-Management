@@ -9,12 +9,16 @@ import {
     Modal,
     ActivityIndicator,
     Alert,
+    LogBox,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth } from "../../lib/Firebase";
 import axios from "axios";
 import { API_URL } from "../../src/constants/constants";
 import Header from "../../components/PGdashboard/PGDashboardHome/Header";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const Certificate = () => {
     const router = useRouter();
@@ -36,37 +40,47 @@ const Certificate = () => {
         if (certifications) {
             fetchAvailableCertifications();
         }
-    }, [certifications]);    const fetchUserCertifications = async () => {
+    }, [certifications]);
+    const fetchUserCertifications = async () => {
         try {
             setLoading(true);
             const idToken = await auth.currentUser.getIdToken();
-            
-            const response = await axios.get(`${API_URL}/api/certifications/user`, {
-                headers: {
-                    Authorization: `Bearer ${idToken}`,
-                },
-            });
-            
+
+            const response = await axios.get(
+                `${API_URL}/api/certifications/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                }
+            );
+
             console.log("User certifications:", response.data);
-            
+
             if (!response.data || response.data.length === 0) {
                 console.log("No certifications found for user");
                 setCertifications([]);
                 return;
             }
-            
+
             // Map the API data to our component's expected format
-            const mappedCertifications = response.data.map(cert => ({
+            const mappedCertifications = response.data.map((cert) => ({
                 id: cert.cert_id,
                 name: cert.module_name,
                 moduleId: cert.module_id,
-                expiryDate: new Date(cert.expiry_date).toISOString().split('T')[0],
-                issuedDate: new Date(cert.issued_date).toISOString().split('T')[0],
+                expiryDate: new Date(cert.expiry_date)
+                    .toISOString()
+                    .split("T")[0],
+                issuedDate: new Date(cert.issued_date)
+                    .toISOString()
+                    .split("T")[0],
                 image: getImageForCertificate(cert.module_id),
                 obtained: true,
-                description: cert.description || "This certification validates your knowledge and skills in this area.",
+                description:
+                    cert.description ||
+                    "This certification validates your knowledge and skills in this area.",
             }));
-            
+
             setCertifications(mappedCertifications);
         } catch (error) {
             console.error("Error fetching certifications:", error);
@@ -75,88 +89,117 @@ const Certificate = () => {
         } finally {
             setLoading(false);
         }
-    };    const fetchAvailableCertifications = async () => {
+    };
+    const fetchAvailableCertifications = async () => {
         try {
             const idToken = await auth.currentUser.getIdToken();
-            
+
             // Fetch user's modules (completed and in progress)
-            const completedResponse = await axios.get(`${API_URL}/api/training-modules/user`, {
-                headers: {
-                    Authorization: `Bearer ${idToken}`,
-                },
-            });
-            
+            const completedResponse = await axios.get(
+                `${API_URL}/api/training-modules/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                }
+            );
+
             // Fetch all available modules
-            const availableResponse = await axios.get(`${API_URL}/api/training-modules/available`, {
-                headers: {
-                    Authorization: `Bearer ${idToken}`,
-                },
-            });
-            
+            const availableResponse = await axios.get(
+                `${API_URL}/api/training-modules/available`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                }
+            );
+
             console.log("User modules:", completedResponse.data);
             console.log("Available modules:", availableResponse.data);
-            
+
             // Ensure we have valid data before proceeding
             if (!completedResponse.data || !availableResponse.data) {
                 console.log("No module data available");
                 setAvailableCertifications([]);
                 return;
             }
-            
+
             // Find modules that are completed (100%) but don't have certificates yet
-            const completedModules = completedResponse.data.filter(module => 
-                module.completion_percentage === 100 && 
-                module.paymentStatus === 'approved'
+            const completedModules = completedResponse.data.filter(
+                (module) =>
+                    module.completion_percentage === 100 &&
+                    module.paymentStatus === "approved"
             );
-            
-            const completedModuleIds = completedModules.map(module => module.id);
-            const certificationModuleIds = certifications ? certifications.map(cert => cert.moduleId) : [];
-            
+
+            const completedModuleIds = completedModules.map(
+                (module) => module.id
+            );
+            const certificationModuleIds = certifications
+                ? certifications.map((cert) => cert.moduleId)
+                : [];
+
             // Filter out modules that already have certificates
             const availableForCertification = completedModules.filter(
-                module => !certificationModuleIds.includes(module.id)
+                (module) => !certificationModuleIds.includes(module.id)
             );
-            
+
             // Map to the format our component expects
-            const mappedAvailableCerts = availableForCertification.map(module => ({
-                id: module.id,
-                name: module.name,
-                moduleId: module.id,
-                expiryDate: null,
-                image: getImageForCertificate(module.id),
-                obtained: false,
-                description: module.description || "You've completed this module. Take the quiz to earn your certification!",
-            }));
-            
+            const mappedAvailableCerts = availableForCertification.map(
+                (module) => ({
+                    id: module.id,
+                    name: module.name,
+                    moduleId: module.id,
+                    expiryDate: null,
+                    image: getImageForCertificate(module.id),
+                    obtained: false,
+                    description:
+                        module.description ||
+                        "You've completed this module. Take the quiz to earn your certification!",
+                })
+            );
+
             // Also add modules that are available for purchase but not yet completed
             // Filter to include modules that are 'purchased' or 'pending'
             const purchasableModules = availableResponse.data.filter(
-                module => {
+                (module) => {
                     // Check for a valid purchase status
-                    const hasPurchaseStatus = module && typeof module.purchase_status === 'string';
-                    
+                    const hasPurchaseStatus =
+                        module && typeof module.purchase_status === "string";
+
                     // Only include modules with valid purchase status that are not completed and not certified
-                    return hasPurchaseStatus && 
-                           (module.purchase_status === 'purchased' || module.purchase_status === 'pending') && 
-                           !completedModuleIds.includes(module.id) && 
-                           !certificationModuleIds.includes(module.id);
+                    return (
+                        hasPurchaseStatus &&
+                        (module.purchase_status === "purchased" ||
+                            module.purchase_status === "pending") &&
+                        !completedModuleIds.includes(module.id) &&
+                        !certificationModuleIds.includes(module.id)
+                    );
                 }
             );
-            
-            const mappedPurchasableModules = purchasableModules.map(module => ({
-                id: module.id,
-                name: module.name || "Training Module",
-                moduleId: module.id,
-                expiryDate: null,
-                image: getImageForCertificate(module.id),
-                obtained: false,
-                description: "Complete this module and pass the quiz to earn your certification.",
-                incomplete: true,
-                pending: module.purchase_status === 'pending'
-            }));
-            
-            setAvailableCertifications([...mappedAvailableCerts, ...mappedPurchasableModules]);
-            console.log("Available certifications set:", [...mappedAvailableCerts, ...mappedPurchasableModules]);
+
+            const mappedPurchasableModules = purchasableModules.map(
+                (module) => ({
+                    id: module.id,
+                    name: module.name || "Training Module",
+                    moduleId: module.id,
+                    expiryDate: null,
+                    image: getImageForCertificate(module.id),
+                    obtained: false,
+                    description:
+                        "Complete this module and pass the quiz to earn your certification.",
+                    incomplete: true,
+                    pending: module.purchase_status === "pending",
+                })
+            );
+
+            setAvailableCertifications([
+                ...mappedAvailableCerts,
+                ...mappedPurchasableModules,
+            ]);
+            console.log("Available certifications set:", [
+                ...mappedAvailableCerts,
+                ...mappedPurchasableModules,
+            ]);
         } catch (error) {
             console.error("Error fetching available certifications:", error);
             // Don't show error for empty available certifications, just set to empty array
@@ -170,11 +213,11 @@ const Certificate = () => {
         const moduleImages = {
             1: require("../../assets/images/firstaid.jpg"),
             2: require("../../assets/images/Semenggoh.jpeg"),
-            3: require("../../assets/images/wildlife_safety.jpg"), 
-            4: require("../../assets/images/advanced_guide.png")
+            3: require("../../assets/images/wildlife_safety.jpg"),
+            4: require("../../assets/images/advanced_guide.png"),
         };
-        
-        return moduleImages[moduleId] || moduleImages[moduleId % 4 + 1]; // Fallback to one of the 4 images
+
+        return moduleImages[moduleId] || moduleImages[(moduleId % 4) + 1]; // Fallback to one of the 4 images
     };
 
     const openModal = (cert) => {
@@ -186,22 +229,23 @@ const Certificate = () => {
         setSelectedCert(null);
         setModalVisible(false);
     };
-    
+
     // Function to redirect to quiz page
     const handleTakeQuiz = (moduleId, moduleName) => {
         router.push({
-            pathname: '/pg-dashboard/quiz',
-            params: { moduleId, moduleName }
+            pathname: "/pg-dashboard/quiz",
+            params: { moduleId, moduleName },
         });
     };
 
     // Function to redirect to module page
     const handleCompleteModule = (moduleId) => {
         router.push({
-            pathname: '/pg-dashboard/module',
-            params: { selectedModuleId: moduleId }
+            pathname: "/pg-dashboard/module",
+            params: { selectedModuleId: moduleId },
         });
-    };    return (
+    };
+    return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
@@ -212,26 +256,33 @@ const Certificate = () => {
                     <View style={styles.titleContainer}>
                         <Text style={styles.title}>Certifications</Text>
                         {!loading && (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.refreshButton}
                                 onPress={() => {
                                     setLoading(true);
                                     fetchUserCertifications();
                                 }}
                             >
-                                <Text style={styles.refreshButtonText}>Refresh</Text>
+                                <Text style={styles.refreshButtonText}>
+                                    Refresh
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </View>
-                      {loading ? (
+                    {loading ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color="rgb(22, 163, 74)" />
-                            <Text style={styles.loadingText}>Loading certifications...</Text>
+                            <ActivityIndicator
+                                size="large"
+                                color="rgb(22, 163, 74)"
+                            />
+                            <Text style={styles.loadingText}>
+                                Loading certifications...
+                            </Text>
                         </View>
                     ) : error ? (
                         <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{error}</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.retryButton}
                                 onPress={() => {
                                     setLoading(true);
@@ -239,7 +290,9 @@ const Certificate = () => {
                                     fetchUserCertifications();
                                 }}
                             >
-                                <Text style={styles.retryButtonText}>Retry</Text>
+                                <Text style={styles.retryButtonText}>
+                                    Retry
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
@@ -247,23 +300,36 @@ const Certificate = () => {
                             {/* User's active certifications */}
                             {certifications.length > 0 ? (
                                 <>
-                                    <Text style={styles.sectionTitle}>My Certifications</Text>
+                                    <Text style={styles.sectionTitle}>
+                                        My Certifications
+                                    </Text>
                                     {certifications.map((cert, index) => (
-                                        <View key={index} style={styles.certItem}>
+                                        <View
+                                            key={index}
+                                            style={styles.certItem}
+                                        >
                                             <Image
                                                 source={cert.image}
                                                 style={styles.certImage}
                                             />
                                             <View style={styles.certDetails}>
-                                                <Text style={styles.certName}>{cert.name}</Text>
+                                                <Text style={styles.certName}>
+                                                    {cert.name}
+                                                </Text>
                                                 <Text style={styles.certExpiry}>
                                                     Expiry: {cert.expiryDate}
                                                 </Text>
                                                 <TouchableOpacity
                                                     style={styles.infoButton}
-                                                    onPress={() => openModal(cert)}
+                                                    onPress={() =>
+                                                        openModal(cert)
+                                                    }
                                                 >
-                                                    <Text style={styles.infoButtonText}>
+                                                    <Text
+                                                        style={
+                                                            styles.infoButtonText
+                                                        }
+                                                    >
                                                         More Info
                                                     </Text>
                                                 </TouchableOpacity>
@@ -277,62 +343,118 @@ const Certificate = () => {
                                         You don't have any certifications yet.
                                     </Text>
                                     <Text style={styles.noCertsSubtext}>
-                                        Complete modules and pass the quizzes to earn certifications.
+                                        Complete modules and pass the quizzes to
+                                        earn certifications.
                                     </Text>
                                 </View>
                             )}
-                            
+
                             {/* Available certifications */}
                             {availableCertifications.length > 0 && (
                                 <>
-                                    <Text style={[styles.sectionTitle, {marginTop: 20}]}>
+                                    <Text
+                                        style={[
+                                            styles.sectionTitle,
+                                            { marginTop: 20 },
+                                        ]}
+                                    >
                                         Available Certifications
                                     </Text>
-                                    {availableCertifications.map((cert, index) => (
-                                        <View key={`available-${index}`} style={styles.certItem}>
-                                            <Image
-                                                source={cert.image}
-                                                style={[
-                                                    styles.certImage, 
-                                                    cert.incomplete && {opacity: 0.6},
-                                                    cert.pending && {opacity: 0.4}
-                                                ]}
-                                            />
-                                            <View style={styles.certDetails}>
-                                                <Text style={styles.certName}>
-                                                    {cert.name}
-                                                    {cert.pending && ' (Pending)'}
-                                                </Text>
-                                                <Text style={styles.certDescription} numberOfLines={2}>
-                                                    {cert.description}
-                                                </Text>                                {cert.pending ? (
-                                                    <View style={styles.pendingStatus}>
-                                                        <Text style={styles.pendingText}>
-                                                            Awaiting payment approval
-                                                        </Text>
-                                                    </View>
-                                                ) : cert.incomplete ? (
-                                                    <TouchableOpacity
-                                                        style={styles.completeButton}
-                                                        onPress={() => handleCompleteModule(cert.moduleId)}
+                                    {availableCertifications.map(
+                                        (cert, index) => (
+                                            <View
+                                                key={`available-${index}`}
+                                                style={styles.certItem}
+                                            >
+                                                <Image
+                                                    source={cert.image}
+                                                    style={[
+                                                        styles.certImage,
+                                                        cert.incomplete && {
+                                                            opacity: 0.6,
+                                                        },
+                                                        cert.pending && {
+                                                            opacity: 0.4,
+                                                        },
+                                                    ]}
+                                                />
+                                                <View
+                                                    style={styles.certDetails}
+                                                >
+                                                    <Text
+                                                        style={styles.certName}
                                                     >
-                                                        <Text style={styles.completeButtonText}>
-                                                            Complete Module
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ) : (
-                                                    <TouchableOpacity
-                                                        style={styles.quizButton}
-                                                        onPress={() => handleTakeQuiz(cert.moduleId, cert.name)}
+                                                        {cert.name}
+                                                        {cert.pending &&
+                                                            " (Pending)"}
+                                                    </Text>
+                                                    <Text
+                                                        style={
+                                                            styles.certDescription
+                                                        }
+                                                        numberOfLines={2}
                                                     >
-                                                        <Text style={styles.quizButtonText}>
-                                                            Take Quiz
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                )}
+                                                        {cert.description}
+                                                    </Text>{" "}
+                                                    {cert.pending ? (
+                                                        <View
+                                                            style={
+                                                                styles.pendingStatus
+                                                            }
+                                                        >
+                                                            <Text
+                                                                style={
+                                                                    styles.pendingText
+                                                                }
+                                                            >
+                                                                Awaiting payment
+                                                                approval
+                                                            </Text>
+                                                        </View>
+                                                    ) : cert.incomplete ? (
+                                                        <TouchableOpacity
+                                                            style={
+                                                                styles.completeButton
+                                                            }
+                                                            onPress={() =>
+                                                                handleCompleteModule(
+                                                                    cert.moduleId
+                                                                )
+                                                            }
+                                                        >
+                                                            <Text
+                                                                style={
+                                                                    styles.completeButtonText
+                                                                }
+                                                            >
+                                                                Complete Module
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ) : (
+                                                        <TouchableOpacity
+                                                            style={
+                                                                styles.quizButton
+                                                            }
+                                                            onPress={() =>
+                                                                handleTakeQuiz(
+                                                                    cert.moduleId,
+                                                                    cert.name
+                                                                )
+                                                            }
+                                                        >
+                                                            <Text
+                                                                style={
+                                                                    styles.quizButtonText
+                                                                }
+                                                            >
+                                                                Take Quiz
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
                                             </View>
-                                        </View>
-                                    ))}
+                                        )
+                                    )}
                                 </>
                             )}
                         </>
@@ -420,9 +542,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     titleContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 20,
     },
     title: {
@@ -431,15 +553,15 @@ const styles = StyleSheet.create({
         color: "rgb(22, 163, 74)",
     },
     refreshButton: {
-        backgroundColor: 'rgb(22, 163, 74)',
+        backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 5,
         paddingHorizontal: 10,
         borderRadius: 5,
     },
     refreshButtonText: {
-        color: 'white',
+        color: "white",
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: "bold",
     },
     certItem: {
         marginBottom: 20,
@@ -526,63 +648,64 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
         padding: 20,
     },
     loadingText: {
         marginTop: 10,
         fontSize: 16,
-        color: 'rgb(22, 163, 74)',
-    },    errorContainer: {
+        color: "rgb(22, 163, 74)",
+    },
+    errorContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
         padding: 20,
     },
     errorText: {
         fontSize: 16,
-        color: 'red',
-        textAlign: 'center',
+        color: "red",
+        textAlign: "center",
         marginBottom: 15,
     },
     retryButton: {
-        backgroundColor: 'rgb(22, 163, 74)',
+        backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 8,
         paddingHorizontal: 20,
         borderRadius: 5,
     },
     retryButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
+        color: "white",
+        fontWeight: "bold",
     },
     noCertsContainer: {
         padding: 20,
-        alignItems: 'center',
-        backgroundColor: '#f9f9f9',
+        alignItems: "center",
+        backgroundColor: "#f9f9f9",
         borderRadius: 10,
         marginTop: 20,
     },
     noCertsText: {
         fontSize: 18,
-        color: '#666',
+        color: "#666",
         marginBottom: 10,
-        textAlign: 'center',
+        textAlign: "center",
     },
     noCertsSubtext: {
         fontSize: 14,
-        color: '#888',
-        textAlign: 'center',
+        color: "#888",
+        textAlign: "center",
     },
     sectionTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: "bold",
         marginBottom: 15,
-        color: 'rgb(22, 163, 74)',
+        color: "rgb(22, 163, 74)",
     },
     certDescription: {
         fontSize: 14,
-        color: '#666',
+        color: "#666",
         marginTop: 4,
     },
     modalContainer: {

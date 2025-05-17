@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, LogBox } from "react-native";
 import { useRouter } from "expo-router";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 // Import Components
 import ModuleContainer from "../../../components/PGdashboard/Module/ModuleContainer";

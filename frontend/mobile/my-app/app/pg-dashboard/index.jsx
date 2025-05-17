@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, LogBox } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import Dashboard from "../../components/PGdashboard/Common/Dashboard";
 import ProfileView from "../../components/PGdashboard/PGDashboardHome/ProfileView";
 import CertContainer from "../../components/PGdashboard/PGDashboardHome/certcontainer";

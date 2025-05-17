@@ -7,12 +7,16 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    LogBox,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
 import { API_URL } from "../../../src/constants/constants";
 import { auth } from "../../../lib/Firebase";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const Quiz = () => {
     const params = useLocalSearchParams();

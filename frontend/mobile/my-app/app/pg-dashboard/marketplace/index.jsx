@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    LogBox,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
@@ -15,6 +16,9 @@ import {
     purchaseModule,
 } from "../../../services/moduleService";
 import { formatPrice } from "../../../utils/priceFormatter";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const ModuleMarketplace = () => {
     const [availableModules, setAvailableModules] = useState([]);

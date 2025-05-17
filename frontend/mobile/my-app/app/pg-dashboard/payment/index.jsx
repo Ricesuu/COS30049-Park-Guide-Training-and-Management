@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     Alert,
     StyleSheet,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -18,6 +19,9 @@ import TransactionHistory from "../../../components/Payment/TransactionHistory";
 import useTransactionHistoryHandler from "../../../hooks/useTransactionHistoryHandler";
 import { purchaseModule } from "../../../services/moduleService";
 import { formatPrice } from "../../../utils/priceFormatter";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -145,7 +149,8 @@ const Payment = () => {
                         />
                     </View>
                 </>
-            }            contentContainerStyle={{
+            }
+            contentContainerStyle={{
                 minHeight: screenHeight,
                 paddingBottom: 120, // Extra padding to avoid content being covered by navigation
                 backgroundColor: "white",
@@ -177,7 +182,8 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 24,
         fontWeight: "bold",
-    },    contentContainer: {
+    },
+    contentContainer: {
         flex: 1,
         backgroundColor: "white",
         padding: 0, // Removed padding to eliminate white space

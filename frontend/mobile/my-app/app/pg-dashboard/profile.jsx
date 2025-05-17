@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, LogBox } from "react-native";
 import { useRouter } from "expo-router";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../src/constants/constants";
 import axios from "axios";

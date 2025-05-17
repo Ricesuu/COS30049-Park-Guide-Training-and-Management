@@ -1,4 +1,8 @@
 import React, { useState } from "react";
+import { LogBox } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 // Import Components
 import PlantInfoContainer from "../../components/PGdashboard/PlantInfo/PlantInfoContainer";

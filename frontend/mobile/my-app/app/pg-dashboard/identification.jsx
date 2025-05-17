@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, LogBox } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Camera } from "expo-camera";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 // Import Components
 import IdentificationContainer from "../../components/PGdashboard/Identification/IdentificationContainer";

@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
 import { Tabs, useRouter } from "expo-router";
-import { BackHandler, Alert } from "react-native";
+import { BackHandler, Alert, LogBox } from "react-native";
 import PGMainTabBar from "../../components/PGdashboard/PGMainTabBar";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const PGDashboardLayout = () => {
     const router = useRouter();
@@ -46,7 +49,8 @@ const PGDashboardLayout = () => {
             <Tabs.Screen
                 name="identification"
                 options={{ title: "Identify" }}
-            />            <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
+            />{" "}
+            <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
             <Tabs.Screen name="profile" options={{ title: "Profile" }} />
             {/* Screens that are not in the tab bar */}
             <Tabs.Screen
