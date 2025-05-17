@@ -1,5 +1,5 @@
 // components/ADMINdashboard/AdminDashboardManage/AssignedParkCard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     View,
     Text,
@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Modify component to handle both display and editing functionality
 const AssignedParkCard = ({
     guide,
     selectedPark,
@@ -30,25 +29,19 @@ const AssignedParkCard = ({
         "Great Smoky Mountains National Park",
     ]);
 
-    if (!guide) {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.sectionTitle}>Assigned Park</Text>
-                <View style={styles.emptyState}>
-                    <Ionicons
-                        name="alert-circle-outline"
-                        size={24}
-                        color="#9CA3AF"
-                    />
-                    <Text style={styles.emptyText}>
-                        No guide data available
-                    </Text>
-                </View>
+    return !guide ? (
+        <View style={styles.container}>
+            <Text style={styles.sectionTitle}>Assigned Park</Text>
+            <View style={styles.emptyState}>
+                <Ionicons
+                    name="alert-circle-outline"
+                    size={24}
+                    color="#9CA3AF"
+                />
+                <Text style={styles.emptyText}>No guide data available</Text>
             </View>
-        );
-    }
-
-    return (
+        </View>
+    ) : (
         <View style={styles.container}>
             <View style={styles.headerContainer}>
                 <Text style={styles.sectionTitle}>Assigned Park</Text>
@@ -76,7 +69,6 @@ const AssignedParkCard = ({
                         placeholderTextColor="#9CA3AF"
                     />
                     <View style={styles.buttonContainer}>
-                        {" "}
                         <TouchableOpacity
                             style={[styles.button, styles.cancelButton]}
                             onPress={() => {

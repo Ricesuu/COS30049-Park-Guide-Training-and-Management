@@ -4,7 +4,6 @@ import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const CertificationsCard = ({ certifications = [] }) => {
-    // Safely handle rendering date
     const formatDate = (dateStr) => {
         if (!dateStr) return "N/A";
         try {
@@ -14,7 +13,6 @@ const CertificationsCard = ({ certifications = [] }) => {
         }
     };
 
-    // Handle undefined or null certifications
     const validCertifications = Array.isArray(certifications)
         ? certifications
         : [];
@@ -43,11 +41,12 @@ const CertificationsCard = ({ certifications = [] }) => {
                                     cert?.issued_date || cert?.issue_date
                                 )}
                             </Text>
-                            {cert?.expiry_date && (
-                                <Text style={styles.certDate}>
-                                    Expires: {formatDate(cert.expiry_date)}
-                                </Text>
-                            )}
+                            <Text style={styles.certDate}>
+                                Expires:{" "}
+                                {cert?.expiry_date
+                                    ? formatDate(cert.expiry_date)
+                                    : "N/A"}
+                            </Text>
                         </View>
                     </View>
                 ))

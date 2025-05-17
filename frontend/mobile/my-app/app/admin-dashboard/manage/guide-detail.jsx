@@ -30,7 +30,6 @@ const GuideDetail = () => {
     const [selectedPark, setSelectedPark] = useState("");
     const [certifications, setCertifications] = useState([]);
 
-    // Helper function to safely format dates
     const formatDate = (dateStr) => {
         if (!dateStr) return "N/A";
         try {
@@ -40,13 +39,11 @@ const GuideDetail = () => {
         }
     };
 
-    // Fetch guide details and training modules
     useEffect(() => {
         const fetchGuideDetails = async () => {
             try {
                 setLoading(true);
 
-                // Fetch all park guides
                 const parkGuidesResponse = await fetchData("/park-guides");
                 const currentGuide = parkGuidesResponse.find(
                     (g) => g.guide_id.toString() === id
@@ -58,7 +55,6 @@ const GuideDetail = () => {
                     return;
                 }
 
-                // Format guide information
                 const guideInfo = {
                     id: currentGuide.guide_id.toString(),
                     name: `${currentGuide.first_name || "Unknown"} ${
@@ -80,16 +76,13 @@ const GuideDetail = () => {
                 setGuide(guideInfo);
                 setSelectedPark(guideInfo.park);
 
-                // Fetch training modules and progress
                 const modules = await fetchData("/training-modules");
                 const progress = await fetchData("/guide-training-progress");
 
-                // Filter progress for this specific guide
                 const guideProgress = progress.filter(
                     (item) => item.guide_id === currentGuide.guide_id
                 );
 
-                // Only include modules that the guide is currently taking or has completed
                 const enrolledModules = [];
                 if (guideProgress.length > 0) {
                     guideProgress.forEach((progressEntry) => {
@@ -105,13 +98,12 @@ const GuideDetail = () => {
                             });
                         }
                     });
-                } // Fetch certifications for this guide
+                }
+
                 try {
-                    // Use direct axios call with proper error handling to handle 404 responses
                     const certificationsUrl = `${API_URL}/api/certifications/user/${currentGuide.guide_id}`;
                     try {
                         const response = await axios.get(certificationsUrl);
-                        // API will now return an empty array instead of 404 when no certifications exist
                         setCertifications(response.data || []);
                     } catch (certError) {
                         if (
@@ -149,7 +141,6 @@ const GuideDetail = () => {
         fetchGuideDetails();
     }, [id]);
 
-    // Helper function to convert certification_status to display status
     const getStatusFromCertification = (certificationStatus) => {
         if (!certificationStatus) return "Training";
 
@@ -168,7 +159,6 @@ const GuideDetail = () => {
         }
     };
 
-    // Function to get appropriate color for status
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
             case "completed":
@@ -182,12 +172,10 @@ const GuideDetail = () => {
         }
     };
 
-    // Handle saving park assignment changes
     const handleSave = async () => {
         if (!parkChanged || !guide) return;
 
         try {
-            // Use the endpoint for park assignment
             const payload = {
                 park: selectedPark || null,
             };
@@ -210,7 +198,6 @@ const GuideDetail = () => {
                 return;
             }
 
-            // Update local state
             setGuide({
                 ...guide,
                 park: selectedPark,
@@ -224,52 +211,40 @@ const GuideDetail = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator size="large" color="rgb(22 163 74)" />
-                    <Text className="mt-4 text-gray-600">
-                        Loading guide details...
-                    </Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    if (error) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center p-4">
-                    <Text className="text-red-500 text-lg">{error}</Text>
-                    <TouchableOpacity
-                        className="mt-4 bg-gray-200 px-4 py-2 rounded"
-                        onPress={() => router.back()}
-                    >
-                        <Text>Go Back</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    if (!guide) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center">
-                    <Text className="text-lg">Guide not found</Text>
-                    <TouchableOpacity
-                        className="mt-4 bg-gray-200 px-4 py-2 rounded"
-                        onPress={() => router.back()}
-                    >
-                        <Text>Go Back</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    return (
+    return loading ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center">
+                <ActivityIndicator size="large" color="rgb(22 163 74)" />
+                <Text className="mt-4 text-gray-600">
+                    Loading guide details...
+                </Text>
+            </View>
+        </SafeAreaView>
+    ) : error ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center p-4">
+                <Text className="text-red-500 text-lg">{error}</Text>
+                <TouchableOpacity
+                    className="mt-4 bg-gray-200 px-4 py-2 rounded"
+                    onPress={() => router.back()}
+                >
+                    <Text>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    ) : !guide ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center">
+                <Text className="text-lg">Guide not found</Text>
+                <TouchableOpacity
+                    className="mt-4 bg-gray-200 px-4 py-2 rounded"
+                    onPress={() => router.back()}
+                >
+                    <Text>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    ) : (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
             <View className="bg-green-600 py-4 px-4 flex-row items-center">
                 <TouchableOpacity
@@ -284,7 +259,6 @@ const GuideDetail = () => {
             </View>
 
             <ScrollView className="flex-1 p-4">
-                {/* Basic Information Card */}
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-xl font-bold mb-4">{guide.name}</Text>
                     <View className="flex-row mb-2">
@@ -309,7 +283,6 @@ const GuideDetail = () => {
                             {guide.status}
                         </Text>
                     </View>
-                    {/* Only show license expiry for guides who are not in training */}
                     {guide.status !== "Training" &&
                         guide.license_expiry_date && (
                             <View className="flex-row mb-2">
@@ -318,12 +291,11 @@ const GuideDetail = () => {
                                 </Text>
                                 <Text className="text-gray-700">
                                     {formatDate(guide.license_expiry_date)}
-                                </Text>{" "}
+                                </Text>
                             </View>
                         )}
                 </View>
 
-                {/* Guide Assigned Park Section */}
                 <AssignedParkCard
                     guide={guide}
                     selectedPark={selectedPark}
@@ -333,10 +305,8 @@ const GuideDetail = () => {
                     handleSave={handleSave}
                 />
 
-                {/* Certifications Section */}
                 <CertificationsCard certifications={certifications} />
 
-                {/* Training Modules Section */}
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-lg font-bold mb-4">
                         Training Modules
@@ -360,7 +330,7 @@ const GuideDetail = () => {
                                 </Text>
                                 <Text className="text-gray-600 text-sm mb-1">
                                     Duration: {module.duration || "N/A"} minutes
-                                </Text>{" "}
+                                </Text>
                                 <Text className="text-sm mb-1">
                                     {`${
                                         module.is_required
@@ -388,7 +358,6 @@ const GuideDetail = () => {
                     )}
                 </View>
 
-                {/* Action Buttons */}
                 <View className="flex-row justify-evenly mb-32">
                     {guide.status !== "Training" && (
                         <TouchableOpacity
@@ -398,7 +367,6 @@ const GuideDetail = () => {
                                     : "bg-green-100"
                             } px-8 py-3 rounded-lg`}
                             onPress={() => {
-                                // You would implement the suspend/activate functionality here
                                 alert(
                                     `${
                                         guide.status === "Active"
@@ -427,7 +395,6 @@ const GuideDetail = () => {
                             <TouchableOpacity
                                 className="bg-green-100 px-8 py-3 rounded-lg"
                                 onPress={() => {
-                                    // Implement certify functionality
                                     alert(
                                         "Certify functionality would be triggered here"
                                     );
@@ -442,7 +409,6 @@ const GuideDetail = () => {
                     <TouchableOpacity
                         className="bg-red-600 px-8 py-3 rounded-lg"
                         onPress={() => {
-                            // Implement delete functionality
                             alert(
                                 "Delete functionality would be triggered here"
                             );
