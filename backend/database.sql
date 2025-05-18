@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
   engagement_rating INT NOT NULL,
   safety_rating INT NOT NULL,
   comment TEXT,
+  visitor_name VARCHAR(255) DEFAULT 'Anonymous Visitor',
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (guide_id) REFERENCES ParkGuides(guide_id)
 );

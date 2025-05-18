@@ -18,9 +18,7 @@ const TestimonialsCarousel = () => {
           throw new Error("Failed to fetch testimonials");
         }
 
-        const data = await response.json();
-
-        // Process the data to match our display format
+        const data = await response.json(); // Process the data to match our display format
         const processedData = data.map((feedback) => ({
           id: feedback.feedback_id,
           visitor_name: feedback.visitor_name || "Anonymous Visitor",
@@ -40,68 +38,11 @@ const TestimonialsCarousel = () => {
           date_submitted: feedback.submitted_at || new Date().toISOString(),
         }));
 
-        // If no data is available, use placeholder testimonials
-        if (processedData.length === 0) {
-          setTestimonials([
-            {
-              id: 1,
-              visitor_name: "Sarah Johnson",
-              rating: 5,
-              comment:
-                "The training program was comprehensive and gave me all the skills I needed to become a confident park guide. Highly recommend!",
-              date_submitted: "2025-03-15",
-            },
-            {
-              id: 2,
-              visitor_name: "Michael Chen",
-              rating: 4,
-              comment:
-                "I particularly enjoyed the plant identification modules. The interactive quizzes really helped me learn and retain the information.",
-              date_submitted: "2025-02-28",
-            },
-            {
-              id: 3,
-              visitor_name: "Emily Rodriguez",
-              rating: 5,
-              comment:
-                "The certification process was straightforward and the training materials were excellent. I feel well-prepared for my role as a guide.",
-              date_submitted: "2025-04-10",
-            },
-          ]);
-        } else {
-          setTestimonials(processedData);
-        }
+        setTestimonials(processedData);
       } catch (err) {
         setError(err.message);
         console.error("Error fetching testimonials:", err);
-
-        // Set placeholder testimonials on error
-        setTestimonials([
-          {
-            id: 1,
-            visitor_name: "Sarah Johnson",
-            rating: 5,
-            comment:
-              "The training program was comprehensive and gave me all the skills I needed to become a confident park guide. Highly recommend!",
-            date_submitted: "2025-03-15",
-          },
-          {
-            id: 2,
-            visitor_name: "Michael Chen",
-            rating: 4,
-            comment:
-              "I particularly enjoyed the plant identification modules. The interactive quizzes really helped me learn and retain the information.",
-            date_submitted: "2025-02-28",
-          },
-          {
-            id: 3,
-            visitor_name: "Emily Rodriguez",
-            rating: 5,
-            comment:
-              "The certification process was straightforward and the training materials were excellent. I feel well-prepared for my role as a guide.",
-            date_submitted: "2025-04-10",
-          },
-        ]);
+        setTestimonials([]);
       } finally {
         setLoading(false);
       }
