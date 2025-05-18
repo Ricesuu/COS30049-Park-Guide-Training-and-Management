@@ -58,9 +58,11 @@ const Footer = () => {
                 Navigation
               </h3>
               <ul className="space-y-2 mt-3">
+                {" "}
                 <li>
                   <a
                     href="#"
+                    onClick={() => navigate("/visitor")}
                     className="hover:text-green-400 transition-colors flex items-center text-base"
                   >
                     Home

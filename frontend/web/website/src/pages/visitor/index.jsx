@@ -103,7 +103,7 @@ const VisitorLandingPage = () => {
                     )
                 : () => navigate("/login")
             }
-            className="bg-green-600 hover:bg-white text-white hover:text-green-700 py-3 px-8 rounded-lg font-medium text-sm md:text-base transition-colors cursor-pointer border border-transparent hover:border-green-600"
+            className="border border-white text-white hover:bg-green-600 hover:text-white py-3 px-8 rounded-lg font-medium text-sm md:text-base transition-colors cursor-pointer hover:border-transparent"
           >
             {isLoggedIn ? "Go to Dashboard" : "Get Started"}
           </button>

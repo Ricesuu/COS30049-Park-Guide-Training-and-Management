@@ -98,12 +98,16 @@ const ContactPage = () => {
         isLoggedIn={isLoggedIn}
         userRole={userRole}
         logoutUser={logoutUser}
-      />{" "}
+      />
+
+      {/* Dark banner to improve navbar visibility */}
+      <div className="w-full h-22 bg-emerald-900"></div>
+
       {/******************************************************************
        * CONTACT CONTENT SECTION
        * Main section with contact information and form
        ******************************************************************/}
-      <section className="pt-32 py-32 bg-gray-100 w-full min-h-[90vh]">
+      <section className="pt-20 py-32 bg-gray-100 w-full min-h-[90vh]">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex flex-col md:flex-row gap-20">
             {/* Left Column - Contact Information */}
