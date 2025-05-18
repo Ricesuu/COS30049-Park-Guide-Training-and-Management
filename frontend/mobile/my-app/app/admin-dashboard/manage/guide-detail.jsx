@@ -6,11 +6,18 @@ import {
     ScrollView,
     ActivityIndicator,
     TouchableOpacity,
+    LogBox,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchData } from "../../../src/api/api";
+import axios from "axios";
 import { API_URL } from "../../../src/constants/constants";
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
+import AssignedParkCard from "../../../components/ADMINdashboard/AdminDashboardManage/AssignedParkCard";
+import CertificationsCard from "../../../components/ADMINdashboard/AdminDashboardManage/CertificationsCard";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const GuideDetail = () => {
     const { id } = useLocalSearchParams();
@@ -21,14 +28,22 @@ const GuideDetail = () => {
     const [error, setError] = useState(null);
     const [parkChanged, setParkChanged] = useState(false);
     const [selectedPark, setSelectedPark] = useState("");
+    const [certifications, setCertifications] = useState([]);
 
-    // Fetch guide details and training modules
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "N/A";
+        try {
+            return new Date(dateStr).toLocaleDateString();
+        } catch (e) {
+            return "Invalid date";
+        }
+    };
+
     useEffect(() => {
         const fetchGuideDetails = async () => {
             try {
                 setLoading(true);
 
-                // Fetch all park guides
                 const parkGuidesResponse = await fetchData("/park-guides");
                 const currentGuide = parkGuidesResponse.find(
                     (g) => g.guide_id.toString() === id
@@ -40,7 +55,6 @@ const GuideDetail = () => {
                     return;
                 }
 
-                // Format guide information
                 const guideInfo = {
                     id: currentGuide.guide_id.toString(),
                     name: `${currentGuide.first_name || "Unknown"} ${
@@ -62,16 +76,13 @@ const GuideDetail = () => {
                 setGuide(guideInfo);
                 setSelectedPark(guideInfo.park);
 
-                // Fetch training modules and progress
                 const modules = await fetchData("/training-modules");
                 const progress = await fetchData("/guide-training-progress");
 
-                // Filter progress for this specific guide
                 const guideProgress = progress.filter(
                     (item) => item.guide_id === currentGuide.guide_id
                 );
 
-                // Only include modules that the guide is currently taking or has completed
                 const enrolledModules = [];
                 if (guideProgress.length > 0) {
                     guideProgress.forEach((progressEntry) => {
@@ -89,6 +100,33 @@ const GuideDetail = () => {
                     });
                 }
 
+                try {
+                    const certificationsUrl = `${API_URL}/api/certifications/user/${currentGuide.guide_id}`;
+                    try {
+                        const response = await axios.get(certificationsUrl);
+                        setCertifications(response.data || []);
+                    } catch (certError) {
+                        if (
+                            certError.response &&
+                            certError.response.status === 404
+                        ) {
+                            console.log(
+                                "No certifications found for this guide - returning empty array"
+                            );
+                            setCertifications([]);
+                        } else {
+                            console.warn(
+                                "Warning: Error fetching certifications:",
+                                certError.message
+                            );
+                            setCertifications([]);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error in certification fetch block:", error);
+                    setCertifications([]);
+                }
+
                 setTrainingModules(enrolledModules);
                 setLoading(false);
             } catch (err) {
@@ -103,7 +141,6 @@ const GuideDetail = () => {
         fetchGuideDetails();
     }, [id]);
 
-    // Helper function to convert certification_status to display status
     const getStatusFromCertification = (certificationStatus) => {
         if (!certificationStatus) return "Training";
 
@@ -122,7 +159,6 @@ const GuideDetail = () => {
         }
     };
 
-    // Function to get appropriate color for status
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
             case "completed":
@@ -136,12 +172,10 @@ const GuideDetail = () => {
         }
     };
 
-    // Handle saving park assignment changes
     const handleSave = async () => {
         if (!parkChanged || !guide) return;
 
         try {
-            // Use the endpoint for park assignment
             const payload = {
                 park: selectedPark || null,
             };
@@ -164,7 +198,6 @@ const GuideDetail = () => {
                 return;
             }
 
-            // Update local state
             setGuide({
                 ...guide,
                 park: selectedPark,
@@ -178,52 +211,40 @@ const GuideDetail = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator size="large" color="rgb(22 163 74)" />
-                    <Text className="mt-4 text-gray-600">
-                        Loading guide details...
-                    </Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    if (error) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center p-4">
-                    <Text className="text-red-500 text-lg">{error}</Text>
-                    <TouchableOpacity
-                        className="mt-4 bg-gray-200 px-4 py-2 rounded"
-                        onPress={() => router.back()}
-                    >
-                        <Text>Go Back</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    if (!guide) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
-                <View className="flex-1 justify-center items-center">
-                    <Text className="text-lg">Guide not found</Text>
-                    <TouchableOpacity
-                        className="mt-4 bg-gray-200 px-4 py-2 rounded"
-                        onPress={() => router.back()}
-                    >
-                        <Text>Go Back</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    return (
+    return loading ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center">
+                <ActivityIndicator size="large" color="rgb(22 163 74)" />
+                <Text className="mt-4 text-gray-600">
+                    Loading guide details...
+                </Text>
+            </View>
+        </SafeAreaView>
+    ) : error ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center p-4">
+                <Text className="text-red-500 text-lg">{error}</Text>
+                <TouchableOpacity
+                    className="mt-4 bg-gray-200 px-4 py-2 rounded"
+                    onPress={() => router.back()}
+                >
+                    <Text>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    ) : !guide ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center">
+                <Text className="text-lg">Guide not found</Text>
+                <TouchableOpacity
+                    className="mt-4 bg-gray-200 px-4 py-2 rounded"
+                    onPress={() => router.back()}
+                >
+                    <Text>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    ) : (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
             <View className="bg-green-600 py-4 px-4 flex-row items-center">
                 <TouchableOpacity
@@ -238,20 +259,16 @@ const GuideDetail = () => {
             </View>
 
             <ScrollView className="flex-1 p-4">
-                {/* Basic Information Card */}
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-xl font-bold mb-4">{guide.name}</Text>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Email:</Text>
                         <Text className="text-gray-700">{guide.email}</Text>
                     </View>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Role:</Text>
                         <Text className="text-gray-700">{guide.role}</Text>
                     </View>
-
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Status:</Text>
                         <Text
@@ -266,8 +283,6 @@ const GuideDetail = () => {
                             {guide.status}
                         </Text>
                     </View>
-
-                    {/* Only show license expiry for guides who are not in training */}
                     {guide.status !== "Training" &&
                         guide.license_expiry_date && (
                             <View className="flex-row mb-2">
@@ -275,59 +290,23 @@ const GuideDetail = () => {
                                     License Expiry:
                                 </Text>
                                 <Text className="text-gray-700">
-                                    {new Date(
-                                        guide.license_expiry_date
-                                    ).toLocaleDateString()}
+                                    {formatDate(guide.license_expiry_date)}
                                 </Text>
                             </View>
                         )}
-
-                    {/* Only show park assignment for guides who are not in training */}
-                    {guide.status !== "Training" && (
-                        <View className="flex-row mb-2">
-                            <Text className="font-semibold w-1/3">
-                                Park Assignment:
-                            </Text>
-                            <View className="flex-1">
-                                <TouchableOpacity
-                                    className="border border-gray-300 rounded px-3 py-2"
-                                    onPress={() => {
-                                        // You could implement a park selection modal/dropdown here
-                                        // For now, we'll just use a simple prompt
-                                        const newPark = prompt(
-                                            "Enter park name:",
-                                            selectedPark
-                                        );
-                                        if (
-                                            newPark !== null &&
-                                            newPark !== selectedPark
-                                        ) {
-                                            setSelectedPark(newPark);
-                                            setParkChanged(true);
-                                        }
-                                    }}
-                                >
-                                    <Text>
-                                        {selectedPark || "Not assigned"}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                {parkChanged && (
-                                    <TouchableOpacity
-                                        className="mt-2 bg-green-600 rounded px-3 py-2"
-                                        onPress={handleSave}
-                                    >
-                                        <Text className="text-white text-center">
-                                            Save Changes
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        </View>
-                    )}
                 </View>
 
-                {/* Training Modules Section */}
+                <AssignedParkCard
+                    guide={guide}
+                    selectedPark={selectedPark}
+                    setSelectedPark={setSelectedPark}
+                    parkChanged={parkChanged}
+                    setParkChanged={setParkChanged}
+                    handleSave={handleSave}
+                />
+
+                <CertificationsCard certifications={certifications} />
+
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-lg font-bold mb-4">
                         Training Modules
@@ -353,10 +332,11 @@ const GuideDetail = () => {
                                     Duration: {module.duration || "N/A"} minutes
                                 </Text>
                                 <Text className="text-sm mb-1">
-                                    {module.is_required
-                                        ? "Required"
-                                        : "Optional"}{" "}
-                                    module
+                                    {`${
+                                        module.is_required
+                                            ? "Required"
+                                            : "Optional"
+                                    } module`}
                                 </Text>
                                 <View className="flex-row justify-between items-center mt-2">
                                     <Text
@@ -369,9 +349,7 @@ const GuideDetail = () => {
                                     {module.completion_date && (
                                         <Text className="text-gray-600 text-sm">
                                             Completed:{" "}
-                                            {new Date(
-                                                module.completion_date
-                                            ).toLocaleDateString()}
+                                            {formatDate(module.completion_date)}
                                         </Text>
                                     )}
                                 </View>
@@ -380,7 +358,6 @@ const GuideDetail = () => {
                     )}
                 </View>
 
-                {/* Action Buttons */}
                 <View className="flex-row justify-evenly mb-32">
                     {guide.status !== "Training" && (
                         <TouchableOpacity
@@ -390,7 +367,6 @@ const GuideDetail = () => {
                                     : "bg-green-100"
                             } px-8 py-3 rounded-lg`}
                             onPress={() => {
-                                // You would implement the suspend/activate functionality here
                                 alert(
                                     `${
                                         guide.status === "Active"
@@ -419,7 +395,6 @@ const GuideDetail = () => {
                             <TouchableOpacity
                                 className="bg-green-100 px-8 py-3 rounded-lg"
                                 onPress={() => {
-                                    // Implement certify functionality
                                     alert(
                                         "Certify functionality would be triggered here"
                                     );
@@ -434,7 +409,6 @@ const GuideDetail = () => {
                     <TouchableOpacity
                         className="bg-red-600 px-8 py-3 rounded-lg"
                         onPress={() => {
-                            // Implement delete functionality
                             alert(
                                 "Delete functionality would be triggered here"
                             );

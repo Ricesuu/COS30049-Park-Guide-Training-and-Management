@@ -1,12 +1,12 @@
 // ✅ PaymentForm.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Feather } from "@expo/vector-icons";
 import usePaymentHandler from "../../hooks/usePaymentHandler";
 import AnimatedButton from "../AnimatedButton";
 
-export default function PaymentForm({ refreshTransactions }) {
+export default function PaymentForm({ refreshTransactions, moduleId, moduleName, modulePrice }) {
     const {
         form,
         open,
@@ -23,7 +23,25 @@ export default function PaymentForm({ refreshTransactions }) {
         handlePaymentMethodChange,
         handleFilePick,
         handleSubmit,
+        setModuleInfo
     } = usePaymentHandler({ refreshTransactions }); // ✅ pass down the prop
+      // Set module info when it's provided
+    useEffect(() => {
+        if (moduleId && moduleName) {
+            // Ensure module price is a number and not 0
+            const price = typeof modulePrice === 'string' 
+                ? parseFloat(modulePrice) 
+                : (modulePrice || 0);
+                
+            console.log(`Setting module info for payment: moduleId=${moduleId}, moduleName=${moduleName}, price=${price}`);
+            
+            setModuleInfo({
+                moduleId,
+                moduleName,
+                price: price
+            });
+        }
+    }, [moduleId, moduleName, modulePrice]);
 
     return (
         <View className="flex-1 bg-white p-6 rounded-t-3xl shadow-inner -mt-12 z-0">

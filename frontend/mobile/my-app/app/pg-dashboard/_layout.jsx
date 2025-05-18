@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
 import { Tabs, useRouter } from "expo-router";
-import { BackHandler, Alert } from "react-native";
+import { BackHandler, Alert, LogBox } from "react-native";
 import PGMainTabBar from "../../components/PGdashboard/PGMainTabBar";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const PGDashboardLayout = () => {
     const router = useRouter();
@@ -9,21 +12,17 @@ const PGDashboardLayout = () => {
     // Handle back button press
     useEffect(() => {
         const backAction = () => {
-            Alert.alert(
-                "Hold on!",
-                "Are you sure you want to exit the app?",
-                [
-                    {
-                        text: "Cancel",
-                        onPress: () => null,
-                        style: "cancel"
-                    },
-                    { 
-                        text: "Yes", 
-                        onPress: () => BackHandler.exitApp() 
-                    }
-                ]
-            );
+            Alert.alert("Hold on!", "Are you sure you want to exit the app?", [
+                {
+                    text: "Cancel",
+                    onPress: () => null,
+                    style: "cancel",
+                },
+                {
+                    text: "Yes",
+                    onPress: () => BackHandler.exitApp(),
+                },
+            ]);
             return true; // Prevents default behavior (exiting the app)
         };
 
@@ -34,7 +33,6 @@ const PGDashboardLayout = () => {
 
         return () => backHandler.remove();
     }, []);
-
     return (
         <Tabs
             screenOptions={{ headerShown: false }}
@@ -43,11 +41,39 @@ const PGDashboardLayout = () => {
         >
             <Tabs.Screen name="index" options={{ title: "Home" }} />
             <Tabs.Screen name="module" options={{ title: "Module" }} />
-            <Tabs.Screen name="certificate" options={{ title: "Certificate" }} />
-            <Tabs.Screen name="plantinfo" options={{ title: "Plant Info" }} />
-            <Tabs.Screen name="identification" options={{ title: "Identification" }} />
-            <Tabs.Screen name="payment" options={{ title: "Payment" }} />
+            <Tabs.Screen
+                name="certificate"
+                options={{ title: "Certificate" }}
+            />
+            <Tabs.Screen name="plantinfo" options={{ title: "Plant Info" }} />{" "}
+            <Tabs.Screen
+                name="identification"
+                options={{ title: "Identify" }}
+            />
             <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
+            <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+            {/* Screens that are not in the tab bar */}
+            <Tabs.Screen
+                name="payment"
+                options={{
+                    href: null, // This prevents it from appearing in the tab bar
+                    title: "Payment",
+                }}
+            />
+            <Tabs.Screen
+                name="marketplace"
+                options={{
+                    href: null, // This prevents it from appearing in the tab bar
+                    title: "Module Marketplace",
+                }}
+            />
+            <Tabs.Screen
+                name="edit-profile"
+                options={{
+                    href: null, // This prevents it from appearing in the tab bar
+                    title: "Edit Profile",
+                }}
+            />
         </Tabs>
     );
 };

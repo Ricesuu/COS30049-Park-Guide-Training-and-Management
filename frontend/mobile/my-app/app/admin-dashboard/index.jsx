@@ -1,6 +1,18 @@
 import React, { useRef, useState } from "react";
-import { View, ScrollView, RefreshControl, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
+import {
+    View,
+    ScrollView,
+    RefreshControl,
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    Alert,
+    LogBox,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Import useNavigation
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import Header from "../../components/ADMINdashboard/AdminDashboardHome/Header";
 import PendingApprovals from "../../components/ADMINdashboard/AdminDashboardHome/PendingApprovals";
 import IoTMonitoring from "../../components/ADMINdashboard/AdminDashboardHome/IoTMonitoring";
@@ -51,7 +63,9 @@ const HomePage = () => {
                         padding: 20,
                         flex: 1,
                     }}
-                >                    <PendingApprovals
+                >
+                    {" "}
+                    <PendingApprovals
                         ref={pendingApprovalsRef}
                         navigation={navigation} // Pass navigation to PendingApprovals
                     />

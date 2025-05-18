@@ -9,7 +9,11 @@ import {
     TextInput,
     ScrollView,
     StyleSheet,
+    LogBox,
 } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import { useRouter } from "expo-router";
 import { auth } from "../../lib/Firebase";
 import { signOut } from "firebase/auth";
@@ -168,7 +172,8 @@ const ProfilePage = () => {
     const saveNewPassword = async () => {
         // Validate inputs
         const newErrors = {};
-        if (!currentPassword) newErrors.currentPassword = "Current password is required";
+        if (!currentPassword)
+            newErrors.currentPassword = "Current password is required";
         if (!newPassword) newErrors.newPassword = "New password is required";
         if (newPassword.length < 6)
             newErrors.newPassword = "Password must be at least 6 characters";
@@ -450,7 +455,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F5F5F5",
-
     },
     header: {
         fontSize: 24,

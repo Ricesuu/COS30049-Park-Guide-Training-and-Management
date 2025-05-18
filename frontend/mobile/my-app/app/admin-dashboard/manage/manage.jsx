@@ -8,7 +8,11 @@ import {
     Alert,
     TextInput,
     TouchableOpacity,
+    LogBox,
 } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import { Picker } from "@react-native-picker/picker";
 import ParkGuideCard from "../../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
 import AddGuideButton from "../../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";

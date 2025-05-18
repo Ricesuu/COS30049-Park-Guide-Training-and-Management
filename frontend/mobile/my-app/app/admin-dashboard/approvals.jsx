@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Dimensions } from "react-native";
+import { View, Text, Dimensions, LogBox } from "react-native";
 import { TabView, SceneMap } from "react-native-tab-view";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import { useRoute } from "@react-navigation/native"; // Import useRoute
 import CustomTabBar from "../../components/ADMINdashboard/AdminDashboardApprovals/ApprovalsTabBar";
 import ParkGuideApproval from "../../components/ADMINdashboard/AdminDashboardApprovals/ParkGuideApproval";

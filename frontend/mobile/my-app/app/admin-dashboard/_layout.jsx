@@ -1,7 +1,10 @@
 import React, { useEffect } from "react";
 import { Tabs, useRouter } from "expo-router";
-import { BackHandler, Alert } from "react-native";
+import { BackHandler, Alert, LogBox } from "react-native";
 import MainTabBar from "../../components/ADMINdashboard/MainTabBar";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const _layout = () => {
     const router = useRouter();
@@ -9,21 +12,17 @@ const _layout = () => {
     // Handle back button press
     useEffect(() => {
         const backAction = () => {
-            Alert.alert(
-                "Hold on!",
-                "Are you sure you want to exit the app?",
-                [
-                    {
-                        text: "Cancel",
-                        onPress: () => null,
-                        style: "cancel"
-                    },
-                    { 
-                        text: "Yes", 
-                        onPress: () => BackHandler.exitApp() 
-                    }
-                ]
-            );
+            Alert.alert("Hold on!", "Are you sure you want to exit the app?", [
+                {
+                    text: "Cancel",
+                    onPress: () => null,
+                    style: "cancel",
+                },
+                {
+                    text: "Yes",
+                    onPress: () => BackHandler.exitApp(),
+                },
+            ]);
             return true; // Prevents default behavior (exiting the app)
         };
 

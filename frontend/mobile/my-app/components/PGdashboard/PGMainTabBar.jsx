@@ -21,28 +21,63 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 const PGMainTabBar = ({ state, descriptors, navigation }) => {
     // Define the colors for active and inactive tabs
     const activeColour = "rgb(22 163 74)";
-    const inactiveColour = "rgb(156 163 175)";    // Define the icons for each tab using a mapping object
+    const inactiveColour = "rgb(156 163 175)"; // Define the icons for each tab using a mapping object
     const icons = {
         index: (props) => (
-            <Ionicons name={props.focused ? "home" : "home-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "home" : "home-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
         module: (props) => (
-            <Ionicons name={props.focused ? "book" : "book-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "book" : "book-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
         certificate: (props) => (
-            <Ionicons name={props.focused ? "ribbon" : "ribbon-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "ribbon" : "ribbon-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
         plantinfo: (props) => (
-            <Ionicons name={props.focused ? "leaf" : "leaf-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "leaf" : "leaf-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
         identification: (props) => (
-            <Ionicons name={props.focused ? "search" : "search-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "search" : "search-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
         payment: (props) => (
-            <FontAwesome5 name="money-check-alt" size={24} color={props.color} />
+            <FontAwesome5
+                name="money-check-alt"
+                size={24}
+                color={props.color}
+            />
         ),
         quiz: (props) => (
-            <Ionicons name={props.focused ? "help-circle" : "help-circle-outline"} size={24} color={props.color} />
+            <Ionicons
+                name={props.focused ? "help-circle" : "help-circle-outline"}
+                size={24}
+                color={props.color}
+            />
+        ),
+        profile: (props) => (
+            <Ionicons
+                name={props.focused ? "person" : "person-outline"}
+                size={24}
+                color={props.color}
+            />
         ),
     };
 
@@ -57,11 +92,23 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                         : options.title !== undefined
                         ? options.title
                         : route.name;
-
                 const isFocused = state.index === index;
 
-                if (["_sitemap", "+not-found"].includes(route.name))
+                // Skip rendering tab items for hidden routes or system routes
+                if (
+                    [
+                        "_sitemap",
+                        "+not-found",
+                        "marketplace",
+                        "module-marketplace",
+                        "edit-profile",
+                        "payment",
+                        "quiz",
+                    ].includes(route.name) ||
+                    options.href === null
+                ) {
                     return null;
+                }
 
                 // Animation setup
                 const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -117,12 +164,26 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                                 alignItems: "center",
                             }}
                         >
-                            {icons[route.name]({
-                                focused: isFocused,
-                                color: isFocused
-                                    ? activeColour
-                                    : inactiveColour,
-                            })}
+                            {" "}
+                            {/* Render the appropriate icon or a default icon if not found */}
+                            {typeof icons[route.name] === "function" ? (
+                                icons[route.name]({
+                                    focused: isFocused,
+                                    color: isFocused
+                                        ? activeColour
+                                        : inactiveColour,
+                                })
+                            ) : (
+                                <Ionicons
+                                    name={isFocused ? "apps" : "apps-outline"}
+                                    size={24}
+                                    color={
+                                        isFocused
+                                            ? activeColour
+                                            : inactiveColour
+                                    }
+                                />
+                            )}
                             <Text
                                 style={{
                                     color: isFocused

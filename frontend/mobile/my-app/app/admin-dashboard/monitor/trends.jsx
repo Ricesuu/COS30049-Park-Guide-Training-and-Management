@@ -1,5 +1,8 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, LogBox } from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import HistoricalChart from "../../../components/ADMINdashboard/AdminDashboardMonitoring/HistoricalChart";
 import MotionDetectionLog from "../../../components/ADMINdashboard/AdminDashboardMonitoring/MotionDetectionLog";
 
