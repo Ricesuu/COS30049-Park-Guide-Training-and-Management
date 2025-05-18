@@ -11,6 +11,9 @@ import {
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 
+/***********************************************************************
+ * ABOUT PAGE COMPONENT
+ ***********************************************************************/
 const AboutPage = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,7 +46,6 @@ const AboutPage = () => {
     // Refresh the page to reflect the changes
     window.location.reload();
   };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -52,12 +54,19 @@ const AboutPage = () => {
       transition={{ duration: 0.5 }}
       className="flex flex-col min-h-screen bg-white text-gray-800"
     >
+      {/******************************************************************
+       * NAVIGATION BAR SECTION
+       ******************************************************************/}
       <NavigationBar
         isLoggedIn={isLoggedIn}
         userRole={userRole}
         logoutUser={logoutUser}
-      />{" "}
-      {/* Hero Section */}
+      />
+
+      {/******************************************************************
+       * HERO SECTION
+       * Main introductory section with heading, description and image
+       ******************************************************************/}
       <section className="pt-32 py-20 bg-emerald-900 text-white w-full">
         {" "}
         <div className="w-full flex flex-col md:flex-row items-center gap-12 px-5 md:px-25">
@@ -91,10 +100,14 @@ const AboutPage = () => {
               alt="Nature Reserve"
               className="w-full h-auto rounded-lg shadow-xl object-cover max-h-[600px]"
             />
-          </div>
+          </div>{" "}
         </div>
-      </section>{" "}
-      {/* Attractions Section */}
+      </section>
+
+      {/******************************************************************
+       * ATTRACTIONS SECTION
+       * Showcases the park's key attractions with icon cards
+       ******************************************************************/}
       <section className="py-16 bg-white w-full">
         <div className="w-full px-5 md:px-25">
           {" "}
@@ -158,12 +171,16 @@ const AboutPage = () => {
               <p className="text-gray-600 text-base">
                 Participate in our interactive educational programs designed for
                 all ages to learn about conservation and ecosystem management.
-              </p>
+              </p>{" "}
             </div>{" "}
           </div>
         </div>
-      </section>{" "}
-      {/* Mission Section */}
+      </section>
+
+      {/******************************************************************
+       * MISSION SECTION
+       * States the organization's mission and purpose
+       ******************************************************************/}
       <section className="py-16 bg-green-50 w-full">
         <div className="w-full px-5 md:px-25">
           {" "}
@@ -177,11 +194,15 @@ const AboutPage = () => {
               practices. We aim to train knowledgeable park guides who can
               effectively communicate the importance of biodiversity and inspire
               the next generation of environmental stewards.
-            </p>
+            </p>{" "}
           </div>
         </div>
-      </section>{" "}
-      {/* Values Section (Additional section not in the original HTML) */}
+      </section>
+
+      {/******************************************************************
+       * CORE VALUES SECTION
+       * Displays the organization's guiding principles
+       ******************************************************************/}
       <section className="py-16 bg-white w-full">
         <div className="w-full px-5 md:px-25">
           {" "}
@@ -225,11 +246,14 @@ const AboutPage = () => {
                 they involve local communities and stakeholders in
                 decision-making processes.
               </p>
-            </div>
+            </div>{" "}
           </div>
         </div>
       </section>
-      {/* Footer */}
+
+      {/******************************************************************
+       * FOOTER SECTION
+       ******************************************************************/}
       <Footer />
     </motion.div>
   );

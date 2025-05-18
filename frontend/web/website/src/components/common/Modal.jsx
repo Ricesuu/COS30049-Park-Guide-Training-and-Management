@@ -1,3 +1,11 @@
+/***********************************************************************
+ * REUSABLE MODAL COMPONENT
+ * A flexible modal dialog that can be used throughout the application:
+ * - Customizable title, content, and footer
+ * - Backdrop blur effect for focus
+ * - Close button and click-away functionality
+ * - Responsive design with maximum width and height constraints
+ ***********************************************************************/
 import React from "react";
 
 const Modal = ({ isOpen, onClose, title, children, footer }) => {
@@ -6,7 +14,10 @@ const Modal = ({ isOpen, onClose, title, children, footer }) => {
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        {/* ====== Modal Header ====== */}
+        {/******************************************************************
+         * MODAL HEADER
+         * Contains title and close button
+         ******************************************************************/}
         <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-4">
           <h2 className="text-xl font-semibold text-green-900">{title}</h2>
           <button
@@ -17,10 +28,16 @@ const Modal = ({ isOpen, onClose, title, children, footer }) => {
           </button>
         </div>
 
-        {/* ====== Modal Content ====== */}
+        {/******************************************************************
+         * MODAL CONTENT
+         * Main content area that accepts any children components
+         ******************************************************************/}
         <div>{children}</div>
 
-        {/* ====== Modal Footer ====== */}
+        {/******************************************************************
+         * MODAL FOOTER (OPTIONAL)
+         * Optional footer area for actions like submit/cancel buttons
+         ******************************************************************/}
         {footer && <div className="mt-6">{footer}</div>}
       </div>
     </div>

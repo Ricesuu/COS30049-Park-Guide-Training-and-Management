@@ -1,3 +1,11 @@
+/***********************************************************************
+ * NAVIGATION BAR COMPONENT
+ * Main navigation header for the visitor section with:
+ * - Responsive design for mobile and desktop
+ * - Dynamic navigation links with active state indicators
+ * - Conditional rendering based on user authentication status
+ * - Role-based dashboard access links
+ ***********************************************************************/
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -5,6 +13,10 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  /******************************************************************
+   * NAVIGATION FUNCTIONS
+   * Handle routing to different pages
+   ******************************************************************/
   // Function to navigate to login page
   const redirectToLogin = () => {
     navigate("/login");
@@ -45,6 +57,10 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
     navigate("/visitor/contact");
   };
 
+  /******************************************************************
+   * COMPONENT RENDER
+   * Responsive navbar with conditional elements based on auth status
+   ******************************************************************/
   return (
     <nav className="fixed top-0 left-0 right-0 bg-black/20 backdrop-blur-sm z-50">
       <div className="w-full px-8 flex justify-between items-center h-22">
@@ -109,6 +125,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
                 Feedback
               </a>
             </li>
+            {/* Conditional dashboard links based on user role */}
             {isLoggedIn && userRole === "admin" && (
               <li>
                 <a
@@ -142,6 +159,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               className="w-5 h-5 invert hover:opacity-80 transition-opacity"
             />
           </div>
+          {/* Conditional login/logout button */}
           {!isLoggedIn ? (
             <button
               onClick={redirectToLogin}

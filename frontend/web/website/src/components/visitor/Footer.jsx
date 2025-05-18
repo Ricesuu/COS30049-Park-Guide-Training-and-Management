@@ -1,3 +1,11 @@
+/***********************************************************************
+ * FOOTER COMPONENT
+ * Site-wide footer with:
+ * - Company contact information
+ * - Navigation links to main pages
+ * - Social media links
+ * - Legal information and copyright notice
+ ***********************************************************************/
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +16,10 @@ const Footer = () => {
     <footer className="bg-gray-800 text-white py-10 pb-6 w-full">
       <div className="w-full px-8">
         <div className="flex flex-col md:flex-row justify-between max-w-[1600px] mx-auto">
-          {/* Company Info - Left Side */}
+          {/******************************************************************
+           * COMPANY INFORMATION SECTION
+           * Displays logo, contact email, phone, and address
+           ******************************************************************/}
           <div className="mb-8 md:mb-0">
             <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
               SFC
@@ -42,7 +53,10 @@ const Footer = () => {
           </div>
           {/* Right Side Content */}
           <div className="flex flex-col md:flex-row gap-8 md:gap-48">
-            {/* Navigation */}
+            {/******************************************************************
+             * NAVIGATION LINKS SECTION
+             * Quick links to main pages of the site
+             ******************************************************************/}
             <div>
               <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
                 Navigation
@@ -94,7 +108,10 @@ const Footer = () => {
                 </li>
               </ul>
             </div>
-            {/* Social Links */}
+            {/******************************************************************
+             * SOCIAL AND LEGAL SECTION
+             * Social media links and legal information
+             ******************************************************************/}
             <div>
               <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
                 Social Links
@@ -149,6 +166,10 @@ const Footer = () => {
             </div>
           </div>
         </div>
+        {/******************************************************************
+         * COPYRIGHT SECTION
+         * Copyright notice with dynamically updated year
+         ******************************************************************/}
         <div className="border-t border-gray-700 w-full max-w-screen mt-8 pt-5 pb-2 text-center text-gray-400 text-base">
           <p className="my-1">
             &copy; {new Date().getFullYear()} Park Guide Training and

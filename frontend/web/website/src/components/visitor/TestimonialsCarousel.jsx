@@ -1,3 +1,11 @@
+/***********************************************************************
+ * TESTIMONIALS CAROUSEL COMPONENT
+ * Displays visitor testimonials in an interactive carousel with:
+ * - Dynamic fetching of testimonial data from API
+ * - Star rating visualization
+ * - Auto-advancing slides with manual navigation controls
+ * - Loading and error state handling
+ ***********************************************************************/
 import React, { useState, useEffect, useCallback } from "react";
 import { FaQuoteLeft, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
@@ -7,7 +15,10 @@ const TestimonialsCarousel = () => {
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fetch testimonials from the API
+  /******************************************************************
+   * DATA FETCHING
+   * Fetches testimonial data from the API and processes it
+   ******************************************************************/
   useEffect(() => {
     const fetchTestimonials = async () => {
       try {
@@ -18,7 +29,8 @@ const TestimonialsCarousel = () => {
           throw new Error("Failed to fetch testimonials");
         }
 
-        const data = await response.json(); // Process the data to match our display format
+        const data = await response.json();
+        // Process the data to match our display format
         const processedData = data.map((feedback) => ({
           id: feedback.feedback_id,
           visitor_name: feedback.visitor_name || "Anonymous Visitor",
@@ -51,7 +63,10 @@ const TestimonialsCarousel = () => {
     fetchTestimonials();
   }, []);
 
-  // Functions to navigate carousel
+  /******************************************************************
+   * CAROUSEL NAVIGATION
+   * Functions to navigate between testimonials
+   ******************************************************************/
   const nextTestimonial = useCallback(() => {
     setCurrentIndex((prevIndex) =>
       prevIndex === testimonials.length - 1 ? 0 : prevIndex + 1
@@ -64,7 +79,10 @@ const TestimonialsCarousel = () => {
     );
   }, [testimonials.length]);
 
-  // Auto-advance carousel
+  /******************************************************************
+   * AUTO-ADVANCE FUNCTIONALITY
+   * Automatically advances the carousel every 5 seconds
+   ******************************************************************/
   useEffect(() => {
     if (testimonials.length <= 1) return;
 
@@ -75,6 +93,10 @@ const TestimonialsCarousel = () => {
     return () => clearInterval(intervalId);
   }, [nextTestimonial, testimonials.length]);
 
+  /******************************************************************
+   * UTILITY FUNCTIONS
+   * Helper functions for rendering and formatting
+   ******************************************************************/
   // Render star ratings
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -95,6 +117,10 @@ const TestimonialsCarousel = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  /******************************************************************
+   * CONDITIONAL RENDERING
+   * Handles loading, error, and empty states
+   ******************************************************************/
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -118,6 +144,11 @@ const TestimonialsCarousel = () => {
       </div>
     );
   }
+
+  /******************************************************************
+   * MAIN CAROUSEL RENDER
+   * Displays the testimonial card with navigation controls
+   ******************************************************************/
   return (
     <div className="relative max-w-4xl mx-auto px-6">
       {/* Carousel navigation */}

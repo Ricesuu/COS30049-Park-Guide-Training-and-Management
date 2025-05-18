@@ -1,3 +1,10 @@
+/***********************************************************************
+ * VISITOR LANDING PAGE COMPONENT
+ * Main landing page for visitors with key sections:
+ * - Hero section with video background
+ * - Features section highlighting key offerings
+ * - Testimonials from park guides
+ ***********************************************************************/
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -52,7 +59,10 @@ const VisitorLandingPage = () => {
         userRole={userRole}
         logoutUser={logoutUser}
       />
-      {/* Hero Section with YouTube Video Background */}
+      {/******************************************************************
+       * HERO SECTION
+       * Video background with welcome message and CTA button
+       ******************************************************************/}
       <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
         {/* YouTube Video Background */}
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
@@ -94,7 +104,10 @@ const VisitorLandingPage = () => {
           </button>
         </div>
       </section>
-      {/* Features Section */}
+      {/******************************************************************
+       * FEATURES SECTION
+       * Highlights key features with icons and descriptions
+       ******************************************************************/}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -216,7 +229,10 @@ const VisitorLandingPage = () => {
           </div>
         </div>
       </section>{" "}
-      {/* Testimonials Section */}
+      {/******************************************************************
+       * TESTIMONIALS SECTION
+       * Carousel of user testimonials from park guides
+       ******************************************************************/}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
@@ -229,7 +245,10 @@ const VisitorLandingPage = () => {
           <TestimonialsCarousel />
         </div>
       </section>
-      {/* Footer */}
+      {/******************************************************************
+       * FOOTER SECTION
+       * Site footer with links and copyright information
+       ******************************************************************/}
       <Footer />
     </motion.div>
   );
