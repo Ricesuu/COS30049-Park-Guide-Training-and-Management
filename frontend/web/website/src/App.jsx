@@ -11,6 +11,9 @@ import RegisterPage from "./pages/auth/Register";
 import ForgotPasswordPage from "./pages/auth/Forgot_Password";
 import ResetPasswordPage from "./pages/auth/Reset_Password";
 
+// 🏠 Visitor Pages
+import VisitorLandingPage from "./pages/visitor/index";
+
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
 import InfoManager from "./pages/admin/InfoManager";
@@ -18,7 +21,7 @@ import InfoDetail from "./pages/admin/InfoDetail";
 import ParkGuides from "./pages/admin/ParkGuides";
 import ParkGuideDetails from "./pages/admin/ParkGuideDetails";
 import IoTHub from "./pages/admin/IoTHub";
-import AssignCourse from "./pages/admin/AdminAssignCourses"
+import AssignCourse from "./pages/admin/AdminAssignCourses";
 import CourseManager from "./pages/admin/CourseManager";
 import QuizEditor from "./pages/admin/QuizEditor";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -35,27 +38,47 @@ import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
 import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
+// Import the landing page
+import LandingPage from "./pages/index";
+
 function AppRoutes() {
   const location = useLocation();
-  const isAuthRoute = ["/", "/login", "/register", "/forgot_password", "/reset_password"].includes(location.pathname);
+  const isAuthRoute = [
+    "/login",
+    "/register",
+    "/forgot_password",
+    "/reset_password",
+  ].includes(location.pathname);
+  const isHomeRoute = location.pathname === "/";
 
-  if (isAuthRoute) {
+  if (isHomeRoute) {
     return (
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot_password" element={<ForgotPasswordPage />} />
-          <Route path="/reset_password" element={<ResetPasswordPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </AnimatePresence>
     );
   }
 
+  if (isAuthRoute) {
+    return (
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot_password" element={<ForgotPasswordPage />} />
+          <Route path="/reset_password" element={<ResetPasswordPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
   return (
     <Routes location={location} key={location.pathname}>
+      {/* Visitor Section */}
+      <Route path="/visitor" element={<VisitorLandingPage />} />
+
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
@@ -81,6 +104,9 @@ function AppRoutes() {
         <Route path="quiz" element={<ParkguideQuiz />} />
         <Route path="payment" element={<ParkguidePayment />} />
       </Route>
+
+      {/* Catch-all route redirects to the landing page */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
