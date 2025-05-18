@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
+import TestimonialsCarousel from "../../components/visitor/TestimonialsCarousel";
 
 const VisitorLandingPage = () => {
   const navigate = useNavigate();
@@ -97,7 +98,7 @@ const VisitorLandingPage = () => {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Our Features</h2>
+            <h2 className="text-3xl font-bold mb-4">Key Features</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Everything you need to become an expert park guide
             </p>
@@ -115,10 +116,30 @@ const VisitorLandingPage = () => {
               <h3 className="text-xl font-semibold mb-3 text-center">
                 Training Modules
               </h3>
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 text-center mb-5">
                 Comprehensive learning materials to enhance your knowledge about
                 the park and its ecosystem.
-              </p>
+              </p>{" "}
+              <div className="text-center">
+                <a
+                  onClick={() => navigate("/visitor/training")}
+                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                >
+                  Learn More
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 ml-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </a>
+              </div>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="mb-4">
@@ -131,10 +152,30 @@ const VisitorLandingPage = () => {
               <h3 className="text-xl font-semibold mb-3 text-center">
                 Certification
               </h3>
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 text-center mb-5">
                 Earn official certifications to validate your expertise as a
                 park guide.
-              </p>
+              </p>{" "}
+              <div className="text-center">
+                <a
+                  onClick={() => navigate("/visitor/certification")}
+                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                >
+                  Learn More
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 ml-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </a>
+              </div>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="mb-4">
@@ -147,14 +188,47 @@ const VisitorLandingPage = () => {
               <h3 className="text-xl font-semibold mb-3 text-center">
                 Plant Information
               </h3>
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 text-center mb-5">
                 Access detailed information about the flora and fauna within the
                 park.
-              </p>
-            </div>{" "}
+              </p>{" "}
+              <div className="text-center">
+                <a
+                  onClick={() => navigate("/visitor/plant-info")}
+                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                >
+                  Learn More
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 ml-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
           </div>
-        </div>{" "}
+        </div>
       </section>{" "}
+      {/* Testimonials Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Hear from park guides who have experienced our training program
+            </p>
+          </div>
+
+          <TestimonialsCarousel />
+        </div>
+      </section>
       {/* Footer */}
       <Footer />
     </motion.div>
