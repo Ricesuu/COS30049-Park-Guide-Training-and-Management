@@ -14,6 +14,7 @@ import ResetPasswordPage from "./pages/auth/Reset_Password";
 // 🏠 Visitor Pages
 import VisitorLandingPage from "./pages/visitor/index";
 import AboutPage from "./pages/visitor/about";
+import ContactPage from "./pages/visitor/contact";
 
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -77,10 +78,11 @@ function AppRoutes() {
   }
   return (
     <Routes location={location} key={location.pathname}>
+      {" "}
       {/* Visitor Section */}
       <Route path="/visitor" element={<VisitorLandingPage />} />
       <Route path="/visitor/about" element={<AboutPage />} />
-
+      <Route path="/visitor/contact" element={<ContactPage />} />
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
@@ -93,7 +95,6 @@ function AppRoutes() {
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
       </Route>
-
       {/* Park Guide Section */}
       <Route path="/park_guide" element={<ParkGuideLayout />}>
         <Route path="dashboard" element={<ParkguideDashboard />} />
@@ -106,7 +107,6 @@ function AppRoutes() {
         <Route path="quiz" element={<ParkguideQuiz />} />
         <Route path="payment" element={<ParkguidePayment />} />
       </Route>
-
       {/* Catch-all route redirects to the landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

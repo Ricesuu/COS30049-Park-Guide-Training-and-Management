@@ -99,7 +99,17 @@ const Footer = () => {
                     onClick={() => navigate("/visitor/feedback")}
                     className="hover:text-green-400 transition-colors flex items-center text-base"
                   >
+                    {" "}
                     Feedback
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => navigate("/visitor/contact")}
+                    className="hover:text-green-400 transition-colors flex items-center text-base"
+                  >
+                    Contact
                   </a>
                 </li>
               </ul>

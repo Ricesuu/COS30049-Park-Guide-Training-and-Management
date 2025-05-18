@@ -177,7 +177,11 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
           )}{" "}
           <button
             onClick={goToContact}
-            className="border border-white text-white hover:bg-white hover:text-green-700 py-2 px-5 rounded-lg text-sm md:text-base font-medium transition-colors cursor-pointer"
+            className={`${
+              location.pathname === "/visitor/contact"
+                ? "border border-white bg-white text-green-700"
+                : "border border-white text-white hover:bg-white hover:text-green-700"
+            } py-2 px-5 rounded-lg text-sm md:text-base font-medium transition-colors cursor-pointer`}
           >
             Contact
           </button>
