@@ -29,13 +29,58 @@ CREATE TABLE IF NOT EXISTS ParkGuides (
 );
 
 -- ==============================================
+-- Table: Quizzes Table
+CREATE TABLE IF NOT EXISTS quizzes (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+-- ==============================================
+-- Table: Questions Table
+CREATE TABLE IF NOT EXISTS questions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  quiz_id INT NOT NULL,
+  type VARCHAR(50) NOT NULL, -- 'multiple-choice', 'true-false', etc.
+  text TEXT NOT NULL,
+  explanation TEXT,
+  points INT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
+);
+
+
+-- ==============================================
+-- Table: Options Table for Question Choices
+CREATE TABLE IF NOT EXISTS options (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  question_id INT NOT NULL,
+  text VARCHAR(255) NOT NULL,
+  is_correct BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+);
+
+
+-- ==============================================
 -- Table: Training Modules Table
 CREATE TABLE IF NOT EXISTS TrainingModules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
-  module_name VARCHAR(255) NOT NULL,
-  description TEXT NULL,
-  duration INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  module_code VARCHAR(10) NOT NULL UNIQUE,  
+  module_name VARCHAR(255) NOT NULL,      
+  description TEXT,            
+  difficulty ENUM('beginner', 'intermediate', 'advanced') NOT NULL,  
+  aspect ENUM('language', 'knowledge', 'organization', 'engagement', 'safety') NOT NULL, 
+  video_url VARCHAR(255),
+  course_content LONGTEXT,
+  quiz_id INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE SET NULL
 );
 
 -- ==============================================
@@ -109,14 +154,16 @@ CREATE TABLE IF NOT EXISTS IoTMonitoring (
 -- ==============================================
 -- Table: Visitor Feedback Table
 CREATE TABLE IF NOT EXISTS VisitorFeedback (
-    feedback_id INT AUTO_INCREMENT PRIMARY KEY,
-    visitor_id INT NOT NULL,
-    guide_id INT NOT NULL,
-    rating INT NOT NULL, -- Removed CHECK constraint
-    comment TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (visitor_id) REFERENCES Users(user_id),
-    FOREIGN KEY (guide_id) REFERENCES ParkGuides(guide_id)
+  feedback_id INT AUTO_INCREMENT PRIMARY KEY,
+  guide_id INT NOT NULL,
+  language_rating INT NOT NULL,
+  knowledge_rating INT NOT NULL,
+  organization_rating INT NOT NULL,
+  engagement_rating INT NOT NULL,
+  safety_rating INT NOT NULL,
+  comment TEXT,
+  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (guide_id) REFERENCES ParkGuides(guide_id)
 );
 
 -- ==============================================
@@ -172,6 +219,175 @@ CREATE TABLE IF NOT EXISTS ActiveAlerts (
 
 -- DUMMY DATA
 
+-- USERS
+INSERT INTO Users (uid, email, first_name, last_name, role, status)
+VALUES
+('KYY2oueOzjfsf8M0hj6EXUr7bTz1', 'dummy_alice@gmail.com', 'Alice', 'Smith', 'park_guide', 'pending'),
+('jSwLpZx9HFSAZFKjBxEPEE9DOPg2', 'dummy_bob@gmail.com', 'Bob', 'Lee', 'park_guide', 'pending'),
+('ytoRQm2HjxMGyognXOIzAe5qtJo2', 'dummy_charlie@gmail.com', 'Charlie', 'Tan', 'park_guide', 'pending'),
+('H0GHBO3sLDcZCHu1MOqRqZe4m4u1', 'dummy_daisy@gmail.com', 'Daisy', 'Lim', 'park_guide', 'pending'),
+('1xusvbVRDfS22fDpgXBYgzKaxc02', 'dummy_ethan@gmail.com', 'Ethan', 'Bong', 'park_guide', 'pending'),
+('vs4w07Uf2dSKlSuQbOqIE9Fw4ZH2', 'dummy_fiona@gmail.com', 'Fiona', 'Sim', 'park_guide', 'approved'),
+('rZv5wgNERUO7QqS1h4P2QMIvuAR2', 'dummy_george@gmail.com', 'George', 'Lee', 'park_guide', 'approved'),
+('QEtK5une5wYMDJl37P25Tdv4lGp2', 'dummy_hannah@gmail.com', 'Hannah', 'Yeo', 'park_guide', 'approved'),
+('6jwqlVlL5pSS3CKTDMhIkZEkNwz2', 'dummy_tom@gmail.com', 'Tom', 'Smith', 'park_guide', 'approved'),
+('Cr2k6LcmmgPEs62iDpkET4daYSY2', 'admin@gmail.com', 'Jerry', 'Ho', 'admin', 'approved'),
+('rd15IJ3TbMgAAZAd0goPoeWGy3j1', 'dummy_newguide@gmail.com', 'New', 'Guide', 'park_guide', 'approved');
+
+-- PARK GUIDES
+INSERT INTO ParkGuides (user_id, certification_status, license_expiry_date, assigned_park)
+VALUES
+(1, 'pending', NULL, 'Green Park'),
+(2, 'pending', NULL, 'Green Park'),
+(3, 'pending', NULL, 'Blue Lake'),
+(4, 'pending', NULL, 'Blue Lake'),
+(5, 'pending', NULL, 'Red Forest'),
+(6, 'certified', '2026-12-31', 'Green Park'),
+(7, 'certified', '2026-12-31', 'Blue Lake'),
+(8, 'certified', '2026-12-31', 'Red Forest'),
+(9, 'certified', '2026-12-31', 'Grand Canyon'),
+(11, 'pending', NULL, 'Emerald Valley');
+
+-- QUIZZES
+INSERT INTO quizzes (name, description) VALUES
+('Language Basics Quiz', 'Quiz for evaluating basic language and communication skills'),
+('Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna'),
+('Tour Organization Quiz', 'Assess skills in planning and managing tours'),
+('Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors'),
+('Safety Procedures Quiz', 'Test understanding of safety protocols');
+
+-- TRAINING MODULES
+INSERT INTO TrainingModules (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id)
+VALUES
+-- Language
+('LAN101', 'Effective Language Use', 'Basic communication strategies for guides', 'beginner', 'language', 'https://example.com/videos/lan101', 'Intro to language use.', 1),
+('LAN103', 'Effective Communication Basics', 'Verbal and non-verbal communication.', 'beginner', 'language', 'https://example.com/videos/lan103', 'Tone and gestures.', 1),
+('LAN104', 'Pronunciation & Clarity Workshop', 'Improve articulation.', 'beginner', 'language', 'https://example.com/videos/lan104', 'Practice drills.', 1),
+
+-- Knowledge
+('KNW101', 'Local History Introduction', 'Intro to historical sites.', 'beginner', 'knowledge', 'https://example.com/videos/knw101', 'Basic facts.', 2),
+('KNW102', 'Basic Cultural Etiquette', 'Do’s and don’ts of culture.', 'beginner', 'knowledge', 'https://example.com/videos/knw102', 'Traditions overview.', 2),
+
+-- Organization
+('ORG101', 'Tour Planning Basics', 'Structure a guided tour.', 'beginner', 'organization', 'https://example.com/videos/org101', 'Schedules and routes.', 3),
+('ORG102', 'Checklists & Pre-tour Prep', 'Pre-tour techniques.', 'beginner', 'organization', 'https://example.com/videos/org102', 'Prep guides.', 3),
+
+-- Engagement
+('ENG100', 'Engaging Your Audience', 'Keep tourists involved.', 'beginner', 'engagement', 'https://example.com/videos/eng100', 'Basic engagement tips.', 4),
+('ENG105', 'Storytelling for Beginners', 'Craft engaging stories.', 'beginner', 'engagement', 'https://example.com/videos/eng105', 'Narrative techniques.', 4),
+
+-- Safety
+('SFT101', 'Tour Safety Fundamentals', 'Safety protocols.', 'beginner', 'safety', 'https://example.com/videos/sft101', 'Precautionary measures.', 5),
+('SFT102', 'First Aid Essentials', 'Basic first aid.', 'beginner', 'safety', 'https://example.com/videos/sft102', 'CPR, emergencies.', 5);
+
+-- GUIDE TRAINING PROGRESS
+-- New guide in progress
+INSERT INTO GuideTrainingProgress (guide_id, module_id, status)
+VALUES
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rd15IJ3TbMgAAZAd0goPoeWGy3j1')),
+  1, 'in progress'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rd15IJ3TbMgAAZAd0goPoeWGy3j1')),
+  2, 'in progress'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rd15IJ3TbMgAAZAd0goPoeWGy3j1')),
+  4, 'in progress'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rd15IJ3TbMgAAZAd0goPoeWGy3j1')),
+  6, 'in progress'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rd15IJ3TbMgAAZAd0goPoeWGy3j1')),
+  8, 'in progress'
+);
+
+-- Certified guides - Completed
+-- Guide: Fiona (uid: vs4w07Uf2dSKlSuQbOqIE9Fw4ZH2)
+INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+VALUES
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'vs4w07Uf2dSKlSuQbOqIE9Fw4ZH2')),
+  1, 'Completed', '2024-12-01'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'vs4w07Uf2dSKlSuQbOqIE9Fw4ZH2')),
+  2, 'Completed', '2024-12-02'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'vs4w07Uf2dSKlSuQbOqIE9Fw4ZH2')),
+  3, 'Completed', '2024-12-03'
+);
+
+-- Guide: George (uid: rZv5wgNERUO7QqS1h4P2QMIvuAR2)
+INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+VALUES
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rZv5wgNERUO7QqS1h4P2QMIvuAR2')),
+  4, 'Completed', '2024-11-21'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'rZv5wgNERUO7QqS1h4P2QMIvuAR2')),
+  5, 'Completed', '2024-11-22'
+);
+
+-- Guide: Hannah (uid: QEtK5une5wYMDJl37P25Tdv4lGp2)
+INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+VALUES
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'QEtK5une5wYMDJl37P25Tdv4lGp2')),
+  6, 'Completed', '2025-01-10'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = 'QEtK5une5wYMDJl37P25Tdv4lGp2')),
+  7, 'Completed', '2025-01-11'
+);
+
+-- Guide: Tom (uid: 6jwqlVlL5pSS3CKTDMhIkZEkNwz2)
+INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+VALUES
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = '6jwqlVlL5pSS3CKTDMhIkZEkNwz2')),
+  8, 'Completed', '2025-02-05'
+),
+(
+  (SELECT guide_id FROM ParkGuides 
+   WHERE user_id = (SELECT user_id FROM Users 
+                    WHERE uid = '6jwqlVlL5pSS3CKTDMhIkZEkNwz2')),
+  9, 'Completed', '2025-02-06'
+);
+
+
+
 -- Updated Dummy Users Data
 INSERT INTO Users (uid, email, first_name, last_name, role, status) VALUES 
 ('vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved');
@@ -186,17 +402,29 @@ SELECT * from Users;
 
 
 
+-- Dummy Quizzes Data
+INSERT INTO quizzes (name, description) VALUES 
+('Park Safety Basics', 'Essential safety guidelines for park visitors'),
+('Wildlife Awareness', 'How to safely interact with park wildlife');
 
+-- Dummy Questions for Quizzes
+INSERT INTO questions (quiz_id, type, text, explanation, points) VALUES
+(1, 'multiple-choice', 'What should you do if you encounter a bear in the park?', 'Backing away slowly while facing the bear is the safest approach. Running may trigger the bear''s chase instinct.', 1),
+(1, 'true-false', 'It is safe to feed the wildlife in the park.', 'Feeding wildlife is dangerous for both animals and humans. It can cause animals to lose their natural fear of humans and become aggressive.', 2);
 
+-- Dummy Options for questions
+INSERT INTO options (question_id, text, is_correct) VALUES
+(1, 'Run away as fast as possible', FALSE),
+(1, 'Make loud noises and wave your arms', FALSE),
+(1, 'Back away slowly while facing the bear', TRUE),
+(1, 'Play dead immediately', FALSE),
+(2, 'True', FALSE),
+(2, 'False', TRUE);
 
--- Dummy Training Modules Data
-INSERT INTO TrainingModules (module_name, description, duration) VALUES
-('Basic Park Safety', 'Covers fundamental safety procedures for park environments.', 120),
-('Advanced Navigation Techniques', 'Teaches the use of GPS, maps, and compass for navigation.', 180),
-('Wildlife Interaction Guidelines', 'How to safely interact with and manage wildlife encounters.', 150),
-('Emergency First Aid', 'Provides essential first aid training for emergencies.', 240),
-('Environmental Conservation', 'Focuses on sustainable practices and environmental awareness.', 90);
-SELECT * from TrainingModules;
+-- Dummy Training Modules Data that reference the quizzes
+INSERT INTO TrainingModules (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id) VALUES 
+('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1),
+('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2);
 
 
 

@@ -1,0 +1,213 @@
+[
+    {
+      "timestamp": "2025-04-29 13:15:00",
+      "temperature": 24.4,
+      "humidity": 59.5,
+      "soil_moisture": 43,
+      "distance": 1480.2
+    },
+    {
+      "timestamp": "2025-04-29 13:30:00",
+      "temperature": 25.1,
+      "humidity": 57.2,
+      "soil_moisture": 48,
+      "distance": 1322.6
+    },
+    {
+      "timestamp": "2025-04-29 13:45:00",
+      "temperature": 26.7,
+      "humidity": 46.3,
+      "soil_moisture": 36,
+      "distance": 1230.0
+    },
+    {
+      "timestamp": "2025-04-29 14:00:00",
+      "temperature": 27.5,
+      "humidity": 40.0,
+      "soil_moisture": 29,
+      "distance": 1355.1
+    },
+    {
+      "timestamp": "2025-04-29 14:15:00",
+      "temperature": 28.0,
+      "humidity": 39.4,
+      "soil_moisture": 27,
+      "distance": 1458.8
+    },
+    {
+      "timestamp": "2025-04-29 14:30:00",
+      "temperature": 22.5,
+      "humidity": 65.7,
+      "soil_moisture": 58,
+      "distance": 1080.3
+    },
+    {
+      "timestamp": "2025-04-29 14:45:00",
+      "temperature": 23.6,
+      "humidity": 68.2,
+      "soil_moisture": 61,
+      "distance": 1123.9
+    },
+    {
+      "timestamp": "2025-04-29 15:00:00",
+      "temperature": 25.9,
+      "humidity": 52.0,
+      "soil_moisture": 47,
+      "distance": 1377.4
+    },
+    {
+      "timestamp": "2025-04-29 15:15:00",
+      "temperature": 24.8,
+      "humidity": 58.1,
+      "soil_moisture": 45,
+      "distance": 1568.5
+    },
+    {
+      "timestamp": "2025-04-29 15:30:00",
+      "temperature": 26.2,
+      "humidity": 47.7,
+      "soil_moisture": 41,
+      "distance": 1022.1
+    },
+    {
+      "timestamp": "2025-04-29 15:45:00",
+      "temperature": 22.1,
+      "humidity": 75.3,
+      "soil_moisture": 60,
+      "distance": 1677.3
+    },
+    {
+      "timestamp": "2025-04-29 16:00:00",
+      "temperature": 23.4,
+      "humidity": 63.8,
+      "soil_moisture": 56,
+      "distance": 1810.0
+    },
+    {
+      "timestamp": "2025-04-29 16:15:00",
+      "temperature": 21.7,
+      "humidity": 71.2,
+      "soil_moisture": 59,
+      "distance": 1904.4
+    },
+    {
+      "timestamp": "2025-04-29 16:30:00",
+      "temperature": 26.6,
+      "humidity": 43.9,
+      "soil_moisture": 32,
+      "distance": 995.2
+    },
+    {
+      "timestamp": "2025-04-29 16:45:00",
+      "temperature": 27.0,
+      "humidity": 42.1,
+      "soil_moisture": 30,
+      "distance": 870.3
+    },
+    {
+      "timestamp": "2025-04-29 17:00:00",
+      "temperature": 25.5,
+      "humidity": 54.4,
+      "soil_moisture": 44,
+      "distance": 750.8
+    },
+    {
+      "timestamp": "2025-04-29 17:15:00",
+      "temperature": 23.9,
+      "humidity": 61.1,
+      "soil_moisture": 49,
+      "distance": 900.2
+    },
+    {
+      "timestamp": "2025-04-29 17:30:00",
+      "temperature": 22.4,
+      "humidity": 67.7,
+      "soil_moisture": 53,
+      "distance": 980.6
+    },
+    {
+      "timestamp": "2025-04-29 17:45:00",
+      "temperature": 21.9,
+      "humidity": 72.3,
+      "soil_moisture": 57,
+      "distance": 1280.1
+    },
+    {
+      "timestamp": "2025-04-29 18:00:00",
+      "temperature": 20.6,
+      "humidity": 78.2,
+      "soil_moisture": 63,
+      "distance": 1433.9
+    },
+    {
+      "timestamp": "2025-04-29 18:15:00",
+      "temperature": 28.3,
+      "humidity": 34.5,
+      "soil_moisture": 21,
+      "distance": 1550.6
+    },
+    {
+      "timestamp": "2025-04-29 18:30:00",
+      "temperature": 29.0,
+      "humidity": 30.0,
+      "soil_moisture": 19,
+      "distance": 1644.2
+    },
+    {
+      "timestamp": "2025-04-29 18:45:00",
+      "temperature": 27.9,
+      "humidity": 36.8,
+      "soil_moisture": 25,
+      "distance": 1705.7
+    },
+    {
+      "timestamp": "2025-04-29 19:00:00",
+      "temperature": 24.2,
+      "humidity": 55.3,
+      "soil_moisture": 39,
+      "distance": 1122.8
+    },
+    {
+      "timestamp": "2025-04-29 19:15:00",
+      "temperature": 23.5,
+      "humidity": 59.6,
+      "soil_moisture": 42,
+      "distance": 980.9
+    },
+    {
+      "timestamp": "2025-04-29 19:30:00",
+      "temperature": 22.2,
+      "humidity": 65.0,
+      "soil_moisture": 50,
+      "distance": 770.2
+    },
+    {
+      "timestamp": "2025-04-29 19:45:00",
+      "temperature": 21.5,
+      "humidity": 68.9,
+      "soil_moisture": 54,
+      "distance": 520.3
+    },
+    {
+      "timestamp": "2025-04-29 20:00:00",
+      "temperature": 22.7,
+      "humidity": 69.0,
+      "soil_moisture": 58,
+      "distance": 305.8
+    },
+    {
+      "timestamp": "2025-04-29 20:15:00",
+      "temperature": 24.1,
+      "humidity": 62.0,
+      "soil_moisture": 49,
+      "distance": 85.0
+    },
+    {
+      "timestamp": "2025-04-29 20:30:00",
+      "temperature": 25.2,
+      "humidity": 55.5,
+      "soil_moisture": 44,
+      "distance": 16.3
+    }
+  ]
+  
