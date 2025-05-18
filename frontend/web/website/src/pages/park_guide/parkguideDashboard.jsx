@@ -1,40 +1,101 @@
 // parkguideDashboard.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import "../../ParkGuideStyle.css";
+import { auth } from '../../Firebase';
 
 // Import images to ensure they're properly handled by Vite
 import semenggohImg from '/images/Semenggoh.jpg';
 import advancedGuideImg from '/images/advanced_guide.png';
 import firstaidImg from '/images/firstaid.jpg';
+import placeholderModuleImg from '/images/advanced_guide.png'; // Placeholder for modules
+
+
 
 const Dashboard = () => {
-  const announcements = [
-    { text: 'New training modules are now available!', priority: 'high' },
-    { text: 'Certification 3 is expiring soon. Please renew.', priority: 'medium' },
-    { text: 'Park maintenance scheduled for next week.', priority: 'low' },
-    { text: 'New safety protocols have been implemented.', priority: 'high' },
-    { text: 'Team meeting scheduled for Friday.', priority: 'medium' },
-    { text: 'Visitor feedback survey is now live.', priority: 'low' },
-    { text: 'Emergency drill scheduled for next month.', priority: 'high' },
-    { text: 'New park zones are now open.', priority: 'medium' },
-    { text: 'Annual park cleanup event is coming soon.', priority: 'low' },
-  ];
-
-  const certifications = [
-    { title: 'Semenggoh Park Guide', expiry: '2025-12-31' },
-    { title: 'Is it really that deep? + 2', expiry: 'In Progress' },
-    { title: 'Advanced Wildlife Training', expiry: '2026-06-15' },
-    { title: 'Visitor Safety Certification', expiry: '2024-09-30' },
-    { title: 'Park Maintenance Basics', expiry: '2025-03-20' },
-    { title: 'Wildlife Rescue Basics', expiry: '2025-08-15' },
-    { title: 'Eco-Tourism Certification', expiry: '2026-01-10' },
-  ];
-
-  const performanceMetrics = {
-    positiveFeedback: 80, // Example: 80% positive feedback
-    negativeFeedback: 20, // Example: 20% negative feedback
-    totalFeedback: 100, // Example: 100 total feedback entries
-  };
+  const [userData, setUserData] = useState(null);
+  const [guideData, setGuideData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [certifications, setCertifications] = useState([]);
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Get current auth token
+        const user = auth.currentUser;
+        if (!user) {
+          console.error('User not authenticated');
+          setError('User not authenticated');
+          setLoading(false);
+          return;
+        }
+        
+        const token = await user.getIdToken();
+        
+        // Fetch user data
+        const userResponse = await fetch('/api/users/'+user.uid, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!userResponse.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+          const userData = await userResponse.json();
+        console.log('User data received:', userData);
+        setUserData(userData);
+        
+        // Fetch park guide data
+        const guideResponse = await fetch('/api/park-guides/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!guideResponse.ok) {
+          throw new Error('Failed to fetch guide data');
+        }
+        
+        const guideData = await guideResponse.json();
+        console.log('Guide data received:', guideData);
+        setGuideData(guideData);
+        
+        // Fetch training modules
+        const modulesResponse = await fetch('/api/training-modules/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (modulesResponse.ok) {
+          const modulesData = await modulesResponse.json();
+          console.log('Modules data received:', modulesData);
+          setModules(modulesData || []);
+        }
+        
+        // Fetch certifications
+        const certificationsResponse = await fetch('/api/certifications/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (certificationsResponse.ok) {
+          const certificationsData = await certificationsResponse.json();
+          console.log('Certifications data received:', certificationsData);
+          setCertifications(certificationsData || []);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+      fetchUserData();  }, []);
 
   const navigate = (path) => {
     window.location.href = path;
@@ -47,69 +108,90 @@ const Dashboard = () => {
       <div className="dashboard-main-content">
         {/* User Info Container */}
         <div className="box user-info">
-          <img src="/images/Ruiziq.jpg" alt="User" className="user-photo" />
-          <div className="user-details">
-            <h2 className="user-name">Mohamad Haziq bin Solamee @Halmi</h2>
-            <p className="user-id">ID: 102782601</p>
-          </div>
-        </div>
+          {loading ? (
+            <p>Loading user information...</p>
+          ) : error ? (
+            <p>Error loading user information: {error}</p>          ) : (
+            <>
+              
+                <div className="user-details" style={{textAlign: 'center'}}>
+                <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>
+                <p className="user-id">Guide ID: {guideData?.guide_id || 'Not Available'}</p>                <p className="user-park">Park: {guideData?.assigned_park || 'Unassigned'}</p>
+                <p className="user-cert-status">Certification Status: {guideData?.certification_status || 'Pending'}</p>
+                {userData && (
+                  <p className="user-email">Email: {userData.email}</p>
+                )}
+              </div>
+            </>
+          )}        </div>        {/* Only show content if there's no loading and no errors */}
+        {!loading && !error && (          <div className="centered-boxes">
+            {/* Modules Container */}
+            <div className="box module-container" style={{ flex: 1, maxWidth: '48%' }}>
+              <h2 className="boxtitle">Your Training Modules</h2>
+              {modules && modules.length > 0 ? (
+                <div className="modules-list">
+                  {modules.map((module, index) => (
+                    <div className="module-item" key={index}>                      <div className="module-image-container" style={{ height: '120px', maxWidth: '180px', margin: '0 auto 15px auto' }}>
+                        <img 
+                          src={placeholderModuleImg} 
+                          alt={`Module ${index + 1}`} 
+                          className="module-image" 
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      </div>
+                      <div className="module-content">
+                        <h3>{module.name}</h3>
+                        <p>{module.description}</p>
+                        <div className="module-status">
+                          <span><strong>Status:</strong> {module.module_status || 'In Progress'}</span>
+                          {module.completion_percentage && (
+                            <div className="progress-bar">
+                              <div 
+                                className="progress" 
+                                style={{width: `${module.completion_percentage}%`}}
+                              ></div>
+                              <span>{module.completion_percentage}% Complete</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-modules-message">You don't have any training modules yet.</p>
+              )}            </div>
 
-        {/* Centered Boxes */}
-        <div className="centered-boxes">
-          {/* Announcement Container */}
-          <div className="box announcement">
-            <h2 className="boxtitle">Announcements</h2>
-            <ul className="announcement-list">
-              {announcements.map((announcement, index) => (
-                <li
-                  key={index}
-                  className={`announcement-item ${announcement.priority}`}
-                >
-                  {announcement.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Performance Container */}
-          <div className="box performance">
-            <h2 className="boxtitle">Performance</h2>
-            <div className="performance-content">
-              <p><strong>Total Feedback:</strong> {performanceMetrics.totalFeedback}</p>
-              <p><strong>Positive Feedback:</strong> {performanceMetrics.positiveFeedback}%</p>
-              <p><strong>Negative Feedback:</strong> {performanceMetrics.negativeFeedback}%</p>
+            {/* Certification Section */}
+            <div className="box certification" style={{ flex: 1, maxWidth: '48%' }}>
+              <h2 className="boxtitle">Your Certifications</h2>              {certifications && certifications.length > 0 ? (
+                <div className="certification-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>                  {certifications.map((cert, index) => (
+                    <div className="dashboard-cert-card" key={index} onClick={() => navigate('/certifications')}>
+                      <div className="dashboard-cert-image-container">
+                        <img
+                          src={certImages[index % certImages.length]}
+                          alt={`Certification ${index + 1}`}
+                          className="dashboard-cert-image"
+                        />
+                      </div>
+                      <div className="dashboard-cert-info">
+                        <h3 className="dashboard-cert-title">{cert.module_name}</h3>
+                        <p className="dashboard-cert-expiry">
+                          Expiry: <span>{new Date(cert.expiry_date).toLocaleDateString()}</span>
+                        </p>
+                        <p className="dashboard-cert-issued">
+                          Issued: <span>{new Date(cert.issued_date).toLocaleDateString()}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-certs-message">You don't have any completed certifications yet.</p>
+              )}
             </div>
           </div>
-
-          {/* Certification Section - Show only completed certs */}
-          <div className="box certification">
-            <h2 className="boxtitle">Your Certifications</h2>
-            <div className="certification-grid">
-              {certifications
-                .filter(cert => cert.expiry !== 'In Progress') // Only show completed certifications
-                .map((cert, index) => (
-                  <div className="dashboard-cert-card" key={index} onClick={() => navigate('/certifications')}>
-                    <div className="dashboard-cert-image-container">
-                      <img
-                        src={certImages[index % 3]}
-                        alt={`Certification ${index + 1}`}
-                        className="dashboard-cert-image"
-                      />
-                    </div>
-                    <div className="dashboard-cert-info">
-                      <h3 className="dashboard-cert-title">{cert.title}</h3>
-                      <p className="dashboard-cert-expiry">
-                        Expiry: <span>{cert.expiry}</span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-            {certifications.filter(cert => cert.expiry !== 'In Progress').length === 0 && (
-              <p className="no-certs-message">You don't have any completed certifications yet.</p>
-            )}
-          </div>
-        </div>
+        )}
       </div>
   );
 };

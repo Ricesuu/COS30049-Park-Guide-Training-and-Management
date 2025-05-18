@@ -17,12 +17,10 @@ export async function GET(request, context) {
         // ✅ Step 2: Only allow if user is self or admin
         if (requesterUid !== uid && role !== "admin") {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-
-        // ✅ Step 3: Fetch user from DB using UID
+        }        // ✅ Step 3: Fetch user from DB using UID
         connection = await getConnection();
         const [rows] = await connection.execute(
-            "SELECT * FROM users WHERE uid = ?",
+            "SELECT * FROM Users WHERE uid = ?",
             [uid]
         );
 

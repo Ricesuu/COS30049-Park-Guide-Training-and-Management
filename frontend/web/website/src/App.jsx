@@ -35,6 +35,9 @@ import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
 import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
+// 📚 Module Pages
+import ModulePurchase from "./pages/modules/ModulePurchase";
+
 function AppRoutes() {
   const location = useLocation();
   const isAuthRoute = ["/", "/login", "/register", "/forgot_password", "/reset_password"].includes(location.pathname);
@@ -76,11 +79,13 @@ function AppRoutes() {
         <Route path="certifications" element={<ParkguideCert />} />
         <Route path="plants" element={<ParkguidePlantInfo />} />
         <Route path="identify" element={<ParkguideIdentification />} />
-        <Route path="performance" element={<ParkguidePerformance />} />
-        <Route path="module" element={<ParkguideModule />} />
+        <Route path="performance" element={<ParkguidePerformance />} />        <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />
         <Route path="payment" element={<ParkguidePayment />} />
       </Route>
+
+      {/* Module Purchase Section */}
+      <Route path="/modules/purchase/:moduleId" element={<ModulePurchase />} />
     </Routes>
   );
 }
