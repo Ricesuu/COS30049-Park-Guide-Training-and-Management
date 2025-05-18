@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { FaBook, FaCertificate, FaLeaf, FaArrowRight } from "react-icons/fa";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import TestimonialsCarousel from "../../components/visitor/TestimonialsCarousel";
@@ -67,9 +68,10 @@ const VisitorLandingPage = () => {
         {/* YouTube Video Background */}
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
           <div className="relative w-full h-full">
+            {" "}
             <iframe
               className="absolute w-[150%] h-[150%] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              src="https://www.youtube.com/embed/THrCxzbjaYM?autoplay=1&mute=1&controls=0&loop=1&playlist=THrCxzbjaYM&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3"
+              src="https://www.youtube.com/embed/THrCxzbjaYM?autoplay=1&mute=1&controls=0&loop=1&playlist=THrCxzbjaYM&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&start=45"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               frameBorder="0"
               title="Background Video"
@@ -81,12 +83,15 @@ const VisitorLandingPage = () => {
         {/* Hero Content */}
         <div className="container mx-auto px-4 text-center text-white py-24 relative z-20">
           {" "}
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Welcome to Park Guide Training and Management
+          <h3 className="text-green-400 font-bold text-lg md:text-2xl mb-2">
+            WELCOME TO
+          </h3>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+            Park Guide Training and Management
           </h1>
-          <p className="text-xl md:text-2xl mb-10">
+          <p className="text-xl md:text-2xl mb-10 text-gray-200">
             Discover, Learn, and Connect with Nature
-          </p>{" "}
+          </p>
           <button
             onClick={
               isLoggedIn
@@ -98,7 +103,7 @@ const VisitorLandingPage = () => {
                     )
                 : () => navigate("/login")
             }
-            className="bg-green-600 hover:bg-white text-white hover:text-green-700 py-2.5 px-7 rounded-lg font-medium text-sm md:text-base transition-colors cursor-pointer border border-transparent hover:border-green-600"
+            className="bg-green-600 hover:bg-white text-white hover:text-green-700 py-3 px-8 rounded-lg font-medium text-sm md:text-base transition-colors cursor-pointer border border-transparent hover:border-green-600"
           >
             {isLoggedIn ? "Go to Dashboard" : "Get Started"}
           </button>
@@ -108,25 +113,24 @@ const VisitorLandingPage = () => {
        * FEATURES SECTION
        * Highlights key features with icons and descriptions
        ******************************************************************/}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-green-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Key Features</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+              Key Features
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">
               Everything you need to become an expert park guide
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="mb-4">
-                <img
-                  src="/book-icon.png"
-                  alt="Training"
-                  className="w-12 h-12 mx-auto"
-                />
+            {" "}
+            <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="flex justify-center mb-6">
+                <FaBook className="text-5xl text-emerald-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-center">
+              <h3 className="text-xl font-semibold mb-4 text-center">
                 Training Modules
               </h3>
               <p className="text-gray-600 text-center mb-5">
@@ -136,33 +140,18 @@ const VisitorLandingPage = () => {
               <div className="text-center">
                 <a
                   onClick={() => navigate("/visitor/training")}
-                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                  className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
                 >
                   Learn More
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 ml-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <FaArrowRight className="h-4 w-4 ml-1" />
                 </a>
               </div>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="mb-4">
-                <img
-                  src="/certificate-icon.png"
-                  alt="Certification"
-                  className="w-12 h-12 mx-auto"
-                />
+            </div>{" "}
+            <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="flex justify-center mb-6">
+                <FaCertificate className="text-5xl text-emerald-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-center">
+              <h3 className="text-xl font-semibold mb-4 text-center">
                 Certification
               </h3>
               <p className="text-gray-600 text-center mb-5">
@@ -172,33 +161,18 @@ const VisitorLandingPage = () => {
               <div className="text-center">
                 <a
                   onClick={() => navigate("/visitor/certification")}
-                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                  className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
                 >
                   Learn More
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 ml-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <FaArrowRight className="h-4 w-4 ml-1" />
                 </a>
               </div>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="mb-4">
-                <img
-                  src="/leaf-icon.png"
-                  alt="Plant Information"
-                  className="w-12 h-12 mx-auto"
-                />
+            </div>{" "}
+            <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="flex justify-center mb-6">
+                <FaLeaf className="text-5xl text-emerald-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-center">
+              <h3 className="text-xl font-semibold mb-4 text-center">
                 Plant Information
               </h3>
               <p className="text-gray-600 text-center mb-5">
@@ -208,27 +182,16 @@ const VisitorLandingPage = () => {
               <div className="text-center">
                 <a
                   onClick={() => navigate("/visitor/plant-info")}
-                  className="text-green-600 hover:text-green-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                  className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
                 >
                   Learn More
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 ml-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <FaArrowRight className="h-4 w-4 ml-1" />
                 </a>
               </div>
             </div>
           </div>
         </div>
-      </section>{" "}
+      </section>
       {/******************************************************************
        * TESTIMONIALS SECTION
        * Carousel of user testimonials from park guides
@@ -236,8 +199,10 @@ const VisitorLandingPage = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+              What Our Users Say
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">
               Hear from park guides who have experienced our training program
             </p>
           </div>

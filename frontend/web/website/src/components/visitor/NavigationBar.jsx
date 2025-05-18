@@ -8,6 +8,7 @@
  ***********************************************************************/
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FaSearch } from "react-icons/fa";
 
 const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
   const navigate = useNavigate();
@@ -99,6 +100,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               </a>
             </li>
             <li>
+              {" "}
               <a
                 href="#"
                 onClick={goToInfo}
@@ -108,6 +110,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               </a>
             </li>
             <li>
+              {" "}
               <a
                 href="#"
                 onClick={goToMap}
@@ -117,6 +120,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               </a>
             </li>
             <li>
+              {" "}
               <a
                 href="#"
                 onClick={goToFeedback}
@@ -149,17 +153,13 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               </li>
             )}
           </ul>
-        </div>
+        </div>{" "}
         {/* Right side of navbar */}
         <div className="flex items-center space-x-4">
           <div className="cursor-pointer">
-            <img
-              src="/search-icon.png"
-              alt="Search"
-              className="w-5 h-5 invert hover:opacity-80 transition-opacity"
-            />
+            <FaSearch className="w-5 h-5 text-white hover:text-gray-300 transition-colors" />
           </div>
-          {/* Conditional login/logout button */}
+          {/* Conditional login/logout button */}{" "}
           {!isLoggedIn ? (
             <button
               onClick={redirectToLogin}
@@ -174,7 +174,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
             >
               Log Out
             </button>
-          )}
+          )}{" "}
           <button
             onClick={goToContact}
             className="border border-white text-white hover:bg-white hover:text-green-700 py-2 px-5 rounded-lg text-sm md:text-base font-medium transition-colors cursor-pointer"

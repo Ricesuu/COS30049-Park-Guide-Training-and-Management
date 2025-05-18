@@ -8,6 +8,14 @@
  ***********************************************************************/
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaInstagram,
+  FaFacebookF,
+  FaTwitter,
+} from "react-icons/fa";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -23,30 +31,18 @@ const Footer = () => {
           <div className="mb-8 md:mb-0">
             <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
               SFC
-            </h3>
+            </h3>{" "}
             <div className="space-y-3 mt-3">
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
-                <img
-                  src="/email-icon.png"
-                  alt="Email"
-                  className="w-6 h-6 mr-3"
-                />
+                <FaEnvelope className="w-6 h-6 mr-3 text-green-400" />
                 info@parkguide.com
               </p>
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
-                <img
-                  src="/phone-icon.png"
-                  alt="Phone"
-                  className="w-6 h-6 mr-3"
-                />
+                <FaPhone className="w-6 h-6 mr-3 text-green-400" />
                 +1 (123) 456-7890
               </p>
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
-                <img
-                  src="/location-icon.png"
-                  alt="Location"
-                  className="w-6 h-6 mr-3"
-                />
+                <FaMapMarkerAlt className="w-6 h-6 mr-3 text-green-400" />
                 123 Nature Park Ave
               </p>
             </div>
@@ -115,37 +111,25 @@ const Footer = () => {
             <div>
               <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
                 Social Links
-              </h3>
+              </h3>{" "}
               <div className="flex space-x-4 mt-3">
                 <a
                   href="#"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
                 >
-                  <img
-                    src="/instagram-icon.png"
-                    alt="Instagram"
-                    className="w-5 h-5"
-                  />
+                  <FaInstagram className="w-5 h-5 text-white" />
                 </a>
                 <a
                   href="#"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
                 >
-                  <img
-                    src="/facebook-icon.png"
-                    alt="Facebook"
-                    className="w-5 h-5"
-                  />
+                  <FaFacebookF className="w-5 h-5 text-white" />
                 </a>
                 <a
                   href="#"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
                 >
-                  <img
-                    src="/twitter-icon.png"
-                    alt="Twitter"
-                    className="w-5 h-5"
-                  />
+                  <FaTwitter className="w-5 h-5 text-white" />
                 </a>
               </div>
               {/* Legal Links */}
