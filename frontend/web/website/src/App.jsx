@@ -13,6 +13,7 @@ import ResetPasswordPage from "./pages/auth/Reset_Password";
 
 // 🏠 Visitor Pages
 import VisitorLandingPage from "./pages/visitor/index";
+import AboutPage from "./pages/visitor/about";
 
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -78,6 +79,7 @@ function AppRoutes() {
     <Routes location={location} key={location.pathname}>
       {/* Visitor Section */}
       <Route path="/visitor" element={<VisitorLandingPage />} />
+      <Route path="/visitor/about" element={<AboutPage />} />
 
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>

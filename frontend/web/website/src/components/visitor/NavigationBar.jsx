@@ -1,8 +1,9 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Function to navigate to login page
   const redirectToLogin = () => {
@@ -16,6 +17,11 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
     } else if (userRole === "park_guide") {
       navigate("/park_guide/dashboard");
     }
+  };
+
+  // Function to go to home/landing page
+  const goToHome = () => {
+    navigate("/visitor");
   };
 
   // Navigation functions for visitor pages
@@ -46,12 +52,18 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
         <div className="flex items-center">
           <div className="text-2xl md:text-3xl font-bold text-white mr-10">
             SFC
-          </div>
+          </div>{" "}
           <ul className="hidden md:flex space-x-6">
             <li>
               <a
                 href="#"
-                className="text-white font-medium text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:w-full after:bg-green-500 after:left-0 after:bottom-0"
+                onClick={goToHome}
+                className={`${
+                  location.pathname === "/visitor"
+                    ? "text-white font-medium after:w-full"
+                    : "text-gray-300 hover:text-white after:w-0 hover:after:w-full"
+                } 
+                  text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:bg-green-500 after:left-0 after:bottom-0 after:transition-all after:duration-300`}
               >
                 Home
               </a>
@@ -60,7 +72,12 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               <a
                 href="#"
                 onClick={goToAbout}
-                className="text-gray-300 hover:text-white pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:w-0 after:bg-green-500 after:left-0 after:bottom-0 hover:after:w-full after:transition-all after:duration-300 text-sm md:text-base"
+                className={`${
+                  location.pathname === "/visitor/about"
+                    ? "text-white font-medium after:w-full"
+                    : "text-gray-300 hover:text-white after:w-0 hover:after:w-full"
+                } 
+                  text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:bg-green-500 after:left-0 after:bottom-0 after:transition-all after:duration-300`}
               >
                 About Us
               </a>
