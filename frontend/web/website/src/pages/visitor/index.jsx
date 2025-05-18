@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import NavigationBar from "../../components/visitor/NavigationBar";
+import Footer from "../../components/visitor/Footer";
 
 const VisitorLandingPage = () => {
   const navigate = useNavigate();
@@ -50,7 +51,6 @@ const VisitorLandingPage = () => {
         userRole={userRole}
         logoutUser={logoutUser}
       />
-
       {/* Hero Section with YouTube Video Background */}
       <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
         {/* YouTube Video Background */}
@@ -120,7 +120,6 @@ const VisitorLandingPage = () => {
                 the park and its ecosystem.
               </p>
             </div>
-
             <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="mb-4">
                 <img
@@ -137,7 +136,6 @@ const VisitorLandingPage = () => {
                 park guide.
               </p>
             </div>
-
             <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="mb-4">
                 <img
@@ -153,142 +151,12 @@ const VisitorLandingPage = () => {
                 Access detailed information about the flora and fauna within the
                 park.
               </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left side of footer */}
-            <div>
-              <div className="text-2xl font-bold text-green-400 mb-4">SFC</div>
-              <div className="space-y-2">
-                <p className="flex items-center">
-                  <img
-                    src="/email-icon.png"
-                    alt="Email"
-                    className="w-5 h-5 mr-2"
-                  />{" "}
-                  info@parkguide.com
-                </p>
-                <p className="flex items-center">
-                  <img
-                    src="/phone-icon.png"
-                    alt="Phone"
-                    className="w-5 h-5 mr-2"
-                  />{" "}
-                  +1 (123) 456-7890
-                </p>
-                <p className="flex items-center">
-                  <img
-                    src="/location-icon.png"
-                    alt="Location"
-                    className="w-5 h-5 mr-2"
-                  />{" "}
-                  123 Nature Park Ave
-                </p>
-              </div>
-            </div>
-
-            {/* Right side of footer */}
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Navigation</h3>{" "}
-                <ul className="space-y-2">
-                  <li>
-                    <a
-                      href="#"
-                      className="hover:text-green-400 transition-colors"
-                    >
-                      Home
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      onClick={() => navigate("/visitor/about")}
-                      className="hover:text-green-400 transition-colors"
-                    >
-                      About
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      onClick={() => navigate("/visitor/info")}
-                      className="hover:text-green-400 transition-colors"
-                    >
-                      Info
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      onClick={() => navigate("/visitor/map")}
-                      className="hover:text-green-400 transition-colors"
-                    >
-                      Map
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      onClick={() => navigate("/visitor/feedback")}
-                      className="hover:text-green-400 transition-colors"
-                    >
-                      Feedback
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Connect</h3>
-                <div className="flex space-x-4">
-                  <a
-                    href="#"
-                    className="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition-colors"
-                  >
-                    <img
-                      src="/instagram-icon.png"
-                      alt="Instagram"
-                      className="w-6 h-6"
-                    />
-                  </a>
-                  <a
-                    href="#"
-                    className="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition-colors"
-                  >
-                    <img
-                      src="/facebook-icon.png"
-                      alt="Facebook"
-                      className="w-6 h-6"
-                    />
-                  </a>
-                  <a
-                    href="#"
-                    className="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition-colors"
-                  >
-                    <img
-                      src="/twitter-icon.png"
-                      alt="Twitter"
-                      className="w-6 h-6"
-                    />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>
-              &copy; 2025 Park Guide Training and Management. All rights
-              reserved.
-            </p>
+            </div>{" "}
           </div>
         </div>{" "}
-      </footer>
+      </section>{" "}
+      {/* Footer */}
+      <Footer />
     </motion.div>
   );
 };
