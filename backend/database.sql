@@ -200,6 +200,21 @@ CREATE TABLE IF NOT EXISTS AlertThresholds (
 );
 
 -- ==============================================
+-- Table: Contact Messages Table
+CREATE TABLE IF NOT EXISTS ContactMessages (
+  message_id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  telephone VARCHAR(50),
+  address TEXT,
+  message TEXT NOT NULL,
+  status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ==============================================
 -- Table: Active Alerts Table
 CREATE TABLE IF NOT EXISTS ActiveAlerts (
   alert_id INT AUTO_INCREMENT PRIMARY KEY,
