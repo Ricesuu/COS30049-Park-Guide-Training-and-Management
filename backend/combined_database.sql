@@ -223,27 +223,6 @@ CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `parkguides`
---
-
-CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL PRIMARY KEY,
-  `user_id` int(11) NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
-  `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `parkguides`
---
-
-INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `parks`
 --
 
@@ -532,7 +511,7 @@ CREATE TABLE `usermoduleaccess` (
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `uid` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `first_name` varchar(255) NOT NULL,
@@ -552,6 +531,26 @@ CREATE TABLE IF NOT EXISTS `users` (
 INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role`, `status`, `failed_attempts`, `last_failed_attempt`, `locked_until`, `created_at`) VALUES
 (1, 'vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved', 0, NULL, NULL, '2025-05-15 02:38:38'),
 (2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'parkguide@gmail.com', 'SkibidiRui', 'Wahwah', 'park_guide', 'approved', 0, NULL, NULL, '2025-05-15 06:31:20');
+
+-- --------------------------------------------------------
+-- Table structure for table `parkguides`
+--
+
+CREATE TABLE IF NOT EXISTS `parkguides` (
+  `guide_id` int(11) NOT NULL PRIMARY KEY,
+  `user_id` int(11) NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
 
 -- --------------------------------------------------------
 
