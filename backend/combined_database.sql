@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `guidebook` (
 --
 
 INSERT INTO `guidebook` (`guidebook_id`, `park_id`, `title`, `content`, `multimedia_links`) VALUES
-(1, 1, 'Exploring Bako National Park: A Visitor\'s Guide', 'Discover the diverse ecosystems, flora, and fauna of Bako National Park. Includes tips for hiking, wildlife spotting, and safety precautions.', 'bako_guide_video_links, bako_maps_links'),
+(1, 1, "Exploring Bako National Park: A Visitor's Guide", 'Discover the diverse ecosystems, flora, and fauna of Bako National Park. Includes tips for hiking, wildlife spotting, and safety precautions.', 'bako_guide_video_links, bako_maps_links'),
 (2, 2, 'Semenggoh Wildlife Centre: Orangutan Conservation and Visitor Tips', 'Learn about the history, mission, and highlights of Semenggoh Wildlife Centre, with tips for observing wildlife responsibly and engaging in conservation efforts.', 'semenggoh_video_links, semenggoh_facts_links');
 
 -- --------------------------------------------------------
@@ -222,24 +222,7 @@ CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `parkguides`
---
-
-CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
-  `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `parkguides`
---
-
-INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
+-- Note: parkguides table moved after users table to resolve foreign key constraint
 
 -- --------------------------------------------------------
 
@@ -248,7 +231,7 @@ INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `licens
 --
 
 CREATE TABLE IF NOT EXISTS `parks` (
-  `park_id` int(11) NOT NULL,
+  `park_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `park_name` varchar(255) NOT NULL,
   `location` text NOT NULL,
   `description` text DEFAULT NULL,
@@ -468,7 +451,7 @@ INSERT INTO `quizquestions` (`question_id`, `quiz_id`, `question_text`, `questio
 (1, 1, 'What is the primary role of a park guide?', 'multiple_choice', 1, 1),
 (2, 1, 'True or False: Park guides should always approach wildlife to provide a better viewing experience for visitors.', 'true_false', 1, 2),
 (3, 1, 'Which of the following should be included in a pre-hike safety briefing?', 'multiple_choice', 1, 3),
-(4, 1, 'True or False: It\'s appropriate to share personal opinions about controversial environmental issues during guided tours.', 'true_false', 1, 4),
+(4, 1, "True or False: It's appropriate to share personal opinions about controversial environmental issues during guided tours.", 'true_false', 1, 4),
 (5, 1, 'Which communication style is generally most effective for engaging visitors?', 'multiple_choice', 1, 5),
 (6, 2, 'Which of the following is NOT a component of a topographic map?', 'multiple_choice', 1, 1),
 (7, 2, 'True or False: When using a compass, magnetic north and true north are always identical.', 'true_false', 1, 2),
@@ -500,27 +483,24 @@ CREATE TABLE IF NOT EXISTS `quizresponses` (
 --
 
 CREATE TABLE IF NOT EXISTS `quizzes` (
-  `quiz_id` int(11) NOT NULL,
-  `module_id` int(11) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `pass_percentage` int(11) NOT NULL DEFAULT 70,
-  `attempts_allowed` int(11) NOT NULL DEFAULT 3,
-  `is_certification_quiz` tinyint(1) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  quiz_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
 --
 -- Dumping data for table `quizzes`
 --
 
-INSERT INTO `quizzes` (`quiz_id`, `module_id`, `title`, `description`, `pass_percentage`, `attempts_allowed`, `is_certification_quiz`) VALUES
-(1, 1, 'Park Guide Basics Assessment', 'Test your understanding of basic park guide principles and practices.', 70, 3, 0),
-(2, 2, 'Navigation Certification', 'Demonstrate your mastery of advanced navigation techniques.', 80, 2, 1),
-(3, 3, 'Wildlife Safety Assessment', 'Test your knowledge of wildlife safety protocols and species identification.', 75, 3, 0),
-(4, 4, 'First Aid Certification Exam', 'Comprehensive assessment of emergency first aid skills and knowledge.', 85, 2, 1),
-(5, 5, 'Interpretation Skills Quiz', 'Evaluate your environmental interpretation and presentation skills.', 70, 3, 0),
-(6, 6, 'Cultural Heritage Assessment', 'Test your understanding of cultural heritage significance and preservation.', 75, 3, 0),
-(7, 1, 'Basic Park Safety Assessment', 'Test your knowledge of fundamental park safety procedures', 70, 3, 0);
+-- QUIZZES
+INSERT INTO quizzes (name, description) VALUES
+('Language Basics Quiz', 'Quiz for evaluating basic language and communication skills'),
+('Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna'),
+('Tour Organization Quiz', 'Assess skills in planning and managing tours'),
+('Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors'),
+('Safety Procedures Quiz', 'Test understanding of safety protocols');
 
 -- --------------------------------------------------------
 
@@ -529,31 +509,37 @@ INSERT INTO `quizzes` (`quiz_id`, `module_id`, `title`, `description`, `pass_per
 --
 
 CREATE TABLE IF NOT EXISTS `trainingmodules` (
-  `module_id` int(11) NOT NULL,
-  `module_name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `duration` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `module_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `module_code` VARCHAR(10) NOT NULL UNIQUE,  
+  `module_name` VARCHAR(255) NOT NULL,      
+  `description` TEXT,            
+  `difficulty` ENUM('beginner', 'intermediate', 'advanced') NOT NULL,  
+  `aspect` ENUM('language', 'knowledge', 'organization', 'engagement', 'safety') NOT NULL, 
+  `video_url` VARCHAR(255),
+  `course_content` LONGTEXT,
+  `quiz_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `is_premium` tinyint(1) DEFAULT 0
+  `is_premium` tinyint(1) DEFAULT 0,
+  FOREIGN KEY (`quiz_id`) REFERENCES `quizzes`(`quiz_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `trainingmodules`
 --
 
-INSERT INTO `trainingmodules` (`module_id`, `module_name`, `description`, `duration`, `created_at`, `price`, `is_premium`) VALUES
-(1, 'Basic Park Safety', 'Covers fundamental safety procedures for park environments.', 120, '2025-05-15 02:38:38', 0.00, 0),
-(2, 'Advanced Navigation Techniques', 'Teaches the use of GPS, maps, and compass for navigation.', 180, '2025-05-15 02:38:38', 49.99, 1),
-(3, 'Wildlife Interaction Guidelines', 'How to safely interact with and manage wildlife encounters.', 150, '2025-05-15 02:38:38', 39.99, 1),
-(4, 'Emergency First Aid', 'Provides essential first aid training for emergencies.', 240, '2025-05-15 02:38:38', 69.99, 1),
-(5, 'Environmental Conservation', 'Focuses on sustainable practices and environmental awareness.', 90, '2025-05-15 02:38:38', 29.99, 1),
-(6, 'Park Guide Basics', 'Learn the fundamentals of being an effective park guide, including communication skills, basic safety protocols, and visitor engagement techniques.', 60, '2025-05-15 02:38:38', 0.00, 0),
-(7, 'Advanced Navigation Techniques', 'Master advanced navigation skills including GPS usage, map reading, and orientation in challenging terrains.', 120, '2025-05-15 02:38:38', 49.99, 1),
-(8, 'Wildlife Interaction Guidelines', 'Learn proper protocols for wildlife encounters, identification of common species, and best practices for guiding visitors safely around wildlife.', 90, '2025-05-15 02:38:38', 39.99, 1),
-(9, 'Emergency First Aid', 'Comprehensive emergency first aid training specific to outdoor and remote environments.', 180, '2025-05-15 02:38:38', 69.99, 1),
-(10, 'Environmental Interpretation', 'Techniques for effective environmental storytelling and interpretation to enhance visitor experience.', 75, '2025-05-15 02:38:38', 29.99, 1),
-(11, 'Cultural Heritage Preservation', 'Understanding and communicating the cultural significance of natural areas and historical sites within parks.', 60, '2025-05-15 02:38:38', 35.99, 1);
+INSERT INTO `trainingmodules` (`module_code`, `module_name`, `description`, `created_at`, `price`, `is_premium`) VALUES
+('TM001', 'Basic Park Safety', 'Covers fundamental safety procedures for park environments.', '2025-05-15 02:38:38', 0.00, 0),
+('TM002', 'Advanced Navigation Techniques', 'Teaches the use of GPS, maps, and compass for navigation.', '2025-05-15 02:38:38', 49.99, 1),
+('TM003', 'Wildlife Interaction Guidelines', 'How to safely interact with and manage wildlife encounters.', '2025-05-15 02:38:38', 39.99, 1),
+('TM004', 'Emergency First Aid', 'Provides essential first aid training for emergencies.', '2025-05-15 02:38:38', 69.99, 1),
+('TM005', 'Environmental Conservation', 'Focuses on sustainable practices and environmental awareness.', '2025-05-15 02:38:38', 29.99, 1),
+('TM006', 'Park Guide Basics', 'Learn the fundamentals of being an effective park guide, including communication skills, basic safety protocols, and visitor engagement techniques.', '2025-05-15 02:38:38', 0.00, 0),
+('TM007', 'Advanced Navigation Techniques', 'Master advanced navigation skills including GPS usage, map reading, and orientation in challenging terrains.', '2025-05-15 02:38:38', 49.99, 1),
+('TM008', 'Wildlife Interaction Guidelines', 'Learn proper protocols for wildlife encounters, identification of common species, and best practices for guiding visitors safely around wildlife.', '2025-05-15 02:38:38', 39.99, 1),
+('TM009', 'Emergency First Aid', 'Comprehensive emergency first aid training specific to outdoor and remote environments.', '2025-05-15 02:38:38', 69.99, 1),
+('TM010', 'Environmental Interpretation', 'Techniques for effective environmental storytelling and interpretation to enhance visitor experience.', '2025-05-15 02:38:38', 29.99, 1),
+('TM011', 'Cultural Heritage Preservation', 'Understanding and communicating the cultural significance of natural areas and historical sites within parks.', '2025-05-15 02:38:38', 35.99, 1);
 
 -- --------------------------------------------------------
 
@@ -569,7 +555,6 @@ CREATE TABLE `usermoduleaccess` (
 ,`last_name` varchar(255)
 ,`module_id` int(11)
 ,`module_name` varchar(255)
-,`duration` int(11)
 ,`status` enum('pending','active','revoked')
 ,`purchase_date` timestamp
 ,`completion_percentage` decimal(5,2)
@@ -584,7 +569,7 @@ CREATE TABLE `usermoduleaccess` (
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `uid` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `first_name` varchar(255) NOT NULL,
@@ -608,17 +593,44 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `parkguides`
+--
+
+CREATE TABLE IF NOT EXISTS `parkguides` (
+  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` int(11) NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `visitorfeedback`
 --
 
+-- Table: Visitor Feedback Table
 CREATE TABLE IF NOT EXISTS `visitorfeedback` (
-  `feedback_id` int(11) NOT NULL,
-  `visitor_id` int(11) NOT NULL,
-  `guide_id` int(11) NOT NULL,
-  `rating` int(11) NOT NULL,
-  `comment` text DEFAULT NULL,
-  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `feedback_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `guide_id` INT NOT NULL,
+  `language_rating` INT NOT NULL,
+  `knowledge_rating` INT NOT NULL,
+  `organization_rating` INT NOT NULL,
+  `engagement_rating` INT NOT NULL,
+  `safety_rating` INT NOT NULL,
+  `comment` TEXT,
+  `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`guide_id`) REFERENCES `parkguides`(`guide_id`) ON DELETE CASCADE
+);
 
 -- --------------------------------------------------------
 
@@ -636,7 +648,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `usermoduleaccess`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccess`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`user_id` AS `user_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `tm`.`duration` AS `duration`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on(`mp`.`user_id` = `u`.`user_id`)) join `trainingmodules` `tm` on(`mp`.`module_id` = `tm`.`module_id`)) join `paymenttransactions` `pt` on(`mp`.`payment_id` = `pt`.`payment_id`)) WHERE `mp`.`is_active` = 1 AND `mp`.`status` = 'active' ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccess`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`user_id` AS `user_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on(`mp`.`user_id` = `u`.`user_id`)) join `trainingmodules` `tm` on(`mp`.`module_id` = `tm`.`module_id`)) join `paymenttransactions` `pt` on(`mp`.`payment_id` = `pt`.`payment_id`)) WHERE `mp`.`is_active` = 1 AND `mp`.`status` = 'active' ;
 
 -- --------------------------------------------------------
 
@@ -652,7 +664,6 @@ SELECT
     `tm`.`module_id`,
     `tm`.`module_name`,
     `tm`.`description`,
-    `tm`.`duration`,
     `tm`.`price`,
     `mp`.`status`,
     `mp`.`purchase_date`,
@@ -683,7 +694,6 @@ SELECT
     `u`.`last_name`,
     `tm`.`module_id`,
     `tm`.`module_name`,
-    `tm`.`duration`,
     `gtp`.`status`,
     `gtp`.`start_date`,
     `gtp`.`completion_date`,
@@ -711,8 +721,7 @@ SELECT
     `tm`.`module_id`,
     `tm`.`module_name`,
     `q`.`quiz_id`,
-    `q`.`title` AS `quiz_title`,
-    `q`.`is_certification_quiz`,
+    `q`.`name` AS `quiz_title`,
     `qa`.`attempt_id`,
     `qa`.`score`,
     `qa`.`passed`,
@@ -724,7 +733,7 @@ FROM
     `users` `u`
     JOIN `modulepurchases` `mp` ON `u`.`user_id` = `mp`.`user_id`
     JOIN `trainingmodules` `tm` ON `mp`.`module_id` = `tm`.`module_id`
-    JOIN `quizzes` `q` ON `tm`.`module_id` = `q`.`module_id`
+    JOIN `quizzes` `q` ON `tm`.`quiz_id` = `q`.`quiz_id`
     LEFT JOIN `quizattempts` `qa` ON `q`.`quiz_id` = `qa`.`quiz_id` AND `u`.`user_id` = `qa`.`user_id`
 WHERE 
     `mp`.`is_active` = 1 AND `mp`.`status` = 'active';
@@ -757,7 +766,6 @@ BEGIN
             tm.module_id,
             tm.module_name,
             tm.description,
-            tm.duration,
             tm.price,
             tm.is_premium,
             CASE 
@@ -1026,428 +1034,3 @@ BEGIN
 END$$
 
 DELIMITER ;
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `activealerts`
---
-ALTER TABLE `activealerts`
-  ADD PRIMARY KEY (`alert_id`),
-  ADD KEY `park_id` (`park_id`),
-  ADD KEY `threshold_id` (`threshold_id`),
-  ADD KEY `idx_activealerts_severity` (`severity`),
-  ADD KEY `idx_activealerts_is_acknowledged` (`is_acknowledged`);
-
---
--- Indexes for table `alertthresholds`
---
-ALTER TABLE `alertthresholds`
-  ADD PRIMARY KEY (`threshold_id`),
-  ADD UNIQUE KEY `unique_threshold` (`sensor_type`,`park_id`),
-  ADD KEY `park_id` (`park_id`),
-  ADD KEY `idx_alertthresholds_sensor_type` (`sensor_type`),
-  ADD KEY `idx_alertthresholds_is_enabled` (`is_enabled`);
-
---
--- Indexes for table `certifications`
---
-ALTER TABLE `certifications`
-  ADD PRIMARY KEY (`cert_id`),
-  ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `module_id` (`module_id`),
-  ADD KEY `idx_certifications_expiry_date` (`expiry_date`);
-
---
--- Indexes for table `guidebook`
---
-ALTER TABLE `guidebook`
-  ADD PRIMARY KEY (`guidebook_id`),
-  ADD KEY `park_id` (`park_id`);
-
---
--- Indexes for table `guidetrainingprogress`
---
-ALTER TABLE `guidetrainingprogress`
-  ADD PRIMARY KEY (`progress_id`),
-  ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `module_id` (`module_id`),
-  ADD KEY `idx_guidetrainingprogress_status` (`status`),
-  ADD KEY `idx_guidetrainingprogress_completion_date` (`completion_date`);
-
---
--- Indexes for table `iotmonitoring`
---
-ALTER TABLE `iotmonitoring`
-  ADD PRIMARY KEY (`sensor_id`),
-  ADD KEY `park_id` (`park_id`),
-  ADD KEY `idx_iotmonitoring_sensor_type` (`sensor_type`),
-  ADD KEY `idx_iotmonitoring_recorded_at` (`recorded_at`);
-
---
--- Indexes for table `modulepurchases`
---
-ALTER TABLE `modulepurchases`
-  ADD PRIMARY KEY (`purchase_id`),
-  ADD UNIQUE KEY `unique_user_module` (`user_id`,`module_id`),
-  ADD KEY `module_id` (`module_id`),
-  ADD KEY `payment_id` (`payment_id`),
-  ADD KEY `idx_modulepurchases_status` (`status`),
-  ADD KEY `idx_modulepurchases_is_active` (`is_active`),
-  ADD KEY `idx_modulepurchases_purchase_date` (`purchase_date`);
-
---
--- Indexes for table `multilicensetrainingexemptions`
---
-ALTER TABLE `multilicensetrainingexemptions`
-  ADD PRIMARY KEY (`exemption_id`),
-  ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `training_id` (`training_id`),
-  ADD KEY `exempted_training_id` (`exempted_training_id`);
-
---
--- Indexes for table `parkguides`
---
-ALTER TABLE `parkguides`
-  ADD PRIMARY KEY (`guide_id`),
-  ADD UNIQUE KEY `user_id` (`user_id`),
-  ADD KEY `idx_parkguides_certification_status` (`certification_status`),
-  ADD KEY `idx_parkguides_license_expiry_date` (`license_expiry_date`);
-
---
--- Indexes for table `parks`
---
-ALTER TABLE `parks`
-  ADD PRIMARY KEY (`park_id`);
-
---
--- Indexes for table `paymenttransactions`
---
-ALTER TABLE `paymenttransactions`
-  ADD PRIMARY KEY (`payment_id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `fk_module` (`module_id`),
-  ADD KEY `idx_paymenttransactions_uid` (`uid`),
-  ADD KEY `idx_paymenttransactions_paymentStatus` (`paymentStatus`),
-  ADD KEY `idx_paymenttransactions_transaction_date` (`transaction_date`);
-
---
--- Indexes for table `quizansweroptions`
---
-ALTER TABLE `quizansweroptions`
-  ADD PRIMARY KEY (`option_id`),
-  ADD KEY `question_id` (`question_id`),
-  ADD KEY `idx_quizansweroptions_is_correct` (`is_correct`);
-
---
--- Indexes for table `quizattempts`
---
-ALTER TABLE `quizattempts`
-  ADD PRIMARY KEY (`attempt_id`),
-  ADD KEY `quiz_id` (`quiz_id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `idx_quizattempts_passed` (`passed`),
-  ADD KEY `idx_quizattempts_start_time` (`start_time`);
-
---
--- Indexes for table `quizquestions`
---
-ALTER TABLE `quizquestions`
-  ADD PRIMARY KEY (`question_id`),
-  ADD KEY `quiz_id` (`quiz_id`);
-
---
--- Indexes for table `quizresponses`
---
-ALTER TABLE `quizresponses`
-  ADD PRIMARY KEY (`response_id`),
-  ADD KEY `attempt_id` (`attempt_id`),
-  ADD KEY `question_id` (`question_id`),
-  ADD KEY `selected_option_id` (`selected_option_id`),
-  ADD KEY `idx_quizresponses_is_correct` (`is_correct`);
-
---
--- Indexes for table `quizzes`
---
-ALTER TABLE `quizzes`
-  ADD PRIMARY KEY (`quiz_id`),
-  ADD KEY `module_id` (`module_id`),
-  ADD KEY `idx_quizzes_is_certification_quiz` (`is_certification_quiz`);
-
---
--- Indexes for table `trainingmodules`
---
-ALTER TABLE `trainingmodules`
-  ADD PRIMARY KEY (`module_id`),
-  ADD KEY `idx_trainingmodules_is_premium` (`is_premium`),
-  ADD KEY `idx_trainingmodules_created_at` (`created_at`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`user_id`),
-  ADD UNIQUE KEY `uid` (`uid`),
-  ADD UNIQUE KEY `email` (`email`),
-  ADD KEY `idx_users_role` (`role`),
-  ADD KEY `idx_users_status` (`status`),
-  ADD KEY `idx_users_created_at` (`created_at`);
-
---
--- Indexes for table `visitorfeedback`
---
-ALTER TABLE `visitorfeedback`
-  ADD PRIMARY KEY (`feedback_id`),
-  ADD KEY `visitor_id` (`visitor_id`),
-  ADD KEY `guide_id` (`guide_id`),
-  ADD KEY `idx_visitorfeedback_rating` (`rating`),
-  ADD KEY `idx_visitorfeedback_submitted_at` (`submitted_at`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `activealerts`
---
-ALTER TABLE `activealerts`
-  MODIFY `alert_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `alertthresholds`
---
-ALTER TABLE `alertthresholds`
-  MODIFY `threshold_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
-
---
--- AUTO_INCREMENT for table `certifications`
---
-ALTER TABLE `certifications`
-  MODIFY `cert_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `guidebook`
---
-ALTER TABLE `guidebook`
-  MODIFY `guidebook_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `guidetrainingprogress`
---
-ALTER TABLE `guidetrainingprogress`
-  MODIFY `progress_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `iotmonitoring`
---
-ALTER TABLE `iotmonitoring`
-  MODIFY `sensor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
-
---
--- AUTO_INCREMENT for table `modulepurchases`
---
-ALTER TABLE `modulepurchases`
-  MODIFY `purchase_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `multilicensetrainingexemptions`
---
-ALTER TABLE `multilicensetrainingexemptions`
-  MODIFY `exemption_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `parkguides`
---
-ALTER TABLE `parkguides`
-  MODIFY `guide_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `parks`
---
-ALTER TABLE `parks`
-  MODIFY `park_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `paymenttransactions`
---
-ALTER TABLE `paymenttransactions`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `quizansweroptions`
---
-ALTER TABLE `quizansweroptions`
-  MODIFY `option_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
-
---
--- AUTO_INCREMENT for table `quizattempts`
---
-ALTER TABLE `quizattempts`
-  MODIFY `attempt_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `quizquestions`
---
-ALTER TABLE `quizquestions`
-  MODIFY `question_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
-
---
--- AUTO_INCREMENT for table `quizresponses`
---
-ALTER TABLE `quizresponses`
-  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `quizzes`
---
-ALTER TABLE `quizzes`
-  MODIFY `quiz_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- AUTO_INCREMENT for table `trainingmodules`
---
-ALTER TABLE `trainingmodules`
-  MODIFY `module_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `visitorfeedback`
---
-ALTER TABLE `visitorfeedback`
-  MODIFY `feedback_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `activealerts`
---
-ALTER TABLE `activealerts`
-  ADD CONSTRAINT `activealerts_ibfk_1` FOREIGN KEY (`park_id`) REFERENCES `parks` (`park_id`),
-  ADD CONSTRAINT `activealerts_ibfk_2` FOREIGN KEY (`threshold_id`) REFERENCES `alertthresholds` (`threshold_id`);
-
---
--- Constraints for table `alertthresholds`
---
-ALTER TABLE `alertthresholds`
-  ADD CONSTRAINT `alertthresholds_ibfk_1` FOREIGN KEY (`park_id`) REFERENCES `parks` (`park_id`);
-
---
--- Constraints for table `certifications`
---
-ALTER TABLE `certifications`
-  ADD CONSTRAINT `certifications_ibfk_1` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`),
-  ADD CONSTRAINT `certifications_ibfk_2` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`);
-
---
--- Constraints for table `guidebook`
---
-ALTER TABLE `guidebook`
-  ADD CONSTRAINT `guidebook_ibfk_1` FOREIGN KEY (`park_id`) REFERENCES `parks` (`park_id`);
-
---
--- Constraints for table `guidetrainingprogress`
---
-ALTER TABLE `guidetrainingprogress`
-  ADD CONSTRAINT `guidetrainingprogress_ibfk_1` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`),
-  ADD CONSTRAINT `guidetrainingprogress_ibfk_2` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`);
-
---
--- Constraints for table `iotmonitoring`
---
-ALTER TABLE `iotmonitoring`
-  ADD CONSTRAINT `iotmonitoring_ibfk_1` FOREIGN KEY (`park_id`) REFERENCES `parks` (`park_id`);
-
---
--- Constraints for table `modulepurchases`
---
-ALTER TABLE `modulepurchases`
-  ADD CONSTRAINT `modulepurchases_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `modulepurchases_ibfk_2` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `modulepurchases_ibfk_3` FOREIGN KEY (`payment_id`) REFERENCES `paymenttransactions` (`payment_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `multilicensetrainingexemptions`
---
-ALTER TABLE `multilicensetrainingexemptions`
-  ADD CONSTRAINT `multilicensetrainingexemptions_ibfk_1` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`),
-  ADD CONSTRAINT `multilicensetrainingexemptions_ibfk_2` FOREIGN KEY (`training_id`) REFERENCES `trainingmodules` (`module_id`),
-  ADD CONSTRAINT `multilicensetrainingexemptions_ibfk_3` FOREIGN KEY (`exempted_training_id`) REFERENCES `trainingmodules` (`module_id`);
-
---
--- Constraints for table `parkguides`
---
-ALTER TABLE `parkguides`
-  ADD CONSTRAINT `parkguides_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
-
---
--- Constraints for table `paymenttransactions`
---
-ALTER TABLE `paymenttransactions`
-  ADD CONSTRAINT `fk_module` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`),
-  ADD CONSTRAINT `paymenttransactions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
-
---
--- Constraints for table `quizansweroptions`
---
-ALTER TABLE `quizansweroptions`
-  ADD CONSTRAINT `quizansweroptions_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `quizquestions` (`question_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `quizattempts`
---
-ALTER TABLE `quizattempts`
-  ADD CONSTRAINT `quizattempts_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`quiz_id`),
-  ADD CONSTRAINT `quizattempts_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-  ADD CONSTRAINT `quizattempts_ibfk_3` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`);
-
---
--- Constraints for table `quizquestions`
---
-ALTER TABLE `quizquestions`
-  ADD CONSTRAINT `quizquestions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`quiz_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `quizresponses`
---
-ALTER TABLE `quizresponses`
-  ADD CONSTRAINT `quizresponses_ibfk_1` FOREIGN KEY (`attempt_id`) REFERENCES `quizattempts` (`attempt_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `quizresponses_ibfk_2` FOREIGN KEY (`question_id`) REFERENCES `quizquestions` (`question_id`),
-  ADD CONSTRAINT `quizresponses_ibfk_3` FOREIGN KEY (`selected_option_id`) REFERENCES `quizansweroptions` (`option_id`);
-
---
--- Constraints for table `quizzes`
---
-ALTER TABLE `quizzes`
-  ADD CONSTRAINT `quizzes_ibfk_1` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `visitorfeedback`
---
-ALTER TABLE `visitorfeedback`
-  ADD CONSTRAINT `visitorfeedback_ibfk_1` FOREIGN KEY (`visitor_id`) REFERENCES `users` (`user_id`),
-  ADD CONSTRAINT `visitorfeedback_ibfk_2` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`);
-COMMIT;
-
--- --------------------------------------------------------
-
---
--- SQL validation check
---
-
-SELECT 'SQL syntax check complete' AS validation_result;
-
--- --------------------------------------------------------
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
