@@ -11,6 +11,11 @@ import RegisterPage from "./pages/auth/Register";
 import ForgotPasswordPage from "./pages/auth/Forgot_Password";
 import ResetPasswordPage from "./pages/auth/Reset_Password";
 
+// 🏠 Visitor Pages
+import VisitorLandingPage from "./pages/visitor/index";
+import AboutPage from "./pages/visitor/about";
+import ContactPage from "./pages/visitor/contact";
+
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
 import InfoManager from "./pages/admin/InfoManager";
@@ -18,7 +23,7 @@ import InfoDetail from "./pages/admin/InfoDetail";
 import ParkGuides from "./pages/admin/ParkGuides";
 import ParkGuideDetails from "./pages/admin/ParkGuideDetails";
 import IoTHub from "./pages/admin/IoTHub";
-import AssignCourse from "./pages/admin/AdminAssignCourses"
+import AssignCourse from "./pages/admin/AdminAssignCourses";
 import CourseManager from "./pages/admin/CourseManager";
 import QuizEditor from "./pages/admin/QuizEditor";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -35,30 +40,54 @@ import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
 import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
-// 📚 Module Pages
+
+// Import the landing page
+import LandingPage from "./pages/index";
+
+// Iport the module purchasing page
 import ModulePurchase from "./pages/modules/ModulePurchase";
+
 
 function AppRoutes() {
   const location = useLocation();
-  const isAuthRoute = ["/", "/login", "/register", "/forgot_password", "/reset_password"].includes(location.pathname);
+  const isAuthRoute = [
+    "/login",
+    "/register",
+    "/forgot_password",
+    "/reset_password",
+  ].includes(location.pathname);
+  const isHomeRoute = location.pathname === "/";
 
-  if (isAuthRoute) {
+  if (isHomeRoute) {
     return (
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot_password" element={<ForgotPasswordPage />} />
-          <Route path="/reset_password" element={<ResetPasswordPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </AnimatePresence>
     );
   }
 
+  if (isAuthRoute) {
+    return (
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot_password" element={<ForgotPasswordPage />} />
+          <Route path="/reset_password" element={<ResetPasswordPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
   return (
     <Routes location={location} key={location.pathname}>
+      {" "}
+      {/* Visitor Section */}
+      <Route path="/visitor" element={<VisitorLandingPage />} />
+      <Route path="/visitor/about" element={<AboutPage />} />
+      <Route path="/visitor/contact" element={<ContactPage />} />
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
@@ -71,7 +100,6 @@ function AppRoutes() {
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
       </Route>
-
       {/* Park Guide Section */}
       <Route path="/park_guide" element={<ParkGuideLayout />}>
         <Route path="dashboard" element={<ParkguideDashboard />} />
@@ -84,8 +112,12 @@ function AppRoutes() {
         <Route path="payment" element={<ParkguidePayment />} />
       </Route>
 
+      {/* Catch-all route redirects to the landing page */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+
       {/* Module Purchase Section */}
       <Route path="/modules/purchase/:moduleId" element={<ModulePurchase />} />
+
     </Routes>
   );
 }

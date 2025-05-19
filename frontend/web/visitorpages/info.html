@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Info - Park Guide Training and Management</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Added authentication script -->
+    <script src="auth-nav.js"></script>
+  </head>
+  <body class="about-page">
+    <!-- SECTION 1: NAVIGATION BAR -->
+    <nav class="navbar">
+      <div class="nav-left">
+        <div class="logo">SFC</div>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="info.html" class="active">Info</a></li>
+          <li><a href="map.html">Map</a></li>
+          <li><a href="feedback.html">Feedback</a></li>
+          <li id="admin-nav" style="display: none">
+            <a href="#" onclick="goToAdminDash()">Admin Dashboard</a>
+          </li>
+        </ul>
+      </div>
+      <div class="nav-right">
+        <div class="search-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <button class="login-btn">Log In</button>
+        <button
+          class="contact-btn"
+          onclick="window.location.href='contact.html'"
+        >
+          Contact
+        </button>
+      </div>
+    </nav>
+
+    <!-- SECTION 2: HERO SECTION -->
+    <section class="info-main">
+      <div class="info-container">
+        <h3 class="subheading">Information Page</h3>
+        <h1>Lorem ipsum dolor sit amet, consectetur adipiscing elit</h1>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
+
+        <div class="info-content">
+          <div class="item-container-left">
+            <div class="item-info">
+              <div class="item-image">
+                <img
+                  src="https://en.whu.edu.cn/__local/E/BB/0A/C72D750AC39F58D1F4DD1D85605_070A1AAE_7F0E.jpg"
+                  alt="Item 1"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="item-container-right">
+            <div class="item-info">
+              <dl>
+                <dt><strong>Common Name:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+
+                <dt><strong>Scientific Name:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+
+                <dt><strong>Family:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+              </dl>
+            </div>
+            <div class="item-desc">
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Vestibulum vel mauris eget urna tincidunt varius. Nullam vel
+                justo vel odio. Suspendisse potenti. Donec euismod, nisl eget
+                ultricies ultrices, nunc nisl aliquam nunc, eget aliquet lorem
+                nisl eu nisi.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-content">
+          <div class="item-container-left">
+            <div class="item-info">
+              <dl>
+                <dt><strong>Common Name:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+
+                <dt><strong>Scientific Name:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+
+                <dt><strong>Family:</strong></dt>
+                <dd>Lorem ipsum sit dolor amet</dd>
+              </dl>
+            </div>
+            <div class="item-desc">
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Vestibulum vel mauris eget urna tincidunt varius. Nullam vel
+                justo vel odio. Suspendisse potenti. Donec euismod, nisl eget
+                ultricies ultrices, nunc nisl aliquam nunc, eget aliquet lorem
+                nisl eu nisi.
+              </p>
+            </div>
+          </div>
+          <div class="item-container-right">
+            <div class="item-info">
+              <div class="item-image">
+                <img
+                  src="https://www.southsideblooms.com/wp-content/uploads/2022/05/NightQueenofFlowers.jpg"
+                  alt="Item 1"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: FOOTER -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-left">
+          <div class="logo">SFC</div>
+          <div class="contact-info">
+            <p><i class="fas fa-envelope"></i> lorem@ipsum.com</p>
+            <p><i class="fas fa-phone"></i> +1 (123) 456-7890</p>
+            <p>
+              <i class="fas fa-map-marker-alt"></i> Lorem ipsum dolor sit amet
+            </p>
+          </div>
+        </div>
+        <div class="footer-right">
+          <div class="footer-column">
+            <h3>Navigation</h3>
+            <ul>
+              <li><a href="index.html">Home</a></li>
+              <li><a href="about.html">About</a></li>
+              <li><a href="info.html">Info</a></li>
+              <li><a href="map.html">Map</a></li>
+              <li><a href="feedback.html">Feedback</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Social Media</h3>
+            <div class="social-icons">
+              <a href="#"><i class="fab fa-instagram"></i></a>
+              <a href="#"><i class="fab fa-facebook"></i></a>
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+            </div>
+            <div class="legal-links">
+              <a href="#">Terms and Conditions</a>
+              <a href="#">Privacy Policy</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        <p>&copy; 2025 SFC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

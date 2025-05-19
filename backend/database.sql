@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS VisitorFeedback (
   engagement_rating INT NOT NULL,
   safety_rating INT NOT NULL,
   comment TEXT,
+  visitor_name VARCHAR(255) DEFAULT 'Anonymous Visitor',
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (guide_id) REFERENCES ParkGuides(guide_id)
 );
@@ -196,6 +197,21 @@ CREATE TABLE IF NOT EXISTS AlertThresholds (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (park_id) REFERENCES Parks(park_id),
   UNIQUE KEY unique_threshold (sensor_type, park_id)
+);
+
+-- ==============================================
+-- Table: Contact Messages Table
+CREATE TABLE IF NOT EXISTS ContactMessages (
+  message_id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  telephone VARCHAR(50),
+  address TEXT,
+  message TEXT NOT NULL,
+  status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- ==============================================
