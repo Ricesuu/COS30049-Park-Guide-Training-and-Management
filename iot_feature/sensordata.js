@@ -1,35 +1,97 @@
-import mqtt from "mqtt";
-import mysql from "mysql2/promise";
+const mqtt = require("mqtt");
+const mysql = require("mysql2/promise");
 
-// Connect to MQTT broker (e.g., Mosquitto running locally)
-const mqttClient = mqtt.connect("mqtt://localhost:1883");
-
-// Connect to MySQL
-const db = await mysql.createConnection({
-    host: "localhost",
-    user: "your_user",
-    password: "root",
-    database: "password123"
+const client = mqtt.connect("mqtt://localhost:1883", {
+  username: "zasha",
+  password: "mypassword",
 });
 
-// Subscribe to topic
-mqttClient.on("connect", () => {
-    console.log("Connected to MQTT broker");
-    mqttClient.subscribe("iot/sensors/#"); // Listen to all sensors
+// MySQL config
+const dbConfig = {
+  host: "localhost",
+  user: "your_user",
+  password: "password123",
+  database: "park_guide_management",
+};
+
+// MQTT topics
+const topics = {
+  humidity: "sensor/DHT11/humidity",
+  temperature: "sensor/DHT11/temperature",
+  distance: "sensor/Ultrasonic/distance", 
+  moisture: "sensor/Soil Moisture/moisture",
+};
+
+
+let currentData = {
+  sensor_id: "ESP32-1", 
+  temperature: null,
+  humidity: null,
+  soil_moisture: null,
+  timestamp: null,
+};
+
+
+let insertTimeout = null;
+
+
+client.on("connect", () => {
+  console.log("Connected to MQTT broker");
+
+  Object.values(topics).forEach((topic) => {
+    client.subscribe(topic, (err) => {
+      if (!err) console.log(`Subscribed to ${topic}`);
+    });
+  });
 });
 
-// On message received
-mqttClient.on("message", async (topic, message) => {
-    const value = parseFloat(message.toString());
-    const [_, __, sensorType] = topic.split("/"); // e.g., iot/sensors/temperature
 
-    try {
-        await db.execute(
-            `INSERT INTO iotmonitoring (device_id, sensor_type, value) VALUES (?, ?, ?)`,
-            ["esp32_1", sensorType, value]
+client.on("message", (topic, message) => {
+  const value = parseFloat(message.toString());
+
+  if (isNaN(value)) return;
+
+  if (topic === topics.temperature) currentData.temperature = value;
+  else if (topic === topics.humidity) currentData.humidity = value;
+  else if (topic === topics.moisture) currentData.soil_moisture = value;
+
+  currentData.timestamp = new Date();
+
+  
+  if (insertTimeout) clearTimeout(insertTimeout);
+
+  insertTimeout = setTimeout(async () => {
+    
+    if (
+      currentData.temperature !== null &&
+      currentData.humidity !== null &&
+      currentData.soil_moisture !== null
+    ) {
+      try {
+        const conn = await mysql.createConnection(dbConfig);
+        await conn.execute(
+          `INSERT INTO iot_readings (sensor_id, temperature, humidity, soil_moisture, timestamp)
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            currentData.sensor_id,
+            currentData.temperature,
+            currentData.humidity,
+            currentData.soil_moisture,
+            currentData.timestamp,
+          ]
         );
-        console.log(`Stored ${sensorType} = ${value}`);
-    } catch (error) {
-        console.error("DB Insert Error:", error);
+        await conn.end();
+
+        console.log("Inserted row:", currentData);
+      } catch (err) {
+        console.error("DB Insert Error:", err);
+      }
+
+      
+      currentData.temperature = null;
+      currentData.humidity = null;
+      currentData.soil_moisture = null;
+      currentData.timestamp = null;
     }
+  }, 2000); // Wait 2s before inserting
 });
