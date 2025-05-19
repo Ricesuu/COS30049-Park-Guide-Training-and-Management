@@ -21,6 +21,7 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
   const [open, setOpen] = useState(false);
   const [openPaymentMethod, setOpenPaymentMethod] = useState(false);
   const [fileError, setFileError] = useState(null);
+  const [moduleInfo, setModuleInfo] = useState(null);
 
   const [items, setItems] = useState(
     paymentOptions.map(({ label, value }) => ({ label, value }))
@@ -44,10 +45,41 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
   useEffect(() => {
     if (open) setOpenPaymentMethod(false);
   }, [open]);
-
   useEffect(() => {
     if (openPaymentMethod) setOpen(false);
   }, [openPaymentMethod]);
+  // Update form when module info is set
+  useEffect(() => {
+    if (moduleInfo) {
+      // Ensure module price is a valid number
+      const modulePrice = typeof moduleInfo.price === 'string' 
+        ? parseFloat(moduleInfo.price) 
+        : (moduleInfo.price || 0);
+        
+      // Add a new option for module purchase if not already in the list
+      const moduleOptionValue = `module_purchase_${moduleInfo.moduleId}`;
+      if (!items.some(item => item.value === moduleOptionValue)) {
+        setItems(prev => [
+          ...prev,
+          {
+            label: `Module: ${moduleInfo.moduleName}\n(RM ${modulePrice.toFixed(2)})`,
+            value: moduleOptionValue
+          }
+        ]);
+      }
+      
+      // Set the form to use the module purchase option
+      setForm({
+        ...form,
+        paymentPurpose: moduleOptionValue,
+        amountPaid: modulePrice.toFixed(2),
+        moduleId: moduleInfo.moduleId,
+        moduleName: moduleInfo.moduleName
+      });
+      
+      console.log("Module info set:", {...moduleInfo, price: modulePrice.toFixed(2)});
+    }
+  }, [moduleInfo]);
 
   const handlePurposeChange = (value) => {
     const selected = paymentOptions.find((p) => p.value === value);
@@ -100,20 +132,33 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("User not authenticated");
 
-      const idToken = await currentUser.getIdToken();
-
-      const formData = new FormData();
+      const idToken = await currentUser.getIdToken();      const formData = new FormData();
       formData.append("uid", currentUser.uid);
       formData.append("paymentPurpose", form.paymentPurpose);
       formData.append("paymentMethod", form.paymentMethod);
       formData.append("amountPaid", form.amountPaid);
+      
+      // If this is a module purchase, add the module ID
+      if (form.paymentPurpose.startsWith('module_purchase_') && form.moduleId) {
+        const moduleId = form.moduleId;
+        formData.append("moduleId", moduleId);
+        formData.append("paymentPurpose", `Module Purchase: ${form.moduleName || 'Training Module'}`);
+        console.log(`Submitting module purchase for moduleId: ${moduleId}`);
+        
+        // Debug: log all form data
+        console.log("Form data for module purchase:", {
+          moduleId: moduleId,
+          moduleName: form.moduleName,
+          paymentPurpose: `Module Purchase: ${form.moduleName || 'Training Module'}`,
+          amountPaid: form.amountPaid
+        });
+      }
+      
       formData.append("receipt", {
         uri: form.file.uri,
         name: form.file.fileName || "receipt.jpg",
         type: form.file.mimeType || "image/jpeg",
-      });
-
-      const response = await fetch(
+      });      const response = await fetch(
         `${apiClient.defaults.baseURL}/payment-transactions`,
         {
           method: "POST",
@@ -127,6 +172,7 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
       let data;
       try {
         data = await response.json();
+        console.log("Payment response:", data);
       } catch (err) {
         console.error("Failed to parse JSON:", err);
         Toast.show({
@@ -169,7 +215,6 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
       });
     }
   };
-
   return {
     form,
     open,
@@ -186,5 +231,6 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
     handlePaymentMethodChange,
     handleFilePick,
     handleSubmit,
+    setModuleInfo
   };
 }

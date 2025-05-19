@@ -33,11 +33,11 @@ export async function PUT(request, { params }) {
     const { id } = params;
     try {
         const body = await request.json();
-        const { module_name, description, duration } = body;
+        const { module_name, description, duration, price, is_premium } = body;
         const connection = await getConnection();
         const [result] = await connection.execute(
-            "UPDATE TrainingModules SET module_name = ?, description = ?, duration = ? WHERE module_id = ?",
-            [module_name, description, duration, id]
+            "UPDATE TrainingModules SET module_name = ?, description = ?, duration = ?, price = ?, is_premium = ? WHERE module_id = ?",
+            [module_name, description, duration, price || 0.00, is_premium || false, id]
         );
         if (result.affectedRows === 0) {
             return NextResponse.json(

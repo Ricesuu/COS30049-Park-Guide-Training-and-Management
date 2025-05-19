@@ -1,89 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 export default function CourseEditor({ open, onClose, courseData, onSave }) {
-    const [courseid, setID] = useState('');
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [diff, setDiff] = useState('');
-    const [aspect, setAspect] = useState('');
-    const [youtubeLink, setYoutubeLink] = useState('');
-    const [courseContent, setCourseContent] = useState('');
+    const [courseid, setID] = useState("");
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [diff, setDiff] = useState("");
+    const [aspect, setAspect] = useState("");
+    const [youtubeLink, setYoutubeLink] = useState("");
+    const [courseContent, setCourseContent] = useState("");
     const [quizzes, setQuizzes] = useState([]);
-    const [selectedQuizId, setSelectedQuizId] = useState('');
+    const [selectedQuizId, setSelectedQuizId] = useState("");
 
     useEffect(() => {
         // Fetch quizzes when component mounts
         const fetchQuizzes = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/quizzes');
+                const response = await fetch(
+                    "http://localhost:3000/api/quizzes"
+                );
                 if (!response.ok) {
-                    throw new Error('Failed to fetch quizzes');
+                    throw new Error("Failed to fetch quizzes");
                 }
                 const data = await response.json();
                 setQuizzes(data);
             } catch (error) {
-                console.error('Error fetching quizzes:', error);
+                console.error("Error fetching quizzes:", error);
             }
         };
 
         fetchQuizzes();
     }, []);
-  
+
     useEffect(() => {
         if (courseData) {
-          // Editing mode - populate fields with course data
-          setID(courseData.module_code || '');
-          setTitle(courseData.module_name || '');
-          setDescription(courseData.description || '');
-          setDiff(courseData.difficulty || '');
-          setAspect(courseData.aspect || '');
-          setYoutubeLink(courseData.video_url || '');
-          setCourseContent(courseData.course_content || '');
-          setSelectedQuizId(courseData.quiz_id || '');
+            // Editing mode - populate fields with course data
+            setID(courseData.module_code || "");
+            setTitle(courseData.module_name || "");
+            setDescription(courseData.description || "");
+            setDiff(courseData.difficulty || "");
+            setAspect(courseData.aspect || "");
+            setYoutubeLink(courseData.video_url || "");
+            setCourseContent(courseData.course_content || "");
+            setSelectedQuizId(courseData.quiz_id || "");
         } else {
-          // Create mode - reset all fields
-          setID('');
-          setTitle('');
-          setDescription('');
-          setDiff('');
-          setAspect('');
-          setYoutubeLink('');
-          setCourseContent('');
-          setSelectedQuizId('');
+            // Create mode - reset all fields
+            setID("");
+            setTitle("");
+            setDescription("");
+            setDiff("");
+            setAspect("");
+            setYoutubeLink("");
+            setCourseContent("");
+            setSelectedQuizId("");
         }
     }, [courseData]);
-  
+
     if (!open) return null;
-  
+
     const handleSave = () => {
         const updatedCourse = {
-          ...(courseData?.module_id && { module_id: courseData.module_id }),
-          module_code: courseid,
-          module_name: title,
-          description: description,
-          difficulty: diff,
-          aspect: aspect,
-          video_url: youtubeLink,
-          course_content: courseContent,
-          quiz_id: selectedQuizId || null
+            ...(courseData?.module_id && { module_id: courseData.module_id }),
+            module_code: courseid,
+            module_name: title,
+            description: description,
+            difficulty: diff,
+            aspect: aspect,
+            video_url: youtubeLink,
+            course_content: courseContent,
+            quiz_id: selectedQuizId || null,
         };
         onSave && onSave(updatedCourse);
     };
 
     const isValidYoutubeUrl = (url) => {
-        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=)?([a-zA-Z0-9_-]+)/;
+        const youtubeRegex =
+            /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=)?([a-zA-Z0-9_-]+)/;
         return youtubeRegex.test(url);
     };
-  
+
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-center p-4">
             <div className="bg-white p-6 rounded-lg w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <h2 className="text-xl font-bold mb-4">
-                    {courseData ? 'Edit Course' : 'Create New Course'}
+                    {courseData ? "Edit Course" : "Create New Course"}
                 </h2>
-                
+
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Course ID:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Course ID:
+                    </span>
                     <input
                         value={courseid}
                         onChange={(e) => setID(e.target.value)}
@@ -94,7 +99,9 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Title:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Title:
+                    </span>
                     <input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -105,7 +112,9 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Description:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Description:
+                    </span>
                     <textarea
                         rows="4"
                         value={description}
@@ -116,7 +125,9 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Difficulty:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Difficulty:
+                    </span>
                     <select
                         value={diff}
                         onChange={(e) => setDiff(e.target.value)}
@@ -129,9 +140,11 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                         <option value="advanced">Advanced</option>
                     </select>
                 </label>
-                
+
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Aspect:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Aspect:
+                    </span>
                     <select
                         value={aspect}
                         onChange={(e) => setAspect(e.target.value)}
@@ -141,23 +154,25 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                         <option value="">Choose course aspect</option>
                         <option value="language">Language</option>
                         <option value="knowledge">Knowledge</option>
-                        <option value="organization">Organization</option>         
+                        <option value="organization">Organization</option>
                         <option value="engagement">Engagement</option>
                         <option value="safety">Safety</option>
                     </select>
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">YouTube Link:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        YouTube Link:
+                    </span>
                     <input
                         type="url"
                         value={youtubeLink}
                         onChange={(e) => {
                             const url = e.target.value;
-                            if (url === '' || isValidYoutubeUrl(url)) {
+                            if (url === "" || isValidYoutubeUrl(url)) {
                                 setYoutubeLink(url);
                             } else {
-                                alert('Please enter a valid YouTube URL');
+                                alert("Please enter a valid YouTube URL");
                             }
                         }}
                         placeholder="https://youtube.com/watch?v=..."
@@ -166,7 +181,9 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Course Content:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Course Content:
+                    </span>
                     <textarea
                         rows="8"
                         value={courseContent}
@@ -177,7 +194,9 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                 </label>
 
                 <label className="block mb-4">
-                    <span className="block text-sm font-medium mb-1">Associated Quiz:</span>
+                    <span className="block text-sm font-medium mb-1">
+                        Associated Quiz:
+                    </span>{" "}
                     <select
                         value={selectedQuizId}
                         onChange={(e) => setSelectedQuizId(e.target.value)}
@@ -185,7 +204,7 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                     >
                         <option value="">No quiz</option>
                         {quizzes.map((quiz) => (
-                            <option key={quiz.id} value={quiz.id}>
+                            <option key={quiz.quiz_id} value={quiz.quiz_id}>
                                 {quiz.name}
                             </option>
                         ))}
@@ -197,7 +216,7 @@ export default function CourseEditor({ open, onClose, courseData, onSave }) {
                         onClick={handleSave}
                         className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                     >
-                        {courseData ? 'Save Changes' : 'Create Course'}
+                        {courseData ? "Save Changes" : "Create Course"}
                     </button>
 
                     <button

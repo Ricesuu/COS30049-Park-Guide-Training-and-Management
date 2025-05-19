@@ -1,9 +1,22 @@
 import React, { useRef, useState } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import {
+    View,
+    ScrollView,
+    RefreshControl,
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    Alert,
+    LogBox,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Import useNavigation
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import Header from "../../components/ADMINdashboard/AdminDashboardHome/Header";
 import PendingApprovals from "../../components/ADMINdashboard/AdminDashboardHome/PendingApprovals";
 import IoTMonitoring from "../../components/ADMINdashboard/AdminDashboardHome/IoTMonitoring";
+import { auth } from "../../lib/Firebase";
 
 const HomePage = () => {
     const navigation = useNavigation(); // Use the navigation hook
@@ -51,6 +64,7 @@ const HomePage = () => {
                         flex: 1,
                     }}
                 >
+                    {" "}
                     <PendingApprovals
                         ref={pendingApprovalsRef}
                         navigation={navigation} // Pass navigation to PendingApprovals
@@ -61,5 +75,20 @@ const HomePage = () => {
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    logoutButton: {
+        backgroundColor: "#e74c3c",
+        padding: 15,
+        borderRadius: 10,
+        marginTop: 20,
+        alignItems: "center",
+    },
+    logoutButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+});
 
 export default HomePage;
