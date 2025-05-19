@@ -222,7 +222,24 @@ CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
 
 -- --------------------------------------------------------
 
--- Note: parkguides table moved after users table to resolve foreign key constraint
+--
+-- Table structure for table `parkguides`
+--
+
+CREATE TABLE IF NOT EXISTS `parkguides` (
+  `guide_id` int(11) NOT NULL PRIMARY KEY,
+  `user_id` int(11) NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
 
 -- --------------------------------------------------------
 
@@ -231,7 +248,7 @@ CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
 --
 
 CREATE TABLE IF NOT EXISTS `parks` (
-  `park_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `park_id` int(11) NOT NULL,
   `park_name` varchar(255) NOT NULL,
   `location` text NOT NULL,
   `description` text DEFAULT NULL,
@@ -320,65 +337,6 @@ CREATE TABLE `pendingmodulepayments` (
 );
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `quizansweroptions`
---
-
-CREATE TABLE IF NOT EXISTS `quizansweroptions` (
-  `option_id` int(11) NOT NULL,
-  `question_id` int(11) NOT NULL,
-  `option_text` text NOT NULL,
-  `is_correct` tinyint(1) NOT NULL DEFAULT 0,
-  `sequence_number` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `quizansweroptions`
---
-
-INSERT INTO `quizansweroptions` (`option_id`, `question_id`, `option_text`, `is_correct`, `sequence_number`) VALUES
-(1, 11, 'Immediately begin searching the area', 0, 1),
-(2, 11, 'Alert the park rangers only', 0, 2),
-(3, 11, 'Gather information about the missing person and last known location', 1, 3),
-(4, 11, 'Close the park to visitors', 0, 4),
-(5, 12, 'True', 0, 1),
-(6, 12, 'False', 1, 2),
-(7, 1, 'To enforce park rules strictly', 0, 1),
-(8, 1, 'To provide information and enhance visitor experience', 1, 2),
-(9, 1, 'To maintain park facilities', 0, 3),
-(10, 1, 'To conduct scientific research', 0, 4),
-(11, 2, 'True', 0, 1),
-(12, 2, 'False', 1, 2),
-(13, 3, 'Weather conditions only', 0, 1),
-(14, 3, 'Trail difficulty and duration', 0, 2),
-(15, 3, 'Wildlife hazards only', 0, 3),
-(16, 3, 'All of the above: weather, trail info, and potential hazards', 1, 4),
-(17, 4, 'True', 0, 1),
-(18, 4, 'False', 1, 2),
-(19, 5, 'Technical and jargon-heavy', 0, 1),
-(20, 5, 'Conversational with engaging stories and facts', 1, 2),
-(21, 5, 'Minimal interaction with visitors', 0, 3),
-(22, 5, 'Formal academic lecture style', 0, 4),
-(23, 6, 'Contour lines', 0, 1),
-(24, 6, 'Scale', 0, 2),
-(25, 6, 'Social media icons', 1, 3),
-(26, 6, 'Legend', 0, 4),
-(27, 7, 'True', 0, 1),
-(28, 7, 'False', 1, 2),
-(29, 8, 'Continue moving quickly to find a landmark', 0, 1),
-(30, 8, 'Split up from your group to cover more ground', 0, 2),
-(31, 8, 'Stop, stay calm, consult your map and compass', 1, 3),
-(32, 8, 'Immediately call for emergency rescue', 0, 4),
-(33, 9, 'True', 0, 1),
-(34, 9, 'False', 1, 2),
-(35, 10, 'Using three landmarks to determine your position', 1, 1),
-(36, 10, 'Walking in a triangle pattern to find your way back', 0, 2),
-(37, 10, 'Setting up three campsites to confuse predators', 0, 3),
-(38, 10, 'Making three distress signals simultaneously', 0, 4);
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `quizattempts`
 --
@@ -429,55 +387,6 @@ $$
 DELIMITER ;
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `quizquestions`
---
-
-CREATE TABLE IF NOT EXISTS `quizquestions` (
-  `question_id` int(11) NOT NULL,
-  `quiz_id` int(11) NOT NULL,
-  `question_text` text NOT NULL,
-  `question_type` enum('multiple_choice','true_false') NOT NULL,
-  `points` int(11) NOT NULL DEFAULT 1,
-  `sequence_number` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `quizquestions`
---
-
-INSERT INTO `quizquestions` (`question_id`, `quiz_id`, `question_text`, `question_type`, `points`, `sequence_number`) VALUES
-(1, 1, 'What is the primary role of a park guide?', 'multiple_choice', 1, 1),
-(2, 1, 'True or False: Park guides should always approach wildlife to provide a better viewing experience for visitors.', 'true_false', 1, 2),
-(3, 1, 'Which of the following should be included in a pre-hike safety briefing?', 'multiple_choice', 1, 3),
-(4, 1, "True or False: It's appropriate to share personal opinions about controversial environmental issues during guided tours.", 'true_false', 1, 4),
-(5, 1, 'Which communication style is generally most effective for engaging visitors?', 'multiple_choice', 1, 5),
-(6, 2, 'Which of the following is NOT a component of a topographic map?', 'multiple_choice', 1, 1),
-(7, 2, 'True or False: When using a compass, magnetic north and true north are always identical.', 'true_false', 1, 2),
-(8, 2, 'What should you do if you become disoriented in the wilderness?', 'multiple_choice', 1, 3),
-(9, 2, 'True or False: GPS devices never lose signal or battery power in remote areas.', 'true_false', 1, 4),
-(10, 2, 'What is triangulation in the context of wilderness navigation?', 'multiple_choice', 1, 5),
-(11, 7, 'What is the first step in responding to a lost visitor report?', 'multiple_choice', 2, 1),
-(12, 7, 'True or False: It is safe to approach wildlife to take photographs as long as you remain quiet.', 'true_false', 1, 2);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `quizresponses`
---
-
-CREATE TABLE IF NOT EXISTS `quizresponses` (
-  `response_id` int(11) NOT NULL,
-  `attempt_id` int(11) NOT NULL,
-  `question_id` int(11) NOT NULL,
-  `selected_option_id` int(11) DEFAULT NULL,
-  `is_correct` tinyint(1) DEFAULT NULL,
-  `points_awarded` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `quizzes`
 --
@@ -493,14 +402,72 @@ CREATE TABLE IF NOT EXISTS `quizzes` (
 --
 -- Dumping data for table `quizzes`
 --
-
--- QUIZZES
 INSERT INTO quizzes (name, description) VALUES
 ('Language Basics Quiz', 'Quiz for evaluating basic language and communication skills'),
 ('Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna'),
 ('Tour Organization Quiz', 'Assess skills in planning and managing tours'),
 ('Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors'),
 ('Safety Procedures Quiz', 'Test understanding of safety protocols');
+-- --------------------------------------------------------
+--
+-- Table structure for table `questions`
+--
+
+CREATE TABLE IF NOT EXISTS `questions` (
+  `question_id` INT PRIMARY KEY AUTO_INCREMENT,
+  `quiz_id` INT NOT NULL,
+  `type` VARCHAR(50) NOT NULL, -- 'multiple-choice', 'true-false', etc.
+  `text` TEXT NOT NULL,
+  `explanation` TEXT,
+  `points` INT DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
+);
+
+--
+-- Dumping data for table `questions`
+--
+INSERT INTO questions (quiz_id, type, text, explanation, points) VALUES
+(1, 'multiple-choice', 'What should you do if you encounter a bear in the park?', 'Backing away slowly while facing the bear is the safest approach. Running may trigger the bear''s chase instinct.', 1),
+(1, 'true-false', 'It is safe to feed the wildlife in the park.', 'Feeding wildlife is dangerous for both animals and humans. It can cause animals to lose their natural fear of humans and become aggressive.', 2);
+-- --------------------------------------------------------
+-- Table: Options Table for Question Choices
+CREATE TABLE IF NOT EXISTS `options` (
+  `options_id` INT PRIMARY KEY AUTO_INCREMENT,
+  `question_id` INT NOT NULL,
+  `text` VARCHAR(255) NOT NULL,
+  `is_correct` BOOLEAN DEFAULT FALSE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE
+);
+
+--
+-- Dumping data for table `options`
+--
+INSERT INTO options (question_id, text, is_correct) VALUES
+(1, 'Back away slowly while facing the bear', TRUE),
+(1, 'Run away as fast as you can', FALSE),
+(1, 'Climb a tree immediately', FALSE),
+(1, 'Approach the bear and make loud noises', FALSE),
+(2, 'True', FALSE),
+(2, 'False', TRUE);
+
+
+-- --------------------------------------------------------
+--
+-- Table structure for table `quizresponses`
+--
+
+CREATE TABLE IF NOT EXISTS `quizresponses` (
+  `response_id` int(11) NOT NULL,
+  `attempt_id` int(11) NOT NULL,
+  `question_id` int(11) NOT NULL,
+  `selected_option_id` int(11) DEFAULT NULL,
+  `is_correct` tinyint(1) DEFAULT NULL,
+  `points_awarded` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -528,18 +495,14 @@ CREATE TABLE IF NOT EXISTS `trainingmodules` (
 -- Dumping data for table `trainingmodules`
 --
 
-INSERT INTO `trainingmodules` (`module_code`, `module_name`, `description`, `created_at`, `price`, `is_premium`) VALUES
-('TM001', 'Basic Park Safety', 'Covers fundamental safety procedures for park environments.', '2025-05-15 02:38:38', 0.00, 0),
-('TM002', 'Advanced Navigation Techniques', 'Teaches the use of GPS, maps, and compass for navigation.', '2025-05-15 02:38:38', 49.99, 1),
-('TM003', 'Wildlife Interaction Guidelines', 'How to safely interact with and manage wildlife encounters.', '2025-05-15 02:38:38', 39.99, 1),
-('TM004', 'Emergency First Aid', 'Provides essential first aid training for emergencies.', '2025-05-15 02:38:38', 69.99, 1),
-('TM005', 'Environmental Conservation', 'Focuses on sustainable practices and environmental awareness.', '2025-05-15 02:38:38', 29.99, 1),
-('TM006', 'Park Guide Basics', 'Learn the fundamentals of being an effective park guide, including communication skills, basic safety protocols, and visitor engagement techniques.', '2025-05-15 02:38:38', 0.00, 0),
-('TM007', 'Advanced Navigation Techniques', 'Master advanced navigation skills including GPS usage, map reading, and orientation in challenging terrains.', '2025-05-15 02:38:38', 49.99, 1),
-('TM008', 'Wildlife Interaction Guidelines', 'Learn proper protocols for wildlife encounters, identification of common species, and best practices for guiding visitors safely around wildlife.', '2025-05-15 02:38:38', 39.99, 1),
-('TM009', 'Emergency First Aid', 'Comprehensive emergency first aid training specific to outdoor and remote environments.', '2025-05-15 02:38:38', 69.99, 1),
-('TM010', 'Environmental Interpretation', 'Techniques for effective environmental storytelling and interpretation to enhance visitor experience.', '2025-05-15 02:38:38', 29.99, 1),
-('TM011', 'Cultural Heritage Preservation', 'Understanding and communicating the cultural significance of natural areas and historical sites within parks.', '2025-05-15 02:38:38', 35.99, 1);
+-- Dummy Training Modules Data that reference the quizzes
+INSERT INTO `trainingmodules` (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id) VALUES 
+('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1),
+('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2),
+('LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1),
+('KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2),
+('ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3),
+('SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5);
 
 -- --------------------------------------------------------
 
@@ -569,7 +532,7 @@ CREATE TABLE `usermoduleaccess` (
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `user_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` int(11) NOT NULL,
   `uid` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `first_name` varchar(255) NOT NULL,
@@ -593,28 +556,6 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 -- --------------------------------------------------------
 
 --
--- Table structure for table `parkguides`
---
-
-CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `user_id` int(11) NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
-  `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `parkguides`
---
-
-INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `visitorfeedback`
 --
 
@@ -629,7 +570,7 @@ CREATE TABLE IF NOT EXISTS `visitorfeedback` (
   `safety_rating` INT NOT NULL,
   `comment` TEXT,
   `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`guide_id`) REFERENCES `parkguides`(`guide_id`) ON DELETE CASCADE
+  FOREIGN KEY (guide_id) REFERENCES parkguides(guide_id)
 );
 
 -- --------------------------------------------------------
