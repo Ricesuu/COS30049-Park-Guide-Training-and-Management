@@ -29,9 +29,10 @@ export async function getAllQuizzes(req) {
 export async function getQuizById(req, id) {
     try {
         const conn = await getConnection();
-        const [rows] = await conn.query("SELECT * FROM quizzes WHERE id = ?", [
-            id,
-        ]);
+        const [rows] = await conn.query(
+            "SELECT * FROM quizzes WHERE quiz_id = ?",
+            [id]
+        );
 
         if (rows.length === 0) {
             conn.release();
@@ -82,9 +83,8 @@ export async function createQuiz(req) {
             [name, description || ""]
         );
         conn.release();
-
         const newQuiz = {
-            id: result.insertId,
+            quiz_id: result.insertId,
             name,
             description,
             questionCount: 0,
@@ -117,7 +117,7 @@ export async function updateQuiz(req, id) {
     try {
         const conn = await getConnection();
         const [result] = await conn.query(
-            "UPDATE quizzes SET name = ?, description = ? WHERE id = ?",
+            "UPDATE quizzes SET name = ?, description = ? WHERE quiz_id = ?",
             [name, description || "", id]
         );
 
@@ -128,9 +128,8 @@ export async function updateQuiz(req, id) {
                 { status: 404 }
             );
         }
-
         const [updatedQuiz] = await conn.query(
-            "SELECT * FROM quizzes WHERE id = ?",
+            "SELECT * FROM quizzes WHERE quiz_id = ?",
             [id]
         );
         conn.release();
