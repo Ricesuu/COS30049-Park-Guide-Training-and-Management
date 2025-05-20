@@ -4,6 +4,31 @@ import { useNavigate } from "react-router-dom";
 export default function GuideTable({ guides }) {
     const navigate = useNavigate();
 
+    // ✅ Approve user account (Users table)
+    const approveGuide = async (uid) => {
+        try {
+            const res = await fetch(`/api/users/${uid}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status: "approved" }),
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                throw new Error(result.error || "Failed to approve user");
+            }
+
+            alert("User account approved.");
+            window.location.reload(); // Or update state
+        } catch (error) {
+            console.error("Account approval error:", error);
+            alert("Error approving guide: " + error.message);
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-md overflow-auto border border-green-300">
             <h2 className="text-xl font-semibold p-4 border-b bg-green-50">
@@ -17,6 +42,7 @@ export default function GuideTable({ guides }) {
                         <th className="px-4 py-2">License ID</th>
                         <th className="px-4 py-2">Status</th>
                         <th className="px-4 py-2">Actions</th>
+                        <th className="px-4 py-2">Details</th>
                     </tr>
                 </thead>
                 <tbody className="text-green-900">
@@ -26,26 +52,33 @@ export default function GuideTable({ guides }) {
                             <td className="px-4 py-2">
                                 {guide.first_name} {guide.last_name}
                             </td>
-                            <td className="px-4 py-2">{guide.guide_id}</td>
+                            <td className="px-4 py-2">{guide.license_id}</td>
                             <td className="px-4 py-2">
-                                {guide.user_status}
+                                {guide.user_status} / {guide.certification_status}
                             </td>
-                            <td>
+                            <td className="px-4 py-2 space-y-2">
+                                {guide.user_status !== "approved" && (
+                                    <button
+                                        onClick={() => approveGuide(guide.uid)}
+                                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 w-full"
+                                    >
+                                        Approve Account
+                                    </button>
+                                )}
+
                                 {guide.certification_status !== "certified" && (
                                     <button
-                                    onClick={() => handleApprove(guide.guide_id)}
-                                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition"
+                                        onClick={() => handleApprove(guide.guide_id)}
+                                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 w-full"
                                     >
-                                    Approve
+                                        Certify Guide
                                     </button>
                                 )}
                             </td>
-                            <td className="px-4 py-2 space-x-2">
+                            <td className="px-4 py-2">
                                 <button
-                                    className="bg-green-800 text-white px-3 py-1 rounded hover:bg-green-700"
-                                    onClick={() =>
-                                        navigate(`/guides/${guide.guide_id}`)
-                                    }
+                                    className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                                    onClick={() => navigate(`/guides/${guide.uid}`)}
                                 >
                                     Details
                                 </button>
