@@ -15,6 +15,9 @@ import ResetPasswordPage from "./pages/auth/Reset_Password";
 import VisitorLandingPage from "./pages/visitor/index";
 import AboutPage from "./pages/visitor/about";
 import ContactPage from "./pages/visitor/contact";
+import FeedbackPage from "./pages/visitor/feedback";
+import MapPage from "./pages/visitor/map";
+import InfoPage from "./pages/visitor/info";
 
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -88,6 +91,9 @@ function AppRoutes() {
       <Route path="/visitor" element={<VisitorLandingPage />} />
       <Route path="/visitor/about" element={<AboutPage />} />
       <Route path="/visitor/contact" element={<ContactPage />} />
+      <Route path="/visitor/feedback" element={<FeedbackPage />} />
+      <Route path="/visitor/map" element={<MapPage />} />
+      <Route path="/visitor/info" element={<InfoPage />} />
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />

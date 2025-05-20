@@ -575,6 +575,32 @@ CREATE TABLE IF NOT EXISTS `visitorfeedback` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `plant_info`
+--
+
+CREATE TABLE IF NOT EXISTS `plantinfo` (
+  `plant_id` int(11) NOT NULL AUTO_INCREMENT,
+  `common_name` varchar(100) NOT NULL,
+  `scientific_name` varchar(100) NOT NULL,
+  `family` varchar(100) NOT NULL,
+  `description` text NOT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`plant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `plant_info`
+--
+
+INSERT INTO `plantinfo` (`common_name`, `scientific_name`, `family`, `description`, `image_url`) VALUES
+('Spider Lily', 'Hymenocallis littoralis', 'Amaryllidaceae', 'The Spider Lily is a stunning tropical plant known for its elegant, spider-like white flowers with long, delicate petals. Native to tropical regions, it thrives in warm, humid environments and produces fragrant blooms throughout the growing season. The plant plays an important role in local ecosystems and is valued for both its ornamental beauty and cultural significance.', 'https://en.whu.edu.cn/__local/E/BB/0A/C72D750AC39F58D1F4DD1D85605_070A1AAE_7F0E.jpg'),
+('Night Queen of Flowers', 'Epiphyllum oxypetalum', 'Cactaceae', 'The Night Queen of Flowers, also known as the Queen of the Night, is a spectacular nocturnal blooming cactus. This epiphytic cactus produces large, white, highly fragrant flowers that bloom only at night and wilt by dawn. Each flower can reach up to 30 cm in length, making it one of the most impressive night-blooming plants in our collection. Its rare blooming pattern and ethereal beauty make it a highly sought-after specimen in botanical gardens.', 'https://www.southsideblooms.com/wp-content/uploads/2022/05/NightQueenofFlowers.jpg');
+
+-- --------------------------------------------------------
+
+--
 -- Structure for view `pendingmodulepayments`
 --
 DROP TABLE IF EXISTS `pendingmodulepayments`;
@@ -974,3 +1000,5 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+
