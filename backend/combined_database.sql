@@ -537,7 +537,7 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 --
 
 CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL PRIMARY KEY,
+  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) NOT NULL,
   `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
   `license_expiry_date` date DEFAULT NULL,

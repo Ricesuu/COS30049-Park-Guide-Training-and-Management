@@ -1,6 +1,7 @@
 // app/api/guide-training-progress/route.js
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
+import { sendEmail } from "@/lib/emailService";
 
 export async function GET() {
     let connection;
@@ -75,6 +76,20 @@ export async function POST(request) {
             [guide_id, module_id]
         );
 
+        // Get user and module information for the email
+        const [userRows] = await connection.execute(
+            "SELECT email, first_name FROM Users WHERE user_id = ?",
+            [guide_id]
+        );
+
+        const [moduleRows] = await connection.execute(
+            "SELECT module_name FROM TrainingModules WHERE module_id = ?",
+            [module_id]
+        );
+
+        const user = userRows[0];
+        const trainingModule = moduleRows[0];
+
         // Use a transaction since we may need to update or insert
         await connection.beginTransaction();
 
@@ -128,6 +143,29 @@ export async function POST(request) {
                     status.toLowerCase() === "in progress"
                         ? "Guide has started training module"
                         : "Training progress recorded";
+            }
+
+            // Send email notification based on status
+            if (user && trainingModule) {
+                if (status.toLowerCase() === "completed") {
+                    await sendEmail({
+                        to: user.email,
+                        template: "moduleCompletion",
+                        data: {
+                            firstName: user.first_name,
+                            moduleName: trainingModule.module_name,
+                        },
+                    });
+                } else if (status.toLowerCase() === "in progress") {
+                    await sendEmail({
+                        to: user.email,
+                        template: "moduleAssignment",
+                        data: {
+                            firstName: user.first_name,
+                            moduleName: trainingModule.module_name,
+                        },
+                    });
+                }
             }
 
             await connection.commit();
