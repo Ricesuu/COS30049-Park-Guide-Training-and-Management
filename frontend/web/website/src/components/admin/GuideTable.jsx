@@ -4,6 +4,33 @@ import { useNavigate } from "react-router-dom";
 export default function GuideTable({ guides }) {
     const navigate = useNavigate();
 
+    // ✅ Approve certification (ParkGuides table)
+    const handleApprove = async (guideId) => {
+        try {
+            const res = await fetch(`/api/park-guides/${guideId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    certification_status: "certified",
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("Guide certified successfully.");
+                window.location.reload(); // Or refresh state locally
+            } else {
+                alert("Certification failed: " + data.error);
+            }
+        } catch (err) {
+            console.error("Certification error:", err);
+            alert("Something went wrong.");
+        }
+    };
+
     // ✅ Approve user account (Users table)
     const approveGuide = async (uid) => {
         try {
