@@ -8,7 +8,7 @@ const FeedbackPage = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    telephone: "",
+    telephone: "+60",
     email: "",
     ticketNo: "",
     park: "",
@@ -24,19 +24,68 @@ const FeedbackPage = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({
+    ticketNo: false,
+    guideNumber: false
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Special handling for telephone field
+    if (name === "telephone") {
+      // Ensure it starts with +60
+      if (!value.startsWith("+60")) {
+        return;
+      }
+      // Limit to 12 characters total
+      if (value.length > 12) {
+        return;
+      }
+    }
+
+    // Validate ticket number format (SWXXXXX)
+    if (name === 'ticketNo') {
+      const isValid = /^SW\d{5}$/.test(value);
+      setFieldErrors(prev => ({ ...prev, ticketNo: value !== '' && !isValid }));
+    }
+
+    // Validate guide number format (PGXXXXX)
+    if (name === 'guideNumber') {
+      const isValid = /^PG\d{5}$/.test(value);
+      setFieldErrors(prev => ({ ...prev, guideNumber: value !== '' && !isValid }));
+    }
+
     setFormData({ ...formData, [name]: value });
   };
 
   const handleRatingChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = async (e) => {
+  };  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // Check if all ratings have been provided
+    const missingRatings = [];
+    if (formData.languageRating === 0) missingRatings.push("Language Proficiency");
+    if (formData.knowledgeRating === 0) missingRatings.push("Knowledge & Expertise");
+    if (formData.organizationRating === 0) missingRatings.push("Organization Skills");
+    if (formData.engagementRating === 0) missingRatings.push("Engagement Level");
+    if (formData.safetyRating === 0) missingRatings.push("Safety Awareness");
+
+    if (missingRatings.length > 0) {
+      setError(`Please provide ratings for: ${missingRatings.join(", ")}`);
+      return;
+    }
+
+    // Check if the ticket number and guide number are valid
+    const isTicketValid = /^SW\d{5}$/.test(formData.ticketNo);
+    const isGuideValid = /^PG\d{5}$/.test(formData.guideNumber);
+
+    if (!isTicketValid || !isGuideValid) {
+      setError("Please check the ticket number and guide number formats.");
+      return;
+    }
 
     try {
       const response = await fetch("/api/visitor-feedback", {
@@ -71,7 +120,7 @@ const FeedbackPage = () => {
       setFormData({
         firstName: "",
         lastName: "",
-        telephone: "",
+        telephone: "+60",
         email: "",
         ticketNo: "",
         park: "",
@@ -123,7 +172,8 @@ const FeedbackPage = () => {
               </p>
             </div>
             <div className="md:w-3/5">
-              <div className="bg-white p-8 rounded-lg shadow-lg">                <h2 className="text-2xl font-bold mb-6 text-gray-800">
+              <div className="bg-white p-8 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">
                   Feedback Form
                 </h2>
                 <form onSubmit={handleSubmit}>
@@ -181,13 +231,13 @@ const FeedbackPage = () => {
                       >
                         Telephone
                       </label>
-                      <input
-                        type="tel"
+                      <input                        type="tel"
                         id="telephone"
                         name="telephone"
                         value={formData.telephone}
                         onChange={handleInputChange}
                         required
+                        maxLength={12}
                         placeholder="+60XXXXXXXXX"
                         className="w-full px-4 py-2 border border-gray-300 rounded-md 
                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
@@ -229,18 +279,20 @@ const FeedbackPage = () => {
                     >
                       Ticket Number
                     </label>
-                    <input
-                      type="text"
+                    <input                      type="text"
                       id="ticketNo"
                       name="ticketNo"
                       value={formData.ticketNo}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      className={`w-full px-4 py-2 border rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                         hover:border-green-300 transition-all duration-300 ease-in-out
-                        bg-white hover:bg-green-50/30"
+                        bg-white hover:bg-green-50/30 ${fieldErrors.ticketNo ? 'border-red-500' : 'border-gray-300'}`}
                     />
+                    {fieldErrors.ticketNo && (
+                      <p className="mt-1 text-sm text-red-500">Invalid ticket number format.</p>
+                    )}
                   </div>
                   <div className="mb-4">
                     <label
@@ -319,18 +371,20 @@ const FeedbackPage = () => {
                     >
                       Park Guide Number
                     </label>
-                    <input
-                      type="text"
+                    <input                      type="text"
                       id="guideNumber"
                       name="guideNumber"
                       value={formData.guideNumber}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      className={`w-full px-4 py-2 border rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                         hover:border-green-300 transition-all duration-300 ease-in-out
-                        bg-white hover:bg-green-50/30"
+                        bg-white hover:bg-green-50/30 ${fieldErrors.guideNumber ? 'border-red-500' : 'border-gray-300'}`}
                     />
+                    {fieldErrors.guideNumber && (
+                      <p className="mt-1 text-sm text-red-500">Invalid guide number format.</p>
+                    )}
                   </div>
 
                   <h3 className="text-lg font-semibold mb-2 mt-6">Guide Ratings</h3>
@@ -341,55 +395,65 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Language Proficiency
                       </label>
-                      <StarRating
-                        name="languageRating"
+                      <StarRating                        name="languageRating"
                         value={formData.languageRating}
                         onChange={handleRatingChange}
                       />
+                      {formData.languageRating === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's language proficiency</p>
+                      )}
                     </div>
 
                     <div className="mb-4">
                       <label className="block text-gray-700 font-medium mb-2">
                         Knowledge & Expertise
                       </label>
-                      <StarRating
-                        name="knowledgeRating"
+                      <StarRating                        name="knowledgeRating"
                         value={formData.knowledgeRating}
                         onChange={handleRatingChange}
                       />
+                      {formData.knowledgeRating === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's knowledge and expertise</p>
+                      )}
                     </div>
 
                     <div className="mb-4">
                       <label className="block text-gray-700 font-medium mb-2">
                         Organization Skills
                       </label>
-                      <StarRating
-                        name="organizationRating"
+                      <StarRating                        name="organizationRating"
                         value={formData.organizationRating}
                         onChange={handleRatingChange}
                       />
+                      {formData.organizationRating === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's organization skills</p>
+                      )}
                     </div>
 
                     <div className="mb-4">
                       <label className="block text-gray-700 font-medium mb-2">
                         Engagement Level
                       </label>
-                      <StarRating
-                        name="engagementRating"
+                      <StarRating                        name="engagementRating"
                         value={formData.engagementRating}
                         onChange={handleRatingChange}
                       />
+                      {formData.engagementRating === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's engagement level</p>
+                      )}
                     </div>
 
                     <div className="mb-4">
                       <label className="block text-gray-700 font-medium mb-2">
                         Safety Awareness
                       </label>
-                      <StarRating
-                        name="safetyRating"
+                      <StarRating                        name="safetyRating"
                         value={formData.safetyRating}
                         onChange={handleRatingChange}
                       />
+                      {formData.safetyRating === 0 && (
+                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's safety awareness</p>
+                      )}
                     </div>
                   </div>
 
@@ -410,7 +474,8 @@ const FeedbackPage = () => {
                       value={formData.feedback}
                       onChange={handleInputChange}
                       rows="5"
-                      required                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
                         hover:border-green-300 transition-all duration-300 ease-in-out 
                         bg-white hover:bg-green-50/30 resize-vertical"
                     ></textarea>
