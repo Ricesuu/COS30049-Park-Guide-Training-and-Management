@@ -6,26 +6,28 @@ import axios from "axios";
 
 const InfoPage = () => {
   const [plants, setPlants] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchPlants = async () => {
-      try {
-        const response = await axios.get('/api/plants');
-        if (response.data.success) {
+  const [loading, setLoading] = useState(true);  const [error, setError] = useState(null);  useEffect(() => {
+    const fetchPlants = async () => {      try {        const response = await axios.get('http://localhost:3000/api/plants');
+        console.log('API Response:', response.data); // For debugging
+        if (response.data.success && Array.isArray(response.data.data)) {
           setPlants(response.data.data);
         } else {
           setError('Failed to fetch plant information');
         }
       } catch (err) {
-        setError('Error connecting to the server');
+        console.error('Error fetching plants:', err);
+        setError(err.response?.data?.error || 'Error connecting to the server');
       } finally {
         setLoading(false);
       }
     };
 
     fetchPlants();
+
+    // Setup periodic refresh every 5 minutes to check for new entries
+    const refreshInterval = setInterval(fetchPlants, 5 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   return (
