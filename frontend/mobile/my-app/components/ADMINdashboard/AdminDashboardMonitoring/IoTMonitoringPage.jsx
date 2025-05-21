@@ -481,8 +481,9 @@ const IoTMonitoringPage = () => {
 
                         <Text className="text-2xl font-bold text-gray-800 mt-6 mb-4">
                             Active Alerts{" "}
-                            {activeAlerts.length > 0 &&
-                                `(${activeAlerts.length})`}
+                            {activeAlerts.length > 0
+                                ? `(${activeAlerts.length})`
+                                : null}
                         </Text>
 
                         {activeAlerts.length === 0 ? (
@@ -538,11 +539,11 @@ const IoTMonitoringPage = () => {
                         </TouchableOpacity>
 
                         {/* Conditionally render the testing tool and pass the refresh callback */}
-                        {showTestingTool && (
+                        {showTestingTool ? (
                             <AlertTestingTool
                                 onSubmitSuccess={handleTestDataSubmitted}
                             />
-                        )}
+                        ) : null}
                     </>
                 )}
             </ScrollView>

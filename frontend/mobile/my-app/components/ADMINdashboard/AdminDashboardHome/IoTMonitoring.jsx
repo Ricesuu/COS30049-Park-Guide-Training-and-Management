@@ -262,7 +262,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                 </View>
 
                 {/* Park selection moved below IoT cards */}
-                {selectedParkName && (
+                {selectedParkName ? (
                     <View style={styles.parkInfoContainer}>
                         <Text style={styles.parkInfoText}>
                             Monitoring:{" "}
@@ -270,7 +270,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                 {selectedParkName}
                             </Text>
                         </Text>
-                        {parks.length > 1 && (
+                        {parks.length > 1 ? (
                             <TouchableOpacity
                                 style={styles.changeParkButton}
                                 onPress={() => {
@@ -293,11 +293,11 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                     Change Park
                                 </Text>
                             </TouchableOpacity>
-                        )}
+                        ) : null}
                     </View>
-                )}
+                ) : null}
 
-                {activeAlerts.length > 0 && (
+                {activeAlerts.length > 0 ? (
                     <View style={styles.alertsContainer}>
                         <Text style={styles.alertsTitle}>
                             Active Alerts ({activeAlerts.length})
@@ -313,7 +313,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : null}
             </View>
         </ScrollView>
     );
