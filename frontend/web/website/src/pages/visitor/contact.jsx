@@ -216,7 +216,10 @@ const ContactPage = () => {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                      hover:border-green-300 transition-all duration-300 ease-in-out
+                      bg-white hover:bg-green-50/30"
                       />
                     </div>
                     <div className="flex-1">
@@ -233,7 +236,10 @@ const ContactPage = () => {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                      hover:border-green-300 transition-all duration-300 ease-in-out
+                      bg-white hover:bg-green-50/30"
                       />
                     </div>
                   </div>
@@ -251,7 +257,10 @@ const ContactPage = () => {
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                    hover:border-green-300 transition-all duration-300 ease-in-out
+                    bg-white hover:bg-green-50/30"
                     />
                   </div>
 
@@ -269,7 +278,10 @@ const ContactPage = () => {
                         name="telephone"
                         value={formData.telephone}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                      hover:border-green-300 transition-all duration-300 ease-in-out
+                      bg-white hover:bg-green-50/30"
                       />
                     </div>
                     <div className="flex-1">
@@ -286,7 +298,10 @@ const ContactPage = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+                      hover:border-green-300 transition-all duration-300 ease-in-out
+                      bg-white hover:bg-green-50/30"
                       />
                     </div>
                   </div>
@@ -305,13 +320,18 @@ const ContactPage = () => {
                       onChange={handleInputChange}
                       rows="5"
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
+                    hover:border-green-300 transition-all duration-300 ease-in-out 
+                    bg-white hover:bg-green-50/30 resize-vertical"
                     ></textarea>
                   </div>
 
                   <button
                     type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-medium transition-colors"
+                    className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-medium
+                    transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95
+                    hover:shadow-lg active:shadow-md"
                   >
                     Send Message
                   </button>

@@ -24,37 +24,68 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      guide_id,
-      language_rating,
-      knowledge_rating,
-      organization_rating,
-      engagement_rating,
-      safety_rating,
-      comment,
-      visitor_name,
+      firstName,
+      lastName,
+      telephone,
+      email,
+      ticketNo,
+      park,
+      visitDate,
+      guideName,
+      guideNumber,
+      languageRating,
+      knowledgeRating,
+      organizationRating,
+      engagementRating,
+      safetyRating,
+      feedback
     } = body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !ticketNo || !park || !visitDate || 
+        !guideName || !guideNumber || !languageRating || !knowledgeRating || 
+        !organizationRating || !engagementRating || !safetyRating) {
+        return NextResponse.json(
+            { error: 'Missing required fields' },
+            { status: 400 }
+        );
+    }
 
     connection = await getConnection();
     const [result] = await connection.execute(
-      `INSERT INTO VisitorFeedback (
-                guide_id, 
-                language_rating, 
-                knowledge_rating, 
-                organization_rating, 
-                engagement_rating, 
-                safety_rating, 
-                comment,
-                visitor_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO visitorfeedback (
+                first_name,
+                last_name,
+                telephone,
+                email,
+                ticket_no,
+                park,
+                visit_date,
+                guide_name,
+                guide_number,
+                language_rating,
+                knowledge_rating,
+                organization_rating,
+                engagement_rating,
+                safety_rating,
+                comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        guide_id,
-        language_rating || 0,
-        knowledge_rating || 0,
-        organization_rating || 0,
-        engagement_rating || 0,
-        safety_rating || 0,
-        comment || "",
-        visitor_name || "Anonymous Visitor",
+        firstName,
+        lastName,
+        telephone,
+        email,
+        ticketNo,
+        park,
+        visitDate,
+        guideName,
+        guideNumber,
+        languageRating,
+        knowledgeRating,
+        organizationRating,
+        engagementRating,
+        safetyRating,
+        feedback
       ]
     );
 
