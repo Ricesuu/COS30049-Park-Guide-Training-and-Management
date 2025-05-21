@@ -15,105 +15,96 @@ const MonitoringCard = ({
     valueStyle,
     threshold = null,
 }) => {
-    const cardWidth = (Dimensions.get("window").width - 30) / 2;
+    const cardWidth = (Dimensions.get("window").width - 40) / 2; // Adjusted for 2x2 grid
 
-    // Determine if the value is a "No readings today" message
-    const isNoReadings = value === "No readings today";
+    // Determine if the value should be N/A or if it's a zero motion reading
+    const displayValue = value === "No readings today" ? "N/A" : value;
+    const isNA = value === "No readings today";
+    const isZeroMotion =
+        type.toLowerCase().includes("motion") &&
+        (value.startsWith("0") || value.includes("0 motion"));
+
+    // Determine if we should grey out the text (either N/A or zero motion)
+    const shouldGreyOut = isNA || isZeroMotion;
 
     // Determine status indicator color based on type and value
     const getStatusColor = () => {
-        // Skip status indicator for "No readings today"
-        if (isNoReadings) return null;
+        if (isNA || isZeroMotion) return null;
 
         // Parse the numeric value if possible
         let numericValue;
         if (typeof value === "string") {
+            // Handle percentage values (like "75%") and regular numbers
             const match = value.match(/[\d.]+/);
             numericValue = match ? parseFloat(match[0]) : null;
         }
 
         const typeLower = type.toLowerCase();
 
+        // Return null for motion detection to never show status indicator
+        if (typeLower.includes("motion")) {
+            return null;
+        }
+
         // If we have thresholds from the database, use those instead of hardcoded values
         if (threshold) {
-            // For motion sensor, check for "detected" value
-            if (typeLower.includes("motion")) {
-                return value.toLowerCase().includes("0")
-                    ? "#00cc00"
-                    : "#ff9900";
-            }
-            // For numeric sensors, check min/max thresholds
-            else if (!isNaN(numericValue)) {
+            if (!isNaN(numericValue)) {
+                // For both temperature and humidity
                 if (
                     threshold.min_threshold !== null &&
                     numericValue < threshold.min_threshold
                 ) {
-                    return "#ff0000"; // Below minimum threshold
+                    return "#ff0000"; // Red for out of range
                 }
                 if (
                     threshold.max_threshold !== null &&
                     numericValue > threshold.max_threshold
                 ) {
-                    return "#ff0000"; // Above maximum threshold
+                    return "#ff0000"; // Red for out of range
                 }
-                return "#00cc00"; // Within acceptable range
+                // Add warning state for values close to thresholds (within 10%)
+                const range = threshold.max_threshold - threshold.min_threshold;
+                const warningMargin = range * 0.1;
+                if (
+                    numericValue <= threshold.min_threshold + warningMargin ||
+                    numericValue >= threshold.max_threshold - warningMargin
+                ) {
+                    return "#ff9900"; // Orange for warning
+                }
+                return "#00cc00"; // Green for normal range
             }
-            return "#cccccc"; // Default gray
         }
 
-        // Fallback to hardcoded values if no threshold data is available
-        if (typeLower === "temperature") {
-            if (numericValue > 30) return "#ff0000"; // Red for high temp
-            if (numericValue < 15) return "#0000ff"; // Blue for low temp
-            return "#00cc00"; // Green for normal temp
-        }
-
-        if (typeLower === "humidity") {
-            if (numericValue > 80) return "#ff6600"; // Orange for high humidity
-            if (numericValue < 40) return "#ff9900"; // Yellow-orange for low humidity
-            return "#00cc00"; // Green for normal humidity
-        }
-
-        if (typeLower.includes("soil moisture")) {
-            if (numericValue < 30) return "#ff0000"; // Red for dry soil
-            if (numericValue > 70) return "#0000ff"; // Blue for wet soil
-            return "#00cc00"; // Green for normal soil moisture
-        }
-
-        if (typeLower.includes("motion")) {
-            // Green if no motion events, yellow if some
-            return parseInt(value) === 0 ? "#00cc00" : "#ff9900";
-        }
-
-        return "#cccccc"; // Default gray
+        return "#00cc00"; // Default to green if no threshold rules match
     };
 
     const statusColor = getStatusColor();
+    const statusIndicator = statusColor ? (
+        <View
+            style={[styles.statusIndicator, { backgroundColor: statusColor }]}
+        />
+    ) : null;
 
     return (
         <TouchableOpacity
-            onPress={onPress}
             style={[styles.card, { width: cardWidth }, style]}
+            onPress={onPress}
         >
-            {statusColor && (
-                <View
-                    style={[
-                        styles.statusIndicator,
-                        { backgroundColor: statusColor },
-                    ]}
-                />
-            )}
-
-            <Text
-                style={[
-                    styles.value,
-                    isNoReadings ? styles.smallValue : {},
-                    valueStyle,
-                ]}
-            >
-                {value}
-            </Text>
-            <Text style={styles.type}>{type}</Text>
+            {statusIndicator}
+            <View style={styles.contentContainer}>
+                <Text style={styles.type}>{type}</Text>
+                <View style={styles.valueContainer}>
+                    <Text
+                        style={[
+                            styles.value,
+                            shouldGreyOut && styles.naValue,
+                            valueStyle,
+                        ]}
+                    >
+                        {displayValue}
+                    </Text>
+                </View>
+            </View>
         </TouchableOpacity>
     );
 };
@@ -122,40 +113,54 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: "white",
         borderRadius: 10,
-        padding: 16,
-        marginVertical: 10,
+        padding: 15,
+        margin: 5,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        alignItems: "center",
-        justifyContent: "center", // Add this to center content vertically
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
         position: "relative", // For absolute positioning of status indicator
-        height: 170, // Set a fixed height to ensure consistency
+        height: 120, // Fixed height for all cards
+        justifyContent: "center", // Center content vertically
     },
-    value: {
-        fontSize: 30,
-        fontWeight: "bold",
-        color: "rgb(22, 163, 74)",
-        marginBottom: 8,
-        textAlign: "center",
-    },
-    smallValue: {
-        fontSize: 16,
-        fontWeight: "normal",
+    contentContainer: {
+        alignItems: "center", // Center all content
+        justifyContent: "center",
+        width: "100%",
     },
     type: {
         fontSize: 16,
         color: "#666",
+        marginBottom: 5,
+        textAlign: "center",
+    },
+    valueContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    value: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "#333",
+        textAlign: "center",
+    },
+    naValue: {
+        color: "#666",
+        opacity: 0.8,
     },
     statusIndicator: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
         position: "absolute",
         top: 10,
         right: 10,
+        zIndex: 1,
     },
 });
 

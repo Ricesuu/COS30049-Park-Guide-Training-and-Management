@@ -325,48 +325,49 @@ const Manage = () => {
                 }}
             >
                 Manage Park Guides
-            </Text>
+            </Text>{" "}
+            {/* Filters Row */}
+            <View style={{ flexDirection: "row", padding: 10 }}>
+                {/* Park Filter */}
+                <View style={{ flex: 1, marginRight: 5 }}>
+                    <Picker
+                        selectedValue={selectedPark}
+                        onValueChange={(itemValue) => {
+                            setSelectedPark(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                        <Picker.Item label="All Parks" value="all" />
+                        {parks.map((park) => (
+                            <Picker.Item
+                                key={park.park_id}
+                                label={park.park_name}
+                                value={park.park_name}
+                            />
+                        ))}
+                    </Picker>
+                </View>
 
-            {/* Park Filter */}
-            <View style={{ padding: 10 }}>
-                <Picker
-                    selectedValue={selectedPark}
-                    onValueChange={(itemValue) => {
-                        setSelectedPark(itemValue);
-                        filterGuides();
-                    }}
-                >
-                    <Picker.Item label="All Parks" value="all" />
-                    {parks.map((park) => (
+                {/* Status Filter */}
+                <View style={{ flex: 1, marginLeft: 5 }}>
+                    <Picker
+                        selectedValue={selectedStatus}
+                        onValueChange={(itemValue) => {
+                            setSelectedStatus(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                        <Picker.Item label="All Statuses" value="all" />
+                        <Picker.Item label="Active" value="Active" />
+                        <Picker.Item label="Training" value="Training" />
+                        <Picker.Item label="Suspended" value="Suspended" />
                         <Picker.Item
-                            key={park.park_id}
-                            label={park.park_name}
-                            value={park.park_name}
+                            label="Ready for Certification"
+                            value="Ready for Certification"
                         />
-                    ))}
-                </Picker>
+                    </Picker>
+                </View>
             </View>
-
-            {/* Status Filter */}
-            <View style={{ padding: 10 }}>
-                <Picker
-                    selectedValue={selectedStatus}
-                    onValueChange={(itemValue) => {
-                        setSelectedStatus(itemValue);
-                        filterGuides();
-                    }}
-                >
-                    <Picker.Item label="All Statuses" value="all" />
-                    <Picker.Item label="Active" value="Active" />
-                    <Picker.Item label="Training" value="Training" />
-                    <Picker.Item label="Suspended" value="Suspended" />
-                    <Picker.Item
-                        label="Ready for Certification"
-                        value="Ready for Certification"
-                    />
-                </Picker>
-            </View>
-
             {/* Search Bar */}
             <View style={{ padding: 10 }}>
                 <TextInput
@@ -384,7 +385,6 @@ const Manage = () => {
                     }}
                 />
             </View>
-
             {/* Loading state */}
             {loading ? (
                 <View

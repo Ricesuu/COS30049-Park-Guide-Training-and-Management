@@ -66,10 +66,10 @@ CREATE TABLE IF NOT EXISTS `alertthresholds` (
 --
 
 INSERT INTO `alertthresholds` (`threshold_id`, `sensor_type`, `park_id`, `min_threshold`, `max_threshold`, `trigger_message`, `severity`, `is_enabled`, `created_at`, `updated_at`) VALUES
-(1, 'temperature', 1, 15, 19, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(2, 'temperature', 2, 16, 19, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(3, 'humidity', 1, 50, 51, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(4, 'humidity', 2, 60, 61, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(1, 'temperature', 1, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(2, 'temperature', 2, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(3, 'humidity', 1, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(4, 'humidity', 2, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (5, 'soil moisture', 1, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (6, 'soil moisture', 2, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (7, 'motion', 1, NULL, NULL, 'Unauthorized motion detected', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS `guidetrainingprogress` (
 --
 
 CREATE TABLE IF NOT EXISTS `iotmonitoring` (
-  `sensor_id` int(11) NOT NULL,
+  `sensor_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `park_id` int(11) NOT NULL,
   `sensor_type` enum('temperature','humidity','soil moisture','motion') NOT NULL,
   `recorded_value` varchar(255) NOT NULL,
