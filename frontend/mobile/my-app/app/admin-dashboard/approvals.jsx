@@ -8,6 +8,7 @@ import { useRoute } from "@react-navigation/native"; // Import useRoute
 import CustomTabBar from "../../components/ADMINdashboard/AdminDashboardApprovals/ApprovalsTabBar";
 import ParkGuideApproval from "../../components/ADMINdashboard/AdminDashboardApprovals/ParkGuideApproval";
 import TransactionApproval from "../../components/ADMINdashboard/AdminDashboardApprovals/TransactionApproval";
+import CertificationApproval from "../../components/ADMINdashboard/AdminDashboardApprovals/CertificationApproval";
 
 const approvals = () => {
     const route = useRoute(); // Get route parameters
@@ -15,18 +16,22 @@ const approvals = () => {
 
     const [routes] = useState([
         { key: "parkGuide", title: "Park Guide" },
+        { key: "certification", title: "Certification" },
         { key: "transaction", title: "Transaction" },
     ]);
 
     const renderScene = SceneMap({
         parkGuide: ParkGuideApproval,
+        certification: CertificationApproval,
         transaction: TransactionApproval,
     });
 
     // Update the tab index whenever the route parameter changes
     useEffect(() => {
         if (route.params?.initialTab === "transaction") {
-            setIndex(1); // Set to the "Transaction" tab
+            setIndex(2); // Set to the "Transaction" tab
+        } else if (route.params?.initialTab === "certification") {
+            setIndex(1); // Set to the "Certification" tab
         } else if (route.params?.initialTab === "parkGuide") {
             setIndex(0); // Set to the "Park Guide" tab
         }
