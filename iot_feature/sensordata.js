@@ -1,7 +1,7 @@
 const mqtt = require("mqtt");
 const mysql = require("mysql2/promise");
 
-const client = mqtt.connect("mqtt://localhost:1883", {
+const client = mqtt.connect("mqtt://172.20.10.4:1883", {
   username: "zasha",
   password: "mypassword",
 });
@@ -9,7 +9,7 @@ const client = mqtt.connect("mqtt://localhost:1883", {
 // MySQL config
 const dbConfig = {
   host: "localhost",
-  user: "your_user",
+  user: "root",
   password: "password123",
   database: "park_guide_management",
 };
@@ -70,7 +70,7 @@ client.on("message", (topic, message) => {
       try {
         const conn = await mysql.createConnection(dbConfig);
         await conn.execute(
-          `INSERT INTO iot_readings (sensor_id, temperature, humidity, soil_moisture, timestamp)
+          `INSERT INTO sensor_data (sensor_id, temperature, humidity, soil_moisture, timestamp)
            VALUES (?, ?, ?, ?, ?)`,
           [
             currentData.sensor_id,
