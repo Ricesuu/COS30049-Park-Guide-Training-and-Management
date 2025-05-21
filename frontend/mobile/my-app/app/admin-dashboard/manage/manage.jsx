@@ -276,79 +276,39 @@ const Manage = () => {
             setError("Failed to update guide status. Please try again later.");
         }
     };
-
     const handleDelete = async (id) => {
         try {
             console.log(`Deleting guide with ID ${id}`);
+            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+                method: "DELETE",
+                headers: {},
+            });
 
-            Alert.alert(
-                "Confirm Delete",
-                "Are you sure you want to delete this guide?",
-                [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: async () => {
-                            try {
-                                const response = await fetch(
-                                    `${API_URL}/api/park-guides/${id}`,
-                                    {
-                                        method: "DELETE",
-                                        headers: {},
-                                    }
-                                );
+            const responseText = await response.text();
+            console.log("Raw response:", responseText);
 
-                                const responseText = await response.text();
-                                console.log("Raw response:", responseText);
+            if (!response.ok) {
+                throw new Error(
+                    `Delete failed with status ${response.status}: ${responseText}`
+                );
+            }
 
-                                if (!response.ok) {
-                                    throw new Error(
-                                        `Delete failed with status ${response.status}: ${responseText}`
-                                    );
-                                }
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.warn("Could not parse response as JSON:", e);
+            }
 
-                                let result;
-                                try {
-                                    result = JSON.parse(responseText);
-                                } catch (e) {
-                                    console.warn(
-                                        "Could not parse response as JSON:",
-                                        e
-                                    );
-                                }
+            // Update local state
+            setGuides((prev) => prev.filter((guide) => guide.id !== id));
 
-                                // Update local state
-                                setGuides((prev) =>
-                                    prev.filter((guide) => guide.id !== id)
-                                );
+            filterGuides();
 
-                                filterGuides();
-
-                                Alert.alert(
-                                    "Success",
-                                    "Guide has been successfully deleted"
-                                );
-                            } catch (error) {
-                                console.error(
-                                    "Delete operation failed:",
-                                    error
-                                );
-                                Alert.alert(
-                                    "Error",
-                                    "Failed to delete guide. Please try again."
-                                );
-                            }
-                        },
-                    },
-                ]
-            );
-        } catch (err) {
-            console.error("Error in handleDelete:", err);
-            Alert.alert(
-                "Error",
-                "An unexpected error occurred. Please try again."
-            );
+            Alert.alert("Success", "Guide has been successfully deleted");
+        } catch (error) {
+            console.error("Delete operation failed:", error);
+            Alert.alert("Error", "Failed to delete guide. Please try again.");
         }
     };
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import { assertUser } from "@/lib/assertUser";
+import { sendEmail } from "@/lib/emailService";
 
 export async function GET(request, context) {
     const params = await context.params;
@@ -17,7 +18,7 @@ export async function GET(request, context) {
         // ✅ Step 2: Only allow if user is self or admin
         if (requesterUid !== uid && role !== "admin") {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }        // ✅ Step 3: Fetch user from DB using UID
+        } // ✅ Step 3: Fetch user from DB using UID
         connection = await getConnection();
         const [rows] = await connection.execute(
             "SELECT * FROM Users WHERE uid = ?",
@@ -128,6 +129,23 @@ export async function PUT(request, context) {
                         `Park guide record created with ID: ${guideResult.insertId}`
                     );
                 }
+
+                // Send approval email
+                await sendEmail({
+                    to: user.email,
+                    template: "guideApproval",
+                    data: user.first_name,
+                });
+            } else if (
+                body.status === "rejected" &&
+                user.role === "park_guide"
+            ) {
+                // Send rejection email
+                await sendEmail({
+                    to: user.email,
+                    template: "guideRejection",
+                    data: user.first_name,
+                });
             }
 
             // Commit all changes

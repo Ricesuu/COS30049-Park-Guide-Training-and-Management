@@ -517,11 +517,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   `first_name` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
   `role` enum('admin','park_guide') NOT NULL DEFAULT 'park_guide',
-  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `status` enum('pending','approved','rejected','deleted') DEFAULT 'pending',
   `failed_attempts` int(11) DEFAULT 0,
   `last_failed_attempt` datetime DEFAULT NULL,
   `locked_until` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

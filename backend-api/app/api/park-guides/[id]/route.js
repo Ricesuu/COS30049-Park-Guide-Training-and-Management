@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
+import { sendEmail } from "@/lib/emailService";
+import admin from "@/lib/firebaseAdmin";
 
 export async function PUT(request, { params }) {
     console.log("PUT request received for /api/park-guides/[id]");
@@ -162,113 +164,77 @@ export async function DELETE(request, { params }) {
 
     let connection;
     try {
+        console.log("Requesting connection from pool...");
         connection = await getConnection();
-        console.log(
-            `Attempting to delete guide with ID: ${id} and related records`
+        console.log("Successfully acquired connection from pool");
+
+        // Start transaction
+        await connection.beginTransaction();
+        console.log("Attempting to soft delete guide with ID:", id);
+
+        // Get user information before soft deletion
+        const [userInfo] = await connection.execute(
+            "SELECT u.email, u.first_name, u.user_id, u.uid FROM Users u JOIN ParkGuides pg ON u.user_id = pg.user_id WHERE pg.guide_id = ?",
+            [id]
         );
 
-        // Start a transaction (optional but recommended for multiple deletes)
-        // await connection.beginTransaction(); // Uncomment if using transactions
-
-        // Delete related records first due to foreign key constraints
-        console.log(`Deleting related records for guide ID: ${id}`);
-
-        // Delete from VisitorFeedback
+        if (userInfo.length === 0) {
+            throw new Error("Guide not found");
+        }
+        const user = userInfo[0]; // Soft delete: Update Users table to deleted status
         await connection.execute(
-            "DELETE FROM VisitorFeedback WHERE guide_id = ?",
-            [id]
-        );
-        console.log(`Deleted from VisitorFeedback for guide ID: ${id}`);
-
-        // Delete from Certifications
-        await connection.execute(
-            "DELETE FROM Certifications WHERE guide_id = ?",
-            [id]
-        );
-        console.log(`Deleted from Certifications for guide ID: ${id}`);
-
-        // Delete from MultiLicenseTrainingExemptions
-        await connection.execute(
-            "DELETE FROM MultiLicenseTrainingExemptions WHERE guide_id = ?",
-            [id]
-        );
-        console.log(
-            `Deleted from MultiLicenseTrainingExemptions for guide ID: ${id}`
+            'UPDATE Users SET status = "deleted", deleted_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+            [user.user_id]
         );
 
-        // Delete from GuideTrainingProgress
-        await connection.execute(
-            "DELETE FROM GuideTrainingProgress WHERE guide_id = ?",
-            [id]
-        );
-        console.log(`Deleted from GuideTrainingProgress for guide ID: ${id}`);
+        // Hard delete from ParkGuides table
+        await connection.execute("DELETE FROM ParkGuides WHERE guide_id = ?", [
+            id,
+        ]);
 
-        // Now, delete the guide itself
-        console.log(`Deleting guide from ParkGuides for ID: ${id}`);
-        const [result] = await connection.execute(
-            "DELETE FROM ParkGuides WHERE guide_id = ?",
-            [id]
-        );
-
-        console.log(`Delete operation result from ParkGuides:`, result);
-
-        if (result.affectedRows === 0) {
-            // If the guide wasn't found after attempting to delete related records
-            // await connection.rollback(); // Uncomment if using transactions
-            return NextResponse.json(
-                {
-                    error: "Guide not found or delete failed after clearing related records",
-                },
-                {
-                    status: 404,
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Access-Control-Allow-Origin": "*",
-                    },
-                }
-            );
+        // Delete Firebase auth account (for security)
+        try {
+            await admin.auth().deleteUser(user.uid);
+            console.log(`Firebase auth account deleted for UID: ${user.uid}`);
+        } catch (firebaseError) {
+            console.error("Firebase auth deletion error:", firebaseError);
+            // Continue with the process even if Firebase deletion fails
         }
 
-        // Commit the transaction (optional but recommended)
-        // await connection.commit(); // Uncomment if using transactions
+        // Send deletion notification email
+        try {
+            await sendEmail({
+                to: user.email,
+                template: "guideProfileDeletion",
+                data: user.first_name,
+            });
+            console.log(`Deletion notification email sent to ${user.email}`);
+        } catch (emailError) {
+            console.error("Email sending error:", emailError);
+        }
 
-        // Return success response
-        return NextResponse.json(
-            {
-                message: "Guide and related records deleted successfully",
-                affectedRows: result.affectedRows,
-            },
-            {
-                status: 200,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            }
-        );
+        // Commit the transaction
+        await connection.commit();
+        console.log("Successfully soft-deleted guide and related records");
+
+        return NextResponse.json({
+            message: "Guide deleted successfully",
+            details:
+                "Profile marked as deleted, Firebase account removed, and notification email sent",
+        });
     } catch (error) {
         console.error("Delete operation failed:", error);
-        // Rollback transaction on error (optional but recommended)
-        // if (connection) await connection.rollback(); // Uncomment if using transactions
-
+        if (connection) {
+            await connection.rollback();
+        }
         return NextResponse.json(
             { error: "Failed to delete guide", details: error.message },
-            {
-                status: 500,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            }
+            { status: 500 }
         );
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-                console.log("Database connection released");
-            } catch (err) {
-                console.error("Error releasing connection:", err);
-            }
+            connection.release();
+            console.log("Database connection released");
         }
     }
 }

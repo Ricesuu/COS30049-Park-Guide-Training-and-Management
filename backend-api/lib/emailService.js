@@ -117,6 +117,20 @@ const emailTemplates = {
             Park Guide Training Team
         `,
     }),
+
+    // Profile deletion email
+    guideProfileDeletion: (firstName) => ({
+        subject: "Park Guide Profile Deletion Notice",
+        body: `
+            Dear ${firstName},
+            
+            This email is to inform you that your park guide profile has been deleted from our system.
+            If you believe this was done in error, please contact our support team.
+            
+            Best regards,
+            Park Guide Training Team
+        `,
+    }),
 };
 
 const sendEmail = async ({ to, template, data }) => {
