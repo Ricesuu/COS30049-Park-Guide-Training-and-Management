@@ -1,94 +1,86 @@
-import React, { useEffect, useState } from "react";
-import GuideTable from "../../components/admin/GuideTable";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function ParkGuides() {
-    const [guides, setGuides] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+export default function GuideTable({ guides }) {
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchGuides();
-    }, []);
-
-    const fetchGuides = async () => {
+    // ✅ Approve certification (ParkGuides table)
+    const handleApprove = async (guideId) => {
         try {
-            const res = await fetch("/api/users");
-            if (!res.ok) throw new Error("Failed to fetch users");
-            const data = await res.json();
-
-            // Filter only park guides
-            const parkGuides = data.filter(user => user.role === "park_guide");
-            setGuides(parkGuides);
-        } catch (err) {
-            console.error("Error fetching users:", err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleApprove = async (uid) => {
-        try {
-            const res = await fetch(`/api/users/${uid}`, {
+            const res = await fetch(`/api/park-guides/${guideId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ status: "approved" }),
+                body: JSON.stringify({
+                    certification_status: "certified",
+                }),
             });
 
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || "Approval failed");
+            const data = await res.json();
 
-            setGuides(prev =>
-                prev.map(guide =>
-                    guide.uid === uid ? { ...guide, status: "approved" } : guide
-                )
-            );
+            if (res.ok) {
+                alert("Guide certified successfully.");
+                window.location.reload(); // Or refresh state locally
+            } else {
+                alert("Certification failed: " + data.error);
+            }
         } catch (err) {
-            console.error("Error approving user:", err);
-            setError(err.message);
+            console.error("Certification error:", err);
+            alert("Something went wrong.");
         }
     };
 
-    const pendingGuides = guides.filter(guide => guide.status === "pending");
-
-    if (loading) return <div className="p-6 text-green-900">Loading park guides...</div>;
-    if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-
     return (
-        <div className="p-6 space-y-6 text-green-900">
-            <h1 className="text-2xl font-bold">Park Guide Management</h1>
+        <div className="bg-white rounded-xl shadow-md overflow-auto border border-green-300">
+            <h2 className="text-xl font-semibold p-4 border-b bg-green-50">
+                All Park Guides
+            </h2>
+            <table className="min-w-full text-sm text-left">
+                <thead className="bg-green-200 text-green-800">
+                    <tr>
+                        <th className="px-4 py-2">ID</th>
+                        <th className="px-4 py-2">Name</th>
+                        <th className="px-4 py-2">License ID</th>
+                        <th className="px-4 py-2">Status</th>
+                        <th className="px-4 py-2">Actions</th>
+                        <th className="px-4 py-2">Details</th>
+                    </tr>
+                </thead>
+                <tbody className="text-green-900">
+                    {guides.map((guide) => (
+                        <tr key={guide.guide_id} className="border-b">
+                            <td className="px-4 py-2">{guide.guide_id}</td>
+                            <td className="px-4 py-2">
+                                {guide.first_name} {guide.last_name}
+                            </td>
+                            <td className="px-4 py-2">{guide.license_id}</td>
+                            <td className="px-4 py-2">
+                                {guide.user_status} / {guide.certification_status}
+                            </td>
+                            <td className="px-4 py-2 space-y-2">
 
-            {/* Registration Approvals */}
-            <div className="bg-green-100 rounded-xl p-4 shadow-md border border-green-300">
-                <h2 className="text-xl font-semibold mb-4">Registration Approvals</h2>
-                {pendingGuides.length === 0 ? (
-                    <div className="text-green-800">No pending registrations.</div>
-                ) : (
-                    <div className="space-y-2">
-                        {pendingGuides.map((guide) => (
-                            <div
-                                key={guide.uid}
-                                className="flex justify-between items-center bg-white p-3 rounded-lg shadow"
-                            >
-                                <span>
-                                    {guide.first_name} {guide.last_name} (UID: {guide.uid})
-                                </span>
+                                {guide.certification_status !== "certified" && (
+                                    <button
+                                        onClick={() => handleApprove(guide.guide_id)}
+                                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 w-full"
+                                    >
+                                        Certify Guide
+                                    </button>
+                                )}
+                            </td>
+                            <td className="px-4 py-2">
                                 <button
-                                    onClick={() => handleApprove(guide.uid)}
-                                    className="bg-green-800 text-white px-4 py-1 rounded hover:bg-green-700"
+                                    className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                                    onClick={() => navigate(`/guides/${guide.uid}`)}
                                 >
-                                    Approve
+                                    Details
                                 </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* All Park Guides Table */}
-            <GuideTable guides={guides} />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
