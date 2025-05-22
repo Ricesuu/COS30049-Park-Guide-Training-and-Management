@@ -569,15 +569,15 @@ CREATE TABLE IF NOT EXISTS `visitorfeedback` (
   `ticket_no` VARCHAR(50) NOT NULL,
   `park` VARCHAR(255) NOT NULL,
   `visit_date` DATE NOT NULL,
-  `guide_name` VARCHAR(255) NOT NULL,
-  `guide_number` VARCHAR(50) NOT NULL,
+  `guide_id` INT NOT NULL,
   `language_rating` INT NOT NULL,
   `knowledge_rating` INT NOT NULL,
   `organization_rating` INT NOT NULL,
   `engagement_rating` INT NOT NULL,
   `safety_rating` INT NOT NULL,
   `comment` TEXT,
-  `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`guide_id`) REFERENCES `parkguides`(`guide_id`)
 );
 
 --
@@ -585,12 +585,12 @@ CREATE TABLE IF NOT EXISTS `visitorfeedback` (
 --
 
 INSERT INTO `visitorfeedback` 
-(first_name, last_name, telephone, email, ticket_no, park, visit_date, guide_name, guide_number, language_rating, knowledge_rating, organization_rating, engagement_rating, safety_rating, comment) 
+(first_name, last_name, telephone, email, ticket_no, park, visit_date, guide_id, language_rating, knowledge_rating, organization_rating, engagement_rating, safety_rating, comment) 
 VALUES 
-('John', 'Smith', '+60123456789', 'john.smith@email.com', 'SW10001', 'Semenggoh Wildlife Centre', '2025-05-15', 'Sarah Chen', 'PG10001', 5, 4, 5, 5, 4, 'Excellent experience! The guide was very knowledgeable about orangutans and made the tour engaging.'),
-('Emma', 'Johnson', '+60187654321', 'emma.j@email.com', 'SW10002', 'Semenggoh Wildlife Centre', '2025-05-18', 'Michael Wong', 'PG10002', 4, 5, 4, 5, 5, 'Very informative tour. The safety briefing was thorough and I felt secure throughout the visit.'),
-('Raj', 'Patel', '+60192345678', 'raj.patel@email.com', 'SW10003', 'Semenggoh Wildlife Centre', '2025-05-19', 'Lisa Tan', 'PG10003', 5, 5, 4, 4, 5, 'Amazing experience watching the orangutans. The guide was very professional and answered all our questions.'),
-('Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 'David Lee', 'PG10004', 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.');
+('John', 'Smith', '+60123456789', 'john.smith@email.com', 'SW10001', 'Semenggoh Wildlife Centre', '2025-05-15', 1, 5, 4, 5, 5, 4, 'Excellent experience! The guide was very knowledgeable about orangutans and made the tour engaging.'),
+('Emma', 'Johnson', '+60187654321', 'emma.j@email.com', 'SW10002', 'Semenggoh Wildlife Centre', '2025-05-18', 1, 4, 5, 4, 5, 5, 'Very informative tour. The safety briefing was thorough and I felt secure throughout the visit.'),
+('Raj', 'Patel', '+60192345678', 'raj.patel@email.com', 'SW10003', 'Semenggoh Wildlife Centre', '2025-05-19', 1, 5, 5, 4, 4, 5, 'Amazing experience watching the orangutans. The guide was very professional and answered all our questions.'),
+('Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 1, 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.');
 
 -- --------------------------------------------------------
 

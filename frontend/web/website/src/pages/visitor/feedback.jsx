@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import StarRating from "../../components/visitor/StarRating";
 import { motion } from "framer-motion";
 
 const FeedbackPage = () => {
+  const [guides, setGuides] = useState([]);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -13,8 +14,7 @@ const FeedbackPage = () => {
     ticketNo: "",
     park: "",
     visitDate: new Date().toISOString().split("T")[0],
-    guideName: "",
-    guideNumber: "",
+    guideId: "",
     languageRating: 0,
     knowledgeRating: 0,
     organizationRating: 0,
@@ -25,9 +25,24 @@ const FeedbackPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({
-    ticketNo: false,
-    guideNumber: false
+    ticketNo: false
   });
+
+  useEffect(() => {
+    const fetchGuides = async () => {
+      try {
+        const response = await fetch("/api/park-guides");
+        if (!response.ok) throw new Error("Failed to fetch guides");
+        const data = await response.json();
+        setGuides(data.filter(guide => guide.certification_status === "certified"));
+      } catch (err) {
+        console.error("Error fetching guides:", err);
+        setError("Failed to load park guides.");
+      }
+    };
+
+    fetchGuides();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -48,12 +63,6 @@ const FeedbackPage = () => {
     if (name === 'ticketNo') {
       const isValid = /^SW\d{5}$/.test(value);
       setFieldErrors(prev => ({ ...prev, ticketNo: value !== '' && !isValid }));
-    }
-
-    // Validate guide number format (PGXXXXX)
-    if (name === 'guideNumber') {
-      const isValid = /^PG\d{5}$/.test(value);
-      setFieldErrors(prev => ({ ...prev, guideNumber: value !== '' && !isValid }));
     }
 
     setFormData({ ...formData, [name]: value });
@@ -78,12 +87,11 @@ const FeedbackPage = () => {
       return;
     }
 
-    // Check if the ticket number and guide number are valid
+    // Check if the ticket number is valid
     const isTicketValid = /^SW\d{5}$/.test(formData.ticketNo);
-    const isGuideValid = /^PG\d{5}$/.test(formData.guideNumber);
 
-    if (!isTicketValid || !isGuideValid) {
-      setError("Please check the ticket number and guide number formats.");
+    if (!isTicketValid) {
+      setError("Please check the ticket number format.");
       return;
     }
 
@@ -101,8 +109,7 @@ const FeedbackPage = () => {
           ticketNo: formData.ticketNo,
           park: formData.park,
           visitDate: formData.visitDate,
-          guideName: formData.guideName,
-          guideNumber: formData.guideNumber,
+          guideId: formData.guideId,
           languageRating: formData.languageRating,
           knowledgeRating: formData.knowledgeRating,
           organizationRating: formData.organizationRating,
@@ -125,8 +132,7 @@ const FeedbackPage = () => {
         ticketNo: "",
         park: "",
         visitDate: new Date().toISOString().split("T")[0],
-        guideName: "",
-        guideNumber: "",
+        guideId: "",
         languageRating: 0,
         knowledgeRating: 0,
         organizationRating: 0,
@@ -346,45 +352,29 @@ const FeedbackPage = () => {
                   <hr className="mb-4" />
                   <div className="mb-4">
                     <label
-                      htmlFor="guideName"
+                      htmlFor="guideId"
                       className="block text-gray-700 font-medium mb-2"
                     >
-                      Park Guide Name
+                      Park Guide
                     </label>
-                    <input
-                      type="text"
-                      id="guideName"
-                      name="guideName"
-                      value={formData.guideName}
+                    <select
+                      id="guideId"
+                      name="guideId"
+                      value={formData.guideId}
                       onChange={handleInputChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                         hover:border-green-300 transition-all duration-300 ease-in-out
-                        bg-white hover:bg-green-50/30"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label
-                      htmlFor="guideNumber"
-                      className="block text-gray-700 font-medium mb-2"
+                        bg-white [&>option]:bg-white"
                     >
-                      Park Guide Number
-                    </label>
-                    <input                      type="text"
-                      id="guideNumber"
-                      name="guideNumber"
-                      value={formData.guideNumber}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-4 py-2 border rounded-md 
-                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                        hover:border-green-300 transition-all duration-300 ease-in-out
-                        bg-white hover:bg-green-50/30 ${fieldErrors.guideNumber ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {fieldErrors.guideNumber && (
-                      <p className="mt-1 text-sm text-red-500">Invalid guide number format.</p>
-                    )}
+                      <option value="">Select a guide</option>
+                      {guides.map((guide) => (
+                        <option key={guide.guide_id} value={guide.guide_id}>
+                          {guide.first_name} {guide.last_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <h3 className="text-lg font-semibold mb-2 mt-6">Guide Ratings</h3>

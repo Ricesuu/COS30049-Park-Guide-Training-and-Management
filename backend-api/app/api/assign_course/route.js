@@ -19,7 +19,7 @@ export async function GET(request) {
         FROM ParkGuides pg
         JOIN Users u ON pg.user_id = u.user_id
         LEFT JOIN GuideTrainingProgress gtp ON pg.guide_id = gtp.guide_id
-        WHERE pg.certification_status = 'pending'
+        WHERE pg.certification_status = 'certified'
         GROUP BY pg.guide_id
       `);
 
