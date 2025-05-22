@@ -3,12 +3,59 @@ import GuideTable from "../../components/admin/GuideTable";
 
 export default function ParkGuides() {
     const [guides, setGuides] = useState([]);
+    const [guide, setGuide] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchGuides();
     }, []);
+
+    useEffect(() => {
+        fetchGuide();
+    }, []);
+
+    const fetchGuide = async () => {
+        try {
+            const res = await fetch("/api/park-guides");
+            if (!res.ok) throw new Error("Failed to fetch park guides");
+            const data = await res.json();
+            setGuide(data);
+        } catch (err) {
+            console.error("Fetch error:", err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+     const handleCertify = async (guideId) => {
+        try {
+            const res = await fetch(`/api/park-guides/${guideId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ certification_status: "certified" }),
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "Certification failed");
+
+            // Refresh state after update
+            setGuides(prev =>
+                prev.map(guide =>
+                    guide.guide_id === guideId
+                        ? { ...guide, certification_status: "certified" }
+                        : guide
+                )
+            );
+        } catch (err) {
+            console.error("Certify error:", err);
+            alert("Error: " + err.message);
+        }
+    };
+
 
     const fetchGuides = async () => {
         try {
@@ -60,7 +107,7 @@ export default function ParkGuides() {
         <div className="p-6 space-y-6 text-green-900">
             <h1 className="text-2xl font-bold">Park Guide Management</h1>
 
-            {/* Registration Approvals */}
+            
             <div className="bg-green-100 rounded-xl p-4 shadow-md border border-green-300">
                 <h2 className="text-xl font-semibold mb-4">Registration Approvals</h2>
                 {pendingGuides.length === 0 ? (
@@ -88,7 +135,7 @@ export default function ParkGuides() {
             </div>
 
             {/* All Park Guides Table */}
-            <GuideTable guides={guides} />
+            <GuideTable guides={guide} onCertify={handleCertify} />
         </div>
     );
 }
