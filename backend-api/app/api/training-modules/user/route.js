@@ -26,12 +26,18 @@ export async function GET(request) {
                 { status: 404 }
             );
         }
-        const userId = userRows[0].user_id; // Get the modules purchased by this user - show all modules regardless of payment status
+        const userId = userRows[0].user_id;
+        // Get the modules purchased by this user - show all modules regardless of payment status
         const [rows] = await connection.execute(
             `
-            SELECT                tm.module_id AS id,
+            SELECT 
+                tm.module_id AS id,
                 tm.module_name AS name,
                 tm.description,
+                tm.difficulty,
+                tm.aspect,
+                tm.video_url,
+                tm.course_content,
                 CONCAT('${
                     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
                 }/module-images/', tm.module_id, '.jpg') AS imageUrl,
@@ -63,9 +69,14 @@ export async function GET(request) {
             const [pendingModules] = await connection.execute(
                 `
                 SELECT 
-                    pt.payment_id,                    pt.module_id AS id,
+                    pt.payment_id,                    
+                    pt.module_id AS id,
                     tm.module_name AS name,
                     tm.description,
+                    tm.difficulty,
+                    tm.aspect,
+                    tm.video_url,
+                    tm.course_content,
                     CONCAT('${
                         process.env.NEXT_PUBLIC_API_URL ||
                         "http://localhost:3001"

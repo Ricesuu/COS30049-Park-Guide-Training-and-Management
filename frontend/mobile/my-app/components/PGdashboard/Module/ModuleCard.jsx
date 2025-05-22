@@ -2,7 +2,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
-import * as Progress from "react-native-progress";
 
 const ModuleCard = ({ module, onPress }) => {
     const isPendingPayment = module.paymentStatus === "pending";
@@ -32,29 +31,14 @@ const ModuleCard = ({ module, onPress }) => {
                 <Text style={styles.moduleDescription} numberOfLines={2}>
                     {module.description || "No description available"}
                 </Text>
-                <View style={styles.moduleProgressContainer}>
-                    <Progress.Bar
-                        progress={(module.progress || 0) / 100}
-                        width={null}
-                        color="#16a34a"
-                        unfilledColor="#E0E0E0"
-                        borderWidth={0}
-                        height={8}
-                    />
-                    <Text style={styles.moduleProgressText}>
-                        {module.progress !== undefined
-                            ? `${module.progress}%`
-                            : "0%"}
-                    </Text>
-                </View>
                 {module.is_completed && (
                     <View style={styles.completedBadge}>
+                        <Text style={styles.completedText}>Completed</Text>
                         <AntDesign
-                            name="checkcircle"
+                            name="checkcircleo"
                             size={16}
                             color="#16a34a"
                         />
-                        <Text style={styles.completedText}>Completed</Text>
                     </View>
                 )}
             </View>
@@ -64,72 +48,63 @@ const ModuleCard = ({ module, onPress }) => {
 
 const styles = StyleSheet.create({
     moduleCard: {
-        backgroundColor: "#F5F5F4",
-        borderRadius: 10,
-        marginBottom: 15,
+        backgroundColor: "#fff",
+        borderRadius: 8,
+        marginHorizontal: 2,
+        marginBottom: 16,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
-        overflow: "hidden",
         position: "relative",
     },
     moduleInfo: {
-        padding: 15,
+        padding: 16,
     },
     moduleInfoWithBadge: {
-        paddingTop: 40, // Make room for the badge
+        opacity: 0.5,
     },
     moduleTitle: {
-        fontSize: 16,
-        fontWeight: "bold",
-        marginBottom: 5,
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#333",
+        marginBottom: 8,
     },
     moduleDescription: {
         fontSize: 14,
-        color: "#757575",
-        marginBottom: 10,
-    },
-    moduleProgressContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginTop: 5,
-    },
-    moduleProgressText: {
-        fontSize: 12,
-        color: "#16a34a",
-        fontWeight: "bold",
-        marginLeft: 5,
+        color: "#666",
+        marginBottom: 16,
     },
     completedBadge: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 10,
+        backgroundColor: "#dcfce7",
+        alignSelf: "flex-start",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
     },
     completedText: {
-        marginLeft: 5,
         color: "#16a34a",
+        fontSize: 14,
         fontWeight: "500",
+        marginRight: 4,
     },
     paymentStatusBadge: {
         position: "absolute",
-        top: 0,
-        right: 0,
-        left: 0,
-        backgroundColor: "#FEF3C7",
+        top: 8,
+        right: 8,
+        backgroundColor: "#FFF3CD",
         paddingHorizontal: 8,
         paddingVertical: 4,
+        borderRadius: 4,
         zIndex: 1,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        alignItems: "center",
     },
     paymentStatusText: {
-        color: "#D97706",
+        color: "#856404",
         fontSize: 12,
-        fontWeight: "bold",
+        fontWeight: "500",
     },
 });
 

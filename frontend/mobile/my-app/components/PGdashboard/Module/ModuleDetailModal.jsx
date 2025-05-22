@@ -1,5 +1,5 @@
 // components/PGdashboard/Module/ModuleDetailModal.jsx
-import React, { useRef } from "react";
+import React from "react";
 import {
     View,
     Text,
@@ -7,21 +7,37 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    TextInput,
+    Linking,
+    Alert,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
-import { Video } from "expo-av";
+import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 
-const ModuleDetailModal = ({
-    visible,
-    module,
-    onClose,
-    onCommentChange,
-    commentValue,
-    onCommentSubmit,
-    isSubmitting,
-}) => {
-    const videoRef = useRef(null);
+const ModuleDetailModal = ({ visible, module, onClose }) => {
+    console.log("Module data in modal:", module); // Debug log
+
+    // Handle opening YouTube links with error handling
+    const handleYouTubeLink = async () => {
+        const videoUrl = module?.videoUrl || module?.video_url;
+        if (videoUrl) {
+            try {
+                const supported = await Linking.canOpenURL(videoUrl);
+                if (supported) {
+                    await Linking.openURL(videoUrl);
+                } else {
+                    Alert.alert("Error", "Cannot open this YouTube link");
+                }
+            } catch (error) {
+                Alert.alert("Error", "Failed to open YouTube link");
+            }
+        }
+    };
+
+    // Support both camelCase and snake_case property names for compatibility
+    const moduleTitle = module?.name || module?.title;
+    const moduleDifficulty = module?.difficulty_level || module?.difficulty;
+    const moduleAspect = module?.training_aspect || module?.aspect;
+    const moduleContent = module?.course_content || module?.courseContent;
+    const videoUrl = module?.videoUrl || module?.video_url;
 
     return (
         <Modal
@@ -32,7 +48,7 @@ const ModuleDetailModal = ({
         >
             <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>{module?.title}</Text>
+                    <Text style={styles.modalTitle}>{moduleTitle}</Text>
                     <TouchableOpacity
                         onPress={onClose}
                         style={styles.closeButton}
@@ -42,23 +58,71 @@ const ModuleDetailModal = ({
                 </View>
 
                 <ScrollView style={styles.modalContent}>
-                    {module?.video_url && (
-                        <View style={styles.videoContainer}>
-                            <Video
-                                ref={videoRef}
-                                source={{ uri: module.video_url }}
-                                useNativeControls
-                                resizeMode="contain"
-                                style={styles.video}
-                            />{" "}
-                        </View>
+                    <View style={styles.moduleMetadata}>
+                        {moduleDifficulty && (
+                            <View style={styles.metadataBox}>
+                                <MaterialIcons
+                                    name="signal-cellular-alt"
+                                    size={20}
+                                    color="#4B5563"
+                                />
+                                <Text style={styles.metadataLabel}>
+                                    Difficulty
+                                </Text>
+                                <Text style={styles.metadataValue}>
+                                    {moduleDifficulty}
+                                </Text>
+                            </View>
+                        )}
+                        {moduleAspect && (
+                            <View style={styles.metadataBox}>
+                                <MaterialIcons
+                                    name="category"
+                                    size={20}
+                                    color="#4B5563"
+                                />
+                                <Text style={styles.metadataLabel}>Aspect</Text>
+                                <Text style={styles.metadataValue}>
+                                    {moduleAspect}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {videoUrl && (
+                        <TouchableOpacity
+                            style={styles.youtubeButton}
+                            onPress={handleYouTubeLink}
+                        >
+                            <MaterialIcons
+                                name="youtube-searched-for"
+                                size={24}
+                                color="#FF0000"
+                            />
+                            <Text style={styles.youtubeButtonText}>
+                                Watch on YouTube
+                            </Text>
+                        </TouchableOpacity>
                     )}
+
                     <View style={styles.moduleDetails}>
                         <Text style={styles.sectionTitle}>Description</Text>
                         <Text style={styles.description}>
                             {module?.description}
                         </Text>
-                        {module?.objectives ? (
+
+                        {moduleContent && (
+                            <>
+                                <Text style={styles.sectionTitle}>
+                                    Course Content
+                                </Text>
+                                <Text style={styles.content}>
+                                    {moduleContent}
+                                </Text>
+                            </>
+                        )}
+
+                        {module?.objectives && (
                             <>
                                 <Text style={styles.sectionTitle}>
                                     Learning Objectives
@@ -67,47 +131,7 @@ const ModuleDetailModal = ({
                                     {module.objectives}
                                 </Text>
                             </>
-                        ) : null}
-                        <Text style={styles.sectionTitle}>Complete Status</Text>
-                        <View style={styles.statusContainer}>
-                            <View
-                                style={[
-                                    styles.statusIndicator,
-                                    {
-                                        backgroundColor: module?.is_completed
-                                            ? "#4CAF50"
-                                            : "#FFC107",
-                                    },
-                                ]}
-                            />
-                            <Text style={styles.statusText}>
-                                {module?.is_completed
-                                    ? "Completed"
-                                    : "In Progress"}
-                            </Text>
-                        </View>
-                        <Text style={styles.sectionTitle}>Leave a Comment</Text>
-                        <TextInput
-                            style={styles.commentInput}
-                            placeholder="Share your thoughts on this module..."
-                            multiline={true}
-                            value={commentValue}
-                            onChangeText={onCommentChange}
-                        />
-                        <TouchableOpacity
-                            style={[
-                                styles.submitButton,
-                                isSubmitting && styles.submitButtonDisabled,
-                            ]}
-                            onPress={onCommentSubmit}
-                            disabled={isSubmitting}
-                        >
-                            <Text style={styles.submitButtonText}>
-                                {isSubmitting
-                                    ? "Submitting..."
-                                    : "Submit Comment"}
-                            </Text>
-                        </TouchableOpacity>
+                        )}
                     </View>
                 </ScrollView>
             </View>
@@ -139,72 +163,86 @@ const styles = StyleSheet.create({
     modalContent: {
         flex: 1,
     },
-    videoContainer: {
-        aspectRatio: 16 / 9,
-        backgroundColor: "#000",
-        marginBottom: 15,
+    moduleMetadata: {
+        padding: 15,
+        backgroundColor: "#F9FAFB",
+        flexDirection: "row",
+        justifyContent: "space-around",
+        gap: 15,
+        marginBottom: 10,
     },
-    video: {
-        width: "100%",
-        height: "100%",
+    metadataBox: {
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        padding: 12,
+        borderRadius: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+        minWidth: 120,
+    },
+    metadataLabel: {
+        fontSize: 12,
+        color: "#6B7280",
+        marginTop: 4,
+        textTransform: "uppercase",
+    },
+    metadataValue: {
+        fontSize: 16,
+        color: "#111827",
+        fontWeight: "600",
+        marginTop: 2,
+        textTransform: "capitalize",
+    },
+    youtubeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFF",
+        padding: 15,
+        margin: 15,
+        borderRadius: 8,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: "#FF0000",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    youtubeButtonText: {
+        color: "#FF0000",
+        fontWeight: "600",
+        fontSize: 16,
     },
     moduleDetails: {
         padding: 15,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "600",
-        marginTop: 15,
-        marginBottom: 5,
+        marginTop: 20,
+        marginBottom: 10,
+        color: "#111827",
     },
     description: {
-        fontSize: 14,
-        color: "#333",
-        lineHeight: 20,
+        fontSize: 15,
+        color: "#374151",
+        lineHeight: 22,
+    },
+    content: {
+        fontSize: 15,
+        color: "#374151",
+        lineHeight: 22,
+        marginBottom: 15,
     },
     objectives: {
-        fontSize: 14,
-        color: "#333",
-        lineHeight: 20,
-    },
-    statusContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 15,
-    },
-    statusIndicator: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        marginRight: 8,
-    },
-    statusText: {
-        fontSize: 14,
-        color: "#333",
-    },
-    commentInput: {
-        borderWidth: 1,
-        borderColor: "#E0E0E0",
-        borderRadius: 5,
-        padding: 10,
-        height: 100,
-        textAlignVertical: "top",
-        marginBottom: 15,
-    },
-    submitButton: {
-        backgroundColor: "#16a34a",
-        padding: 15,
-        borderRadius: 5,
-        alignItems: "center",
-        marginBottom: 30,
-    },
-    submitButtonDisabled: {
-        backgroundColor: "#A0D8B3",
-    },
-    submitButtonText: {
-        color: "#FFFFFF",
-        fontWeight: "600",
-        fontSize: 16,
+        fontSize: 15,
+        color: "#374151",
+        lineHeight: 22,
     },
 });
 

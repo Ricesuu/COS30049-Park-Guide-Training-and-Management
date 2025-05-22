@@ -37,14 +37,14 @@ export const fetchUserModules = async () => {
             name: module.name || module.module_name,
             title: module.title || module.name || module.module_name,
             progress: module.progress !== undefined ? module.progress : 0,
+            difficulty: module.difficulty || "beginner",
+            aspect: module.aspect || "general",
+            videoUrl: module.video_url || module.videoUrl,
+            courseContent: module.course_content || module.courseContent,
             imageUrl:
                 module.imageUrl ||
                 module.image_url ||
                 "https://via.placeholder.com/150",
-            videoUrl:
-                module.videoUrl ||
-                module.video_url ||
-                "https://example.com/video.mp4",
         }));
 
         console.log("Fetched user modules:", formattedModules);
