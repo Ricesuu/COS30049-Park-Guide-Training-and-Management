@@ -4,7 +4,11 @@ import { View, StyleSheet, ScrollView } from "react-native";
 import Header from "../../PGdashboard/PGDashboardHome/Header";
 import PageHeader from "./PageHeader";
 
-const IdentificationContainer = ({ children }) => {
+const IdentificationContainer = ({ children, fullscreen = false }) => {
+    if (fullscreen) {
+        return <View style={{ flex: 1, backgroundColor: "black" }}>{children}</View>;
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
