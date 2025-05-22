@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, LogBox, View, Text } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Ignore specific warnings
 LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
@@ -9,113 +10,166 @@ LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 import Dashboard from "../../components/PGdashboard/Common/Dashboard";
 import ProfileView from "../../components/PGdashboard/PGDashboardHome/ProfileView";
 import CertContainer from "../../components/PGdashboard/PGDashboardHome/certcontainer";
-import AnnounContainer from "../../components/PGdashboard/PGDashboardHome/announcontainer";
+import TrainingProgressContainer from "../../components/PGdashboard/PGDashboardHome/trainingProgressContainer";
 import LogoutButton from "../../components/PGdashboard/Common/LogoutButton";
 
 // API URL - This should come from a constants file or environment variable
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+import { API_URL } from "../../src/constants/constants";
 
 const HomePage = () => {
     const { authUser } = useAuth();
-    const [certifications, setCertifications] = useState([]);
-    const [announcements, setAnnouncements] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [certifications, setCertifications] = useState([]);
+    const [trainingProgress, setTrainingProgress] = useState([]);
+    const [userProfile, setUserProfile] = useState(null);
+    const [parkGuideInfo, setParkGuideInfo] = useState(null);
 
-    // Load user data, certifications, and announcements
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-
-                // If using real API, you'd fetch certifications using user ID
-                // For now, using example data
-                setCertifications([
-                    {
-                        name: "First Aid Certification",
-                        expiryDate: "2025-12-31",
-                        image: require("../../assets/images/firstaid.jpg"),
-                    },
-                    {
-                        name: "Semenggoh Wildlife Centre Certification",
-                        expiryDate: "2026-06-30",
-                        image: require("../../assets/images/Semenggoh.jpeg"),
-                    },
-                ]);
-
-                setAnnouncements([
-                    {
-                        title: "System Maintenance",
-                        date: "2025-05-02",
-                        description:
-                            "The system will be down for maintenance from 2 AM to 4 AM.",
-                        priority: "high", // Red circle
-                    },
-                    {
-                        title: "New Feature Release",
-                        date: "2025-05-01",
-                        description:
-                            "We are excited to announce a new feature coming soon!",
-                        priority: "mid", // Orange circle
-                    },
-                    {
-                        title: "Weekly Update",
-                        date: "2025-04-30",
-                        description:
-                            "Here is your weekly update on system performance.",
-                        priority: "low", // Green circle
-                    },
-                ]);
-
-                // Example of how you would fetch from actual API:
-                /*
-                if (authUser && authUser.id) {
-                    // Fetch certifications
-                    try {
-                        const certResponse = await axios.get(`${API_URL}/api/certifications/user/${authUser.id}`);
-                        setCertifications(certResponse.data || []);
-                    } catch (certError) {
-                        if (certError.response && certError.response.status === 404) {
-                            console.log("No certifications found for this guide");
-                            setCertifications([]);
-                        } else {
-                            console.warn("Error fetching certifications:", certError.message);
-                        }
-                    }
-                    
-                    // Fetch announcements
-                    try {
-                        const announceResponse = await axios.get(`${API_URL}/api/announcements`);
-                        setAnnouncements(announceResponse.data || []);
-                    } catch (announceError) {
-                        console.warn("Error fetching announcements:", announceError.message);
-                        setAnnouncements([]);
-                    }
-                }
-                */
-            } catch (error) {
-                console.error("Error loading dashboard data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
+        fetchAllData();
     }, [authUser]);
+
+    const fetchAllData = async () => {
+        setIsLoading(true);
+        try {
+            await Promise.all([
+                fetchUserProfile(),
+                fetchParkGuideInfo(),
+                fetchCertifications(),
+                fetchTrainingProgress(),
+            ]);
+            setError(null);
+        } catch (error) {
+            console.error("Error loading dashboard data:", error);
+            setError("Failed to load dashboard information. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchUserProfile = async () => {
+        try {
+            const token = await AsyncStorage.getItem("authToken");
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+
+            const response = await axios.get(`${API_URL}/api/users/profile`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setUserProfile(response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            throw error;
+        }
+    };
+
+    const fetchParkGuideInfo = async () => {
+        try {
+            const token = await AsyncStorage.getItem("authToken");
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+
+            const response = await axios.get(
+                `${API_URL}/api/park-guides/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setParkGuideInfo(response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching park guide info:", error);
+            throw error;
+        }
+    };
+
+    const fetchCertifications = async () => {
+        try {
+            const token = await AsyncStorage.getItem("authToken");
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+
+            const response = await axios.get(
+                `${API_URL}/api/certifications/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setCertifications(response.data || []);
+            return response.data;
+        } catch (error) {
+            if (error.response && error.response.status === 404) {
+                console.log("No certifications found for this guide");
+                setCertifications([]);
+                return [];
+            }
+            console.error("Error fetching certifications:", error);
+            throw error;
+        }
+    };
+
+    const fetchTrainingProgress = async () => {
+        try {
+            const token = await AsyncStorage.getItem("authToken");
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+
+            const response = await axios.get(
+                `${API_URL}/api/guide-training-progress/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setTrainingProgress(response.data || []);
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching training progress:", error);
+            setTrainingProgress([]);
+            return [];
+        }
+    };
+
     return (
         <Dashboard>
             <ProfileView
-                fullName={authUser?.displayName || "John Doe"}
-                guideId={authUser?.uid || "PG12345"}
-                profilePhoto={require("../../assets/images/Ruiziq.jpg")}
+                fullName={
+                    userProfile
+                        ? `${userProfile.first_name} ${userProfile.last_name}`
+                        : "Loading..."
+                }
+                guideId={parkGuideInfo?.guide_id || "Loading..."}
             />
             {isLoading ? (
                 <View style={styles.loadingContainer}>
                     <Text style={styles.loadingText}>Loading your data...</Text>
                 </View>
+            ) : error ? (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
             ) : (
                 <>
                     <CertContainer certifications={certifications} />
-                    <AnnounContainer announcements={announcements} />
+                    <TrainingProgressContainer
+                        trainingProgress={trainingProgress}
+                    />
                 </>
             )}
             <LogoutButton />
@@ -135,25 +189,23 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        marginVertical: 10,
-        width: "100%",
+        margin: 15,
     },
     loadingText: {
         fontSize: 16,
-        color: "#888",
-        fontStyle: "italic",
-        textAlign: "center",
+        color: "#666",
     },
-    logoutButton: {
-        backgroundColor: "#e74c3c",
-        padding: 15,
+    errorContainer: {
+        padding: 20,
+        margin: 15,
+        backgroundColor: "#fee2e2",
         borderRadius: 10,
-        marginTop: 20,
-        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#ef4444",
     },
-    logoutButtonText: {
-        color: "white",
-        fontWeight: "bold",
+    errorText: {
+        color: "#dc2626",
+        textAlign: "center",
         fontSize: 16,
     },
 });
