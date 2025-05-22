@@ -30,11 +30,9 @@ export async function POST(request, { params }) {
             );
         }
 
-        const userId = users[0].user_id;
-
-        // Check if module exists and is free
+        const userId = users[0].user_id; // Check if module exists and is free
         const [modules] = await connection.execute(
-            `SELECT module_id, module_name, is_premium, price 
+            `SELECT module_id, module_name, price 
        FROM TrainingModules 
        WHERE module_id = ?`,
             [moduleId]
@@ -48,9 +46,8 @@ export async function POST(request, { params }) {
 
         const moduleData = modules[0];
 
-        // Check if it's actually a free module
+        // Check if it's a free module based on price
         if (
-            moduleData.is_premium &&
             moduleData.price !== 0 &&
             moduleData.price !== "0" &&
             moduleData.price !== "0.00"

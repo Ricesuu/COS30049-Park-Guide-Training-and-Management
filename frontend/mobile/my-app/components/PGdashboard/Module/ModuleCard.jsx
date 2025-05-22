@@ -17,15 +17,6 @@ const ModuleCard = ({ module, onPress }) => {
             style={styles.moduleCard}
             onPress={() => onPress(module)}
         >
-            <Image
-                source={
-                    module.imageUrl || module.image_url
-                        ? { uri: module.imageUrl || module.image_url }
-                        : require("../../../assets/images/module-placeholder.png")
-                }
-                style={styles.moduleImage}
-                resizeMode="cover"
-            />
             <View style={styles.moduleInfo}>
                 <Text style={styles.moduleTitle}>
                     {module.name || module.title || "Unnamed Module"}
@@ -74,10 +65,6 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
         overflow: "hidden",
-    },
-    moduleImage: {
-        width: "100%",
-        height: 120,
     },
     moduleInfo: {
         padding: 15,

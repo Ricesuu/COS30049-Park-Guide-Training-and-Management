@@ -29,22 +29,20 @@ export async function GET(request) {
 
         const userId = userRows[0].user_id; // Get all modules with purchase status for this user
         const [rows] = await connection.execute(
-            `            SELECT 
-                tm.module_id AS id,                tm.module_name AS name,
+            `            SELECT                tm.module_id AS id,
+                tm.module_name AS name,
                 tm.description,
                 COALESCE(tm.price, 0.00) as price,
-                COALESCE(tm.is_premium, FALSE) as is_premium,
                 CONCAT('${
                     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
                 }/module-images/', tm.module_id, '.jpg') AS imageUrl,
                 CASE
                     WHEN mp.purchase_id IS NOT NULL AND mp.status = 'active' THEN 'purchased'
                     WHEN mp.purchase_id IS NOT NULL AND mp.status = 'pending' THEN 'pending'
-                    ELSE 'not_purchased'
-                END AS purchase_status
+                    ELSE 'not_purchased'                END AS purchase_status,                tm.is_compulsory
             FROM TrainingModules tm
             LEFT JOIN ModulePurchases mp ON tm.module_id = mp.module_id AND mp.user_id = ? AND mp.is_active = TRUE
-            ORDER BY tm.module_name ASC
+            ORDER BY tm.module_id ASC
         `,
             [userId]
         );

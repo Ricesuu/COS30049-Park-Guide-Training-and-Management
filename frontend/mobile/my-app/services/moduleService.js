@@ -97,7 +97,15 @@ export const fetchAvailableModules = async () => {
                 }
             );
 
-            // Filter out modules the user already has and ensure all have price property
+            // Filter out modules the user already has and ensure all have price property            // Get all modules for checking compulsory ones
+            const allPurchasedModules = userModulesResponse.data;
+            const missingCompulsoryModules = response.data
+                .filter((module) => module.is_compulsory)
+                .filter((module) => !userModuleIds.has(module.id));
+
+            const hasAllCompulsoryModules =
+                missingCompulsoryModules.length === 0;
+
             const modules = response.data
                 .filter((module) => !userModuleIds.has(module.id))
                 .map((module) => ({
@@ -106,6 +114,16 @@ export const fetchAvailableModules = async () => {
                         module.price !== undefined
                             ? parseFloat(module.price)
                             : 0,
+                    is_compulsory: Boolean(module.is_compulsory),
+                    canPurchase:
+                        module.is_compulsory || hasAllCompulsoryModules,
+                    // Add a field to track incomplete compulsory modules
+                    incompleteCompulsoryModules:
+                        !module.is_compulsory && !hasAllCompulsoryModules
+                            ? missingCompulsoryModules.map((m) => m.name)
+                            : [],
+                    // Add a field to indicate if module is locked due to compulsory requirements
+                    isLocked: !module.is_compulsory && !hasAllCompulsoryModules,
                 }));
 
             console.log(

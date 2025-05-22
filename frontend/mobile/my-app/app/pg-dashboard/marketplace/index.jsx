@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    RefreshControl,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
@@ -21,6 +22,10 @@ const ModuleMarketplace = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [purchasing, setPurchasing] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [compulsoryModules, setCompulsoryModules] = useState([]);
+    const [completedCompulsoryModules, setCompletedCompulsoryModules] =
+        useState([]);
     const router = useRouter();
 
     useEffect(() => {
@@ -42,14 +47,31 @@ const ModuleMarketplace = () => {
         }, [])
     );
 
-    const loadAvailableModules = async () => {
-        setIsLoading(true);
+    const loadAvailableModules = async (isRefreshing = false) => {
+        if (!isRefreshing) {
+            setIsLoading(true);
+        }
         setPurchasing(null); // Also reset purchasing state when reloading data
         try {
             console.log("Fetching available modules...");
             const modules = await fetchAvailableModules();
+            // Sort modules by module_order if available, otherwise by id
+            const sortedModules = modules.sort(
+                (a, b) => (a.module_order || a.id) - (b.module_order || b.id)
+            );
             console.log(`Successfully loaded ${modules.length} modules`);
-            setAvailableModules(modules);
+
+            // Filter and track compulsory modules
+            const compulsoryMods = sortedModules.filter(
+                (module) => module.is_compulsory
+            );
+            const completedCompulsoryMods = compulsoryMods.filter(
+                (module) => module.purchase_status === "purchased"
+            );
+
+            setCompulsoryModules(compulsoryMods);
+            setCompletedCompulsoryModules(completedCompulsoryMods);
+            setAvailableModules(sortedModules);
             setError(null);
         } catch (error) {
             console.error("Error loading available modules:", error);
@@ -61,6 +83,9 @@ const ModuleMarketplace = () => {
             );
         } finally {
             setIsLoading(false);
+            if (isRefreshing) {
+                setRefreshing(false);
+            }
         }
     }; // Handle free module enrollments directly without payment
     const handleFreeEnrollment = async (moduleId, moduleName) => {
@@ -118,10 +143,19 @@ const ModuleMarketplace = () => {
     const handleBackToModules = () => {
         router.push("/pg-dashboard/module");
     };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        loadAvailableModules(true);
+    };
+
     return (
         <ScrollView
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
         >
             <View>
                 <TouchableOpacity
@@ -165,42 +199,107 @@ const ModuleMarketplace = () => {
                     </View>
                 ) : (
                     <View>
+                        {compulsoryModules.length > 0 && (
+                            <View style={styles.compulsoryNotice}>
+                                <Text style={styles.compulsoryNoticeTitle}>
+                                    Compulsory Modules
+                                </Text>
+                                <Text style={styles.compulsoryNoticeText}>
+                                    Complete all compulsory modules to unlock
+                                    additional modules.
+                                    {"\n"}Progress:{" "}
+                                    {completedCompulsoryModules.length}/
+                                    {compulsoryModules.length}
+                                </Text>
+                            </View>
+                        )}
                         {availableModules.map((module) => (
                             <View key={module.id} style={styles.moduleItem}>
-                                <Image
-                                    source={{ uri: module.imageUrl }}
-                                    style={styles.moduleImage}
-                                    defaultSource={require("../../../assets/images/module-placeholder.png")}
-                                />
                                 <View style={styles.moduleDetails}>
-                                    <Text style={styles.moduleName}>
+                                    {" "}
+                                    {module.is_compulsory && (
+                                        <View style={styles.compulsoryBadge}>
+                                            <Text style={styles.compulsoryText}>
+                                                Compulsory
+                                            </Text>
+                                        </View>
+                                    )}
+                                    <Text
+                                        style={[
+                                            styles.moduleName,
+                                            module.isLocked &&
+                                                styles.lockedModuleName,
+                                        ]}
+                                    >
                                         {module.name}
                                     </Text>
                                     <Text style={styles.modulePrice}>
-                                        {formatPrice(module.price)}
+                                        {module.price === 0
+                                            ? "FREE"
+                                            : formatPrice(module.price)}
                                     </Text>
                                     <Text
-                                        style={styles.moduleDescription}
+                                        style={[
+                                            styles.moduleDescription,
+                                            module.isLocked &&
+                                                styles.lockedModuleDescription,
+                                        ]}
                                         numberOfLines={2}
                                     >
                                         {module.description}
                                     </Text>{" "}
+                                    {/* Removed compulsory modules message */}
                                     <TouchableOpacity
-                                        style={styles.purchaseButton}
-                                        onPress={() =>
-                                            module.price === 0
-                                                ? handleFreeEnrollment(
-                                                      module.id,
-                                                      module.name
-                                                  )
-                                                : handlePurchase(
-                                                      module.id,
-                                                      module.name,
-                                                      module.price
-                                                  )
+                                        style={[
+                                            styles.purchaseButton,
+                                            module.isLocked ||
+                                            module.purchase_status ===
+                                                "purchased"
+                                                ? styles.disabledButton
+                                                : null,
+                                        ]}
+                                        onPress={() => {
+                                            // Removed compulsory modules alert
+                                            if (
+                                                !module.is_compulsory &&
+                                                compulsoryModules.length !==
+                                                    completedCompulsoryModules.length
+                                            ) {
+                                                Alert.alert(
+                                                    "Cannot Purchase Module",
+                                                    "You must complete all compulsory modules first."
+                                                );
+                                                return;
+                                            }
+                                            if (
+                                                module.purchase_status ===
+                                                "purchased"
+                                            ) {
+                                                Alert.alert(
+                                                    "Already Purchased",
+                                                    "You have already purchased this module."
+                                                );
+                                                return;
+                                            }
+                                            if (module.price === 0) {
+                                                handleFreeEnrollment(
+                                                    module.id,
+                                                    module.name
+                                                );
+                                            } else {
+                                                handlePurchase(
+                                                    module.id,
+                                                    module.name,
+                                                    module.price
+                                                );
+                                            }
+                                        }}
+                                        disabled={
+                                            purchasing === module.id ||
+                                            !module.canPurchase
                                         }
-                                        disabled={purchasing === module.id}
                                     >
+                                        {" "}
                                         {purchasing === module.id ? (
                                             <ActivityIndicator
                                                 size="small"
@@ -208,11 +307,19 @@ const ModuleMarketplace = () => {
                                             />
                                         ) : (
                                             <Text
-                                                style={
-                                                    styles.purchaseButtonText
-                                                }
+                                                style={[
+                                                    styles.purchaseButtonText,
+                                                    module.isLocked ||
+                                                    module.purchase_status ===
+                                                        "purchased"
+                                                        ? styles.disabledButtonText
+                                                        : null,
+                                                ]}
                                             >
-                                                {module.price === 0
+                                                {module.purchase_status ===
+                                                "purchased"
+                                                    ? "Already Enrolled"
+                                                    : module.price === 0
                                                     ? "Sign Up for Free"
                                                     : "Sign Up for Module"}
                                             </Text>
@@ -229,6 +336,9 @@ const ModuleMarketplace = () => {
 };
 
 const styles = StyleSheet.create({
+    disabledButtonText: {
+        color: "#9ca3af",
+    },
     backButton: {
         marginBottom: 20,
     },
@@ -288,31 +398,23 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     moduleItem: {
-        marginBottom: 20,
-        backgroundColor: "#f9f9f9",
-        borderRadius: 10,
-        padding: 10,
-        flexDirection: "row",
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
-    },
-    moduleImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 10,
-        backgroundColor: "#e0e0e0",
-    },
-    moduleDetails: {
-        marginLeft: 10,
-        flex: 1,
     },
     moduleName: {
         fontSize: 18,
         fontWeight: "bold",
         color: "rgb(22, 163, 74)",
+    },
+    lockedModuleName: {
+        color: "#9ca3af",
     },
     modulePrice: {
         fontSize: 16,
@@ -324,6 +426,9 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 4,
         color: "#666",
+    },
+    lockedModuleDescription: {
+        color: "#9ca3af",
     },
     purchaseButton: {
         backgroundColor: "rgb(22, 163, 74)",
@@ -339,6 +444,60 @@ const styles = StyleSheet.create({
         color: "white",
         fontSize: 14,
         fontWeight: "bold",
+    },
+    disabledButton: {
+        backgroundColor: "#e5e7eb",
+        opacity: 0.8,
+    },
+    compulsoryBadge: {
+        backgroundColor: "#dc2626",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        alignSelf: "flex-start",
+        marginBottom: 4,
+    },
+    compulsoryText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "bold",
+    },
+    lockedBadge: {
+        backgroundColor: "#f3f4f6",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        alignSelf: "flex-start",
+        marginBottom: 8,
+    },
+    lockedText: {
+        color: "#6b7280",
+        fontSize: 12,
+        fontWeight: "500",
+    },
+    lockMessage: {
+        color: "#ef4444",
+        fontSize: 12,
+        marginTop: 8,
+        marginBottom: 8,
+    },
+    compulsoryNotice: {
+        backgroundColor: "rgb(240, 255, 244)", // Light green background
+        padding: 16,
+        marginBottom: 16,
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: "rgb(22, 163, 74)",
+    },
+    compulsoryNoticeTitle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "rgb(22, 163, 74)",
+        marginBottom: 4,
+    },
+    compulsoryNoticeText: {
+        color: "#333",
+        lineHeight: 20,
     },
 });
 

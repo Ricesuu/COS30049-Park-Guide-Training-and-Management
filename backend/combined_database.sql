@@ -169,47 +169,6 @@ INSERT INTO `iotmonitoring` (`sensor_id`, `park_id`, `sensor_type`, `recorded_va
 -- --------------------------------------------------------
 
 --
--- Table structure for table `modulepurchases`
---
-
-CREATE TABLE IF NOT EXISTS `modulepurchases` (
-  `purchase_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `module_id` int(11) NOT NULL,
-  `payment_id` int(11) NOT NULL,
-  `purchase_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `is_active` tinyint(1) DEFAULT 1,
-  `status` enum('pending','active','revoked') DEFAULT 'pending',
-  `completion_percentage` decimal(5,2) DEFAULT 0.00
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Triggers `modulepurchases`
---
-DELIMITER $$
-CREATE TRIGGER `after_module_purchase_creation` AFTER INSERT ON `modulepurchases` FOR EACH ROW BEGIN
-  DECLARE guide_id INT;
-  
-  -- Find guide_id for the user who purchased the module
-  SELECT pg.guide_id INTO guide_id
-  FROM ParkGuides pg
-  WHERE pg.user_id = NEW.user_id
-  LIMIT 1;
-  
-  -- If guide_id found, insert a record into GuideTrainingProgress
-  IF guide_id IS NOT NULL THEN
-    INSERT IGNORE INTO GuideTrainingProgress
-      (guide_id, module_id, status, start_date)
-    VALUES
-      (guide_id, NEW.module_id, 'in progress', CURRENT_DATE());
-  END IF;
-END
-$$
-DELIMITER ;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `multilicensetrainingexemptions`
 --
 
@@ -494,7 +453,7 @@ CREATE TABLE IF NOT EXISTS `trainingmodules` (
   `quiz_id` INT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `is_premium` tinyint(1) DEFAULT 0,
+  `is_compulsory` BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (`quiz_id`) REFERENCES `quizzes`(`quiz_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -503,16 +462,62 @@ CREATE TABLE IF NOT EXISTS `trainingmodules` (
 --
 
 -- Dummy Training Modules Data that reference the quizzes
-INSERT INTO `trainingmodules` (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id) VALUES 
-('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1),
-('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2),
-('LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1),
-('KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2),
-('ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3),
-('SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5);
+INSERT INTO `trainingmodules` (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id, is_compulsory, price) VALUES
+('PKG101', 'Park Guide Basics', 'Introduction to the role and responsibilities of a park guide.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'This module covers the basics of being a park guide, including responsibilities and expectations.', 1, TRUE, 100.00),
+('ENG201', 'Visitor Engagement Techniques', 'Effective techniques for engaging with park visitors.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'Learn effective techniques for engaging with park visitors.', 2, TRUE, 100.00),
+('KNW102', 'Flora and Fauna Identification', 'Identifying local flora and fauna in the park.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'This module focuses on identifying local flora and fauna in the park.', 1, FALSE, 0.00),
+('ORG102', 'Organization Skills for Guides', 'Essential skills for organizing tours and activities.', 'intermediate', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Learn essential organization skills for planning and executing tours.', 2, FALSE, 0.00),
+('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1, FALSE, 0.00),
+('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2, FALSE, 0.00),
+('LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1, FALSE, 0.00),
+('KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2, FALSE, 0.00),
+('ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3, FALSE, 0.00),
+('SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5, FALSE, 0.00);
 
 -- --------------------------------------------------------
+--
+-- Table structure for table `modulepurchases`
+--
 
+CREATE TABLE IF NOT EXISTS `modulepurchases` (
+  `purchase_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `module_id` int(11) NOT NULL,
+  `payment_id` int(11) NOT NULL,
+  `purchase_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_active` tinyint(1) DEFAULT 1,
+  `status` enum('pending','active','revoked') DEFAULT 'pending',
+  `completion_percentage` decimal(5,2) DEFAULT 0.00,
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (module_id) REFERENCES trainingmodules(module_id),
+  FOREIGN KEY (payment_id) REFERENCES paymenttransactions(payment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Triggers `modulepurchases`
+--
+DELIMITER $$
+CREATE TRIGGER `after_module_purchase_creation` AFTER INSERT ON `modulepurchases` FOR EACH ROW BEGIN
+  DECLARE guide_id INT;
+  
+  -- Find guide_id for the user who purchased the module
+  SELECT pg.guide_id INTO guide_id
+  FROM ParkGuides pg
+  WHERE pg.user_id = NEW.user_id
+  LIMIT 1;
+  
+  -- If guide_id found, insert a record into GuideTrainingProgress
+  IF guide_id IS NOT NULL THEN
+    INSERT IGNORE INTO GuideTrainingProgress
+      (guide_id, module_id, status, start_date)
+    VALUES
+      (guide_id, NEW.module_id, 'in progress', CURRENT_DATE());
+  END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
 --
 -- Stand-in structure for view `usermoduleaccess`
 -- (See below for the actual view)

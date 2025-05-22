@@ -75,7 +75,7 @@ const ModuleIndex = () => {
     const handleBrowseModules = () => {
         // Navigate to module marketplace page
         console.log("Navigating to module marketplace...");
-        router.push("/pg-dashboard/marketplace/");
+        router.push("/pg-dashboard/marketplace");
     };
 
     const handleSubmitComment = async () => {
