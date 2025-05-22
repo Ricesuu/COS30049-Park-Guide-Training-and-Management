@@ -217,13 +217,47 @@ const ModuleMarketplace = () => {
                             <View key={module.id} style={styles.moduleItem}>
                                 <View style={styles.moduleDetails}>
                                     {" "}
-                                    {module.is_compulsory && (
-                                        <View style={styles.compulsoryBadge}>
-                                            <Text style={styles.compulsoryText}>
-                                                Compulsory
-                                            </Text>
-                                        </View>
-                                    )}
+                                    <View style={styles.badgeContainer}>
+                                        {module.is_compulsory && (
+                                            <View
+                                                style={styles.compulsoryBadge}
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.compulsoryText
+                                                    }
+                                                >
+                                                    Compulsory
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {module.price > 0 && (
+                                            <View
+                                                style={[
+                                                    styles.statusLabel,
+                                                    module.purchase_status ===
+                                                    "pending"
+                                                        ? styles.pendingStatus
+                                                        : null,
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.statusText,
+                                                        module.purchase_status ===
+                                                        "pending"
+                                                            ? styles.pendingStatusText
+                                                            : null,
+                                                    ]}
+                                                >
+                                                    {module.purchase_status ===
+                                                    "pending"
+                                                        ? "Payment Pending Approval"
+                                                        : null}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
                                     <Text
                                         style={[
                                             styles.moduleName,
@@ -248,18 +282,27 @@ const ModuleMarketplace = () => {
                                     >
                                         {module.description}
                                     </Text>{" "}
-                                    {/* Removed compulsory modules message */}
                                     <TouchableOpacity
                                         style={[
                                             styles.purchaseButton,
                                             module.isLocked ||
                                             module.purchase_status ===
-                                                "purchased"
+                                                "purchased" ||
+                                            module.purchase_status === "pending"
                                                 ? styles.disabledButton
                                                 : null,
                                         ]}
                                         onPress={() => {
-                                            // Removed compulsory modules alert
+                                            if (
+                                                module.purchase_status ===
+                                                "pending"
+                                            ) {
+                                                Alert.alert(
+                                                    "Payment Pending",
+                                                    "Your payment for this module is pending approval. Please wait for confirmation."
+                                                );
+                                                return;
+                                            }
                                             if (
                                                 !module.is_compulsory &&
                                                 compulsoryModules.length !==
@@ -296,10 +339,10 @@ const ModuleMarketplace = () => {
                                         }}
                                         disabled={
                                             purchasing === module.id ||
-                                            !module.canPurchase
+                                            !module.canPurchase ||
+                                            module.purchase_status === "pending"
                                         }
                                     >
-                                        {" "}
                                         {purchasing === module.id ? (
                                             <ActivityIndicator
                                                 size="small"
@@ -319,6 +362,9 @@ const ModuleMarketplace = () => {
                                                 {module.purchase_status ===
                                                 "purchased"
                                                     ? "Already Enrolled"
+                                                    : module.purchase_status ===
+                                                      "pending"
+                                                    ? "Payment Pending"
                                                     : module.price === 0
                                                     ? "Sign Up for Free"
                                                     : "Sign Up for Module"}
@@ -498,6 +544,48 @@ const styles = StyleSheet.create({
     compulsoryNoticeText: {
         color: "#333",
         lineHeight: 20,
+    },
+    pendingBadge: {
+        backgroundColor: "#eab308",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        alignSelf: "flex-start",
+        marginBottom: 4,
+    },
+    pendingText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "bold",
+    },
+    statusLabel: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        marginBottom: 8,
+        alignSelf: "flex-start",
+    },
+    approvedStatus: {
+        backgroundColor: "#dcfce7", // light green
+    },
+    pendingStatus: {
+        backgroundColor: "#fef9c3", // light yellow
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: "bold",
+    },
+    approvedStatusText: {
+        color: "#166534", // dark green
+    },
+    pendingStatusText: {
+        color: "#854d0e", // dark yellow
+    },
+    badgeContainer: {
+        marginBottom: 8,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
     },
 });
 

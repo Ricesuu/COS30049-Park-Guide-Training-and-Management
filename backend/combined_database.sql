@@ -112,22 +112,6 @@ INSERT INTO `guidebook` (`guidebook_id`, `park_id`, `title`, `content`, `multime
 (2, 2, 'Semenggoh Wildlife Centre: Orangutan Conservation and Visitor Tips', 'Learn about the history, mission, and highlights of Semenggoh Wildlife Centre, with tips for observing wildlife responsibly and engaging in conservation efforts.', 'semenggoh_video_links, semenggoh_facts_links');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `guidetrainingprogress`
---
-
-CREATE TABLE IF NOT EXISTS `guidetrainingprogress` (
-  `progress_id` int(11) NOT NULL,
-  `guide_id` int(11) NOT NULL,
-  `module_id` int(11) NOT NULL,
-  `status` enum('in progress','Completed') DEFAULT 'in progress',
-  `completion_date` date DEFAULT NULL,
-  `start_date` date DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `iotmonitoring`
 --
@@ -259,31 +243,26 @@ INSERT INTO `paymenttransactions` (`payment_id`, `user_id`, `uid`, `paymentPurpo
 -- Triggers `paymenttransactions`
 --
 DELIMITER $$
-CREATE TRIGGER `after_payment_approval` AFTER UPDATE ON `paymenttransactions` FOR EACH ROW BEGIN
+CREATE TRIGGER `after_payment_approval` AFTER UPDATE ON `paymenttransactions` 
+FOR EACH ROW 
+BEGIN
   IF NEW.paymentStatus = 'approved' AND OLD.paymentStatus = 'pending' AND NEW.module_id IS NOT NULL THEN
+    -- Update module purchase status
     UPDATE ModulePurchases
     SET status = 'active'
     WHERE payment_id = NEW.payment_id;
     
-    -- Also track in training progress
-    INSERT IGNORE INTO GuideTrainingProgress (
-      guide_id, 
-      module_id, 
-      status
-    )
-    SELECT 
-      pg.guide_id, 
-      NEW.module_id, 
-      'in progress'
-    FROM ModulePurchases mp
+    -- Update existing training progress record instead of creating a new one
+    UPDATE GuideTrainingProgress gtp
+    JOIN ModulePurchases mp ON mp.payment_id = NEW.payment_id
     JOIN Users u ON mp.user_id = u.user_id
     JOIN ParkGuides pg ON u.user_id = pg.user_id
-    WHERE mp.payment_id = NEW.payment_id;
+    SET gtp.status = 'in progress'
+    WHERE gtp.guide_id = pg.guide_id 
+    AND gtp.module_id = NEW.module_id;
   END IF;
-END
-$$
+END $$
 DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -597,7 +576,23 @@ VALUES
 ('Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 1, 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.');
 
 -- --------------------------------------------------------
+--
+-- Table structure for table `guidetrainingprogress`
+--
 
+CREATE TABLE IF NOT EXISTS `GuideTrainingProgress` (
+  `progress_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `guide_id` int(11) NOT NULL,
+  `module_id` int(11) NOT NULL,
+  `status` enum('in progress','Completed') DEFAULT 'in progress',
+  `completion_date` date DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  UNIQUE KEY `unique_guide_module` (`guide_id`, `module_id`),
+  FOREIGN KEY (guide_id) REFERENCES parkguides(guide_id),
+  FOREIGN KEY (module_id) REFERENCES trainingmodules(module_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 --
 -- Table structure for table `plant_info`
 --
