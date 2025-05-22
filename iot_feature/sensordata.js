@@ -18,22 +18,11 @@ const dbConfig = {
 const topics = {
   humidity: "sensor/DHT11/humidity",
   temperature: "sensor/DHT11/temperature",
-  distance: "sensor/Ultrasonic/distance", 
+  distance: "sensor/Ultrasonic/distance",
   moisture: "sensor/Soil Moisture/moisture",
 };
 
-
-let currentData = {
-  sensor_id: "ESP32-1", 
-  temperature: null,
-  humidity: null,
-  soil_moisture: null,
-  timestamp: null,
-};
-
-
-let insertTimeout = null;
-
+const park_id = 1; // You can dynamically assign this if needed
 
 client.on("connect", () => {
   console.log("Connected to MQTT broker");
@@ -45,53 +34,32 @@ client.on("connect", () => {
   });
 });
 
-
-client.on("message", (topic, message) => {
+client.on("message", async (topic, message) => {
   const value = parseFloat(message.toString());
+  const recorded_at = new Date();
 
   if (isNaN(value)) return;
 
-  if (topic === topics.temperature) currentData.temperature = value;
-  else if (topic === topics.humidity) currentData.humidity = value;
-  else if (topic === topics.moisture) currentData.soil_moisture = value;
+  let sensor_type = null;
 
-  currentData.timestamp = new Date();
+  if (topic === topics.temperature) sensor_type = "temperature";
+  else if (topic === topics.humidity) sensor_type = "humidity";
+  else if (topic === topics.moisture) sensor_type = "soil_moisture";
+  else if (topic === topics.distance) sensor_type = "distance";
+  else return; // Not a recognized topic
 
-  
-  if (insertTimeout) clearTimeout(insertTimeout);
+  try {
+    const conn = await mysql.createConnection(dbConfig);
 
-  insertTimeout = setTimeout(async () => {
-    
-    if (
-      currentData.temperature !== null &&
-      currentData.humidity !== null &&
-      currentData.soil_moisture !== null
-    ) {
-      try {
-        const conn = await mysql.createConnection(dbConfig);
-        await conn.execute(
-          `INSERT INTO sensor_data (sensor_id, temperature, humidity, soil_moisture, timestamp)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            currentData.sensor_id,
-            currentData.temperature,
-            currentData.humidity,
-            currentData.soil_moisture,
-            currentData.timestamp,
-          ]
-        );
-        await conn.end();
+    await conn.execute(
+      `INSERT INTO iotmonitoring (park_id, sensor_type, recorded_value, recorded_at)
+       VALUES (?, ?, ?, ?)`,
+      [park_id, sensor_type, value, recorded_at]
+    );
 
-        console.log("Inserted row:", currentData);
-      } catch (err) {
-        console.error("DB Insert Error:", err);
-      }
-
-      
-      currentData.temperature = null;
-      currentData.humidity = null;
-      currentData.soil_moisture = null;
-      currentData.timestamp = null;
-    }
-  }, 2000); // Wait 2s before inserting
+    await conn.end();
+    console.log(`Inserted ${sensor_type} = ${value}`);
+  } catch (err) {
+    console.error("DB Insert Error:", err);
+  }
 });
