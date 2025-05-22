@@ -49,15 +49,10 @@ export default function PlantManager() {
             } else {
                 throw new Error("Invalid data format received from API");
             }
-            
-            // Sort plants by creation date (newest first)
+              // Sort plants by plant_id (ascending order)
             const sortedPlants = [...plantData].sort((a, b) => {
-                // If created_at is available, use it for sorting
-                if (a.created_at && b.created_at) {
-                    return new Date(b.created_at) - new Date(a.created_at);
-                }
-                // Fall back to plant_id for sorting if created_at is not available
-                return b.plant_id - a.plant_id;
+                // Sort by plant_id in ascending order
+                return a.plant_id - b.plant_id;
             });
             
             setPlants(sortedPlants);
@@ -209,27 +204,37 @@ export default function PlantManager() {
                             <span className="text-3xl font-bold text-green-700">{plants.length}</span>
                         </div>
                     </div>
-                </div>                {/* Most Recent Addition */}
+                </div>                {/* Newest Addition */}
                 {plants.length > 0 && (
                     <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm border border-blue-200">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-blue-800 text-xl font-semibold mb-1">Newest Addition</h2>
-                                <p className="text-blue-700 font-medium">{plants[0].common_name}</p>
-                                <p className="text-blue-600 text-sm italic">{plants[0].scientific_name}</p>
-                            </div>
-                            <div className="bg-white p-2 rounded-md shadow-md h-16 w-16 flex items-center justify-center">
-                                {plants[0].image_url ? (
-                                    <img 
-                                        src={plants[0].image_url} 
-                                        alt={plants[0].common_name}
-                                        className="h-full w-full object-cover rounded" 
-                                        onError={(e) => {e.target.src = "https://via.placeholder.com/50?text=Plant"}}
-                                    />
-                                ) : (
-                                    <div className="text-blue-300 text-3xl">🌿</div>
-                                )}
-                            </div>
+                            {(() => {
+                                // Find plant with highest ID (newest addition)
+                                const newestPlant = [...plants].reduce((max, plant) => 
+                                    plant.plant_id > max.plant_id ? plant : max, plants[0]);
+                                
+                                return (
+                                    <>
+                                        <div>
+                                            <h2 className="text-blue-800 text-xl font-semibold mb-1">Newest Addition</h2>
+                                            <p className="text-blue-700 font-medium">{newestPlant.common_name}</p>
+                                            <p className="text-blue-600 text-sm italic">{newestPlant.scientific_name}</p>
+                                        </div>
+                                        <div className="bg-white p-2 rounded-md shadow-md h-16 w-16 flex items-center justify-center">
+                                            {newestPlant.image_url ? (
+                                                <img 
+                                                    src={newestPlant.image_url} 
+                                                    alt={newestPlant.common_name}
+                                                    className="h-full w-full object-cover rounded" 
+                                                    onError={(e) => {e.target.src = "https://via.placeholder.com/50?text=Plant"}}
+                                                />
+                                            ) : (
+                                                <div className="text-blue-300 text-3xl">🌿</div>
+                                            )}
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
