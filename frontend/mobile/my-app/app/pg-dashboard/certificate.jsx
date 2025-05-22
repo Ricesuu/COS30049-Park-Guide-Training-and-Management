@@ -229,22 +229,6 @@ const Certificate = () => {
         setSelectedCert(null);
         setModalVisible(false);
     };
-
-    // Function to redirect to quiz page
-    const handleTakeQuiz = (moduleId, moduleName) => {
-        router.push({
-            pathname: "/pg-dashboard/quiz",
-            params: { moduleId, moduleName },
-        });
-    };
-
-    // Function to redirect to module page
-    const handleCompleteModule = (moduleId) => {
-        router.push({
-            pathname: "/pg-dashboard/module",
-            params: { selectedModuleId: moduleId },
-        });
-    };
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
@@ -343,8 +327,9 @@ const Certificate = () => {
                                         You don't have any certifications yet.
                                     </Text>
                                     <Text style={styles.noCertsSubtext}>
-                                        Complete modules and pass the quizzes to
-                                        earn certifications.
+                                        Complete modules and pass the quizzes
+                                        from your computer to earn
+                                        certifications.
                                     </Text>
                                 </View>
                             )}
@@ -411,45 +396,8 @@ const Certificate = () => {
                                                                 approval
                                                             </Text>
                                                         </View>
-                                                    ) : cert.incomplete ? (
-                                                        <TouchableOpacity
-                                                            style={
-                                                                styles.completeButton
-                                                            }
-                                                            onPress={() =>
-                                                                handleCompleteModule(
-                                                                    cert.moduleId
-                                                                )
-                                                            }
-                                                        >
-                                                            <Text
-                                                                style={
-                                                                    styles.completeButtonText
-                                                                }
-                                                            >
-                                                                Complete Module
-                                                            </Text>
-                                                        </TouchableOpacity>
                                                     ) : (
-                                                        <TouchableOpacity
-                                                            style={
-                                                                styles.quizButton
-                                                            }
-                                                            onPress={() =>
-                                                                handleTakeQuiz(
-                                                                    cert.moduleId,
-                                                                    cert.name
-                                                                )
-                                                            }
-                                                        >
-                                                            <Text
-                                                                style={
-                                                                    styles.quizButtonText
-                                                                }
-                                                            >
-                                                                Take Quiz
-                                                            </Text>
-                                                        </TouchableOpacity>
+                                                        <View></View>
                                                     )}
                                                 </View>
                                             </View>
@@ -603,19 +551,6 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
     },
     infoButtonText: {
-        color: "white",
-        fontSize: 12,
-        fontWeight: "bold",
-    },
-    quizButton: {
-        backgroundColor: "#f0ad4e",
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 5,
-        marginTop: 5,
-        alignSelf: "flex-start",
-    },
-    quizButtonText: {
         color: "white",
         fontSize: 12,
         fontWeight: "bold",

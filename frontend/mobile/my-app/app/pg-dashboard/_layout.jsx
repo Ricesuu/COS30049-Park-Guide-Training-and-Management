@@ -50,7 +50,6 @@ const PGDashboardLayout = () => {
                 name="identification"
                 options={{ title: "Identify" }}
             />
-            <Tabs.Screen name="quiz" options={{ title: "Quiz" }} />
             <Tabs.Screen name="profile" options={{ title: "Profile" }} />
             {/* Screens that are not in the tab bar */}
             <Tabs.Screen

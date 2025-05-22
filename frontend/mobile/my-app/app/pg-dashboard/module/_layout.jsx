@@ -25,13 +25,6 @@ const ModuleLayout = () => {
                             animation: "slide_from_right",
                         }}
                     />{" "}
-                    <Stack.Screen
-                        name="quiz"
-                        options={{
-                            title: "Module Quiz",
-                            animation: "slide_from_bottom",
-                        }}
-                    />
                 </Stack>
             </View>
         </View>
