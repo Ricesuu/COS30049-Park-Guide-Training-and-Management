@@ -14,7 +14,6 @@ import ProfileDashboard from "../../components/PGdashboard/Profile/ProfileDashbo
 import UserInfoCard from "../../components/PGdashboard/Profile/UserInfoCard";
 import AssignedParkCard from "../../components/PGdashboard/Profile/AssignedParkCard";
 import CertificationsCard from "../../components/PGdashboard/Profile/CertificationsCard";
-import TrainingProgressCard from "../../components/PGdashboard/Profile/TrainingProgressCard";
 import PaymentHistoryCard from "../../components/PGdashboard/Profile/PaymentHistoryCard";
 import EditProfileButton from "../../components/PGdashboard/Profile/EditProfileButton";
 
@@ -27,7 +26,6 @@ const Profile = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [certifications, setCertifications] = useState([]);
-    const [trainingProgress, setTrainingProgress] = useState([]);
     const [assignedPark, setAssignedPark] = useState(null);
     const [paymentHistory, setPaymentHistory] = useState([]);
 
@@ -49,7 +47,6 @@ const Profile = () => {
                 fetchUserProfile(),
                 fetchParkGuideInfo(),
                 fetchUserCertifications(),
-                fetchTrainingProgress(),
                 fetchPaymentHistory(),
             ]);
         } catch (error) {
@@ -162,7 +159,6 @@ const Profile = () => {
             setAssignedPark(null);
         }
     };
-
     const fetchUserCertifications = async () => {
         try {
             const token = await AsyncStorage.getItem("authToken");
@@ -184,31 +180,6 @@ const Profile = () => {
             return response.data;
         } catch (error) {
             console.error("Error fetching certifications:", error);
-            return [];
-        }
-    };
-
-    const fetchTrainingProgress = async () => {
-        try {
-            const token = await AsyncStorage.getItem("authToken");
-
-            if (!token) {
-                throw new Error("Authentication required");
-            }
-
-            const response = await axios.get(
-                `${API_URL}/api/guide-training-progress/user`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setTrainingProgress(response.data);
-            return response.data;
-        } catch (error) {
-            console.error("Error fetching training progress:", error);
             return [];
         }
     };
@@ -277,13 +248,13 @@ const Profile = () => {
             isRefreshing={isRefreshing}
             onRefresh={onRefresh}
         >
+            {" "}
             <UserInfoCard
                 userProfile={userProfile}
                 parkGuideInfo={parkGuideInfo}
             />
             <AssignedParkCard assignedPark={assignedPark} />
             <CertificationsCard certifications={certifications} />
-            <TrainingProgressCard trainingProgress={trainingProgress} />
             <PaymentHistoryCard paymentHistory={paymentHistory} />
             <EditProfileButton />
         </ProfileDashboard>
