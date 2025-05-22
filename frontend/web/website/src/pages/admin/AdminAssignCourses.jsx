@@ -220,7 +220,7 @@ export default function AdminAssignCourses() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Pending Park Guides</h2>
+      <h2 className="text-xl font-bold mb-4">Certified Park Guides</h2>
       
       {/* Park Guide Table */}
       <div className="overflow-x-auto mb-6 max-h-96 overflow-y-auto">
@@ -304,7 +304,7 @@ export default function AdminAssignCourses() {
             ) : (
               <tr>
                 <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                  No pending guides found
+                  No certified guides found
                 </td>
               </tr>
             )}
