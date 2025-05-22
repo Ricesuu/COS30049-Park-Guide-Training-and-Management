@@ -44,8 +44,8 @@ client.on("message", async (topic, message) => {
 
   if (topic === topics.temperature) sensor_type = "temperature";
   else if (topic === topics.humidity) sensor_type = "humidity";
-  else if (topic === topics.moisture) sensor_type = "soil_moisture";
-  else if (topic === topics.distance) sensor_type = "distance";
+  else if (topic === topics.moisture) sensor_type = "soil moisture";
+  else if (topic === topics.distance) sensor_type = "motion";
   else return; // Not a recognized topic
 
   try {

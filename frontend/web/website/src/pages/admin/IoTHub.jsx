@@ -1,49 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
 export default function IoTHub() {
-  const temperatureData = [
-    { time: "10:00", value: 21.5 },
-    { time: "10:15", value: 22.0 },
-    { time: "10:30", value: 22.4 },
-    { time: "10:45", value: 22.3 },
-  ];
+  const [sensorData, setSensorData] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const moistureData = [
-    { time: "10:00", value: 65 },
-    { time: "10:15", value: 66 },
-    { time: "10:30", value: 68 },
-    { time: "10:45", value: 67 },
-  ];
+  useEffect(() => {
+    async function fetchSensorData() {
+      try {
+        const res = await fetch("/api/iot-monitoring");
+        if (!res.ok) throw new Error("Failed to fetch sensor data");
 
-  const airQualityData = [
-    { time: "10:00", value: 14 },
-    { time: "10:15", value: 13 },
-    { time: "10:30", value: 12 },
-    { time: "10:45", value: 12 },
-  ];
+        const rawData = await res.json();
+        
+        // Group by sensor_type
+        const grouped = {};
+        rawData.forEach(({ sensor_type, recorded_value, time }) => {
+          if (!grouped[sensor_type]) grouped[sensor_type] = [];
+          grouped[sensor_type].push({ time, value: parseFloat(recorded_value) });
+        });
 
-  const sensorData = [
-    { time: "10:00", value: 1 },
-    { time: "10:15", value: 3 },
-    { time: "10:30", value: 5 },
-    { time: "10:45", value: 60 },
-  ];
+        setSensorData(grouped);
+      } catch (err) {
+        console.error("Error fetching sensor data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const uptimeData = [
-    { time: "10:00", value: 100 },
-    { time: "10:15", value: 100 },
-    { time: "10:30", value: 100 },
-    { time: "10:45", value: 100 },
-  ];
+    fetchSensorData();
+  }, []);
+
+  if (loading) return <div className="p-8 text-green-900">Loading IoT data...</div>;
 
   return (
     <div className="p-8 bg-green-50 min-h-screen text-green-900">
@@ -56,11 +47,11 @@ export default function IoTHub() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
-          <SensorCard title="🌡️ Temperature (°C)" data={temperatureData} color="#047857" />
-          <SensorCard title="💧 Soil Moisture (%)" data={moistureData} color="#0f766e" />
-          <SensorCard title="🌳 Air Quality (PM2.5 µg/m³)" data={airQualityData} color="#15803d" />
-          <SensorCard title=" Motion Sensors" data={sensorData} color="#15803d" />
-          <SensorCard title="📶 Device Uptime (%)" data={uptimeData} color="#166534" />
+          <SensorCard title="🌡️ Temperature (°C)" data={sensorData.temperature || []} color="#047857" />
+          <SensorCard title="💧 Soil Moisture (%)" data={sensorData.soil_moisture || []} color="#0f766e" />
+          <SensorCard title="🌬️ Humidity (%)" data={sensorData.humidity || []} color="#2563eb" />
+          <SensorCard title="📶 Alert (%)" data={sensorData.distance || []} color="#166534" />
+          {/* Add more SensorCards if needed */}
         </div>
       </div>
     </div>
