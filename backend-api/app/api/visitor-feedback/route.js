@@ -31,8 +31,7 @@ export async function POST(request) {
       ticketNo,
       park,
       visitDate,
-      guideName,
-      guideNumber,
+      guideId,
       languageRating,
       knowledgeRating,
       organizationRating,
@@ -41,16 +40,36 @@ export async function POST(request) {
       feedback
     } = body;
 
+    console.log('Received feedback submission:', body);
+
     // Validate required fields
-    if (!firstName || !lastName || !email || !ticketNo || !park || !visitDate || 
-        !guideName || !guideNumber || !languageRating || !knowledgeRating || 
-        !organizationRating || !engagementRating || !safetyRating) {
-        return NextResponse.json(
-            { error: 'Missing required fields' },
-            { status: 400 }
-        );
+    const requiredFields = {
+      firstName,
+      lastName,
+      email,
+      ticketNo,
+      park,
+      visitDate,
+      guideId,
+      languageRating,
+      knowledgeRating,
+      organizationRating,
+      engagementRating,
+      safetyRating
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([field]) => field);
+
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields', fields: missingFields },
+        { status: 400 }
+      );
     }
 
+    // Connect to database
     connection = await getConnection();
     const [result] = await connection.execute(
       `INSERT INTO visitorfeedback (
@@ -61,15 +80,14 @@ export async function POST(request) {
                 ticket_no,
                 park,
                 visit_date,
-                guide_name,
-                guide_number,
+                guide_id,
                 language_rating,
                 knowledge_rating,
                 organization_rating,
                 engagement_rating,
                 safety_rating,
                 comment
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         firstName,
         lastName,
@@ -78,8 +96,7 @@ export async function POST(request) {
         ticketNo,
         park,
         visitDate,
-        guideName,
-        guideNumber,
+        guideId,
         languageRating,
         knowledgeRating,
         organizationRating,
