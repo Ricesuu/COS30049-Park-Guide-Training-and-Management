@@ -497,6 +497,9 @@ const FeedbackPage = () => {
         </div>
       </section>
       <Footer />
+      <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+      <ChatbotWidget  />
+      </div>
     </motion.div>
   );
 };
