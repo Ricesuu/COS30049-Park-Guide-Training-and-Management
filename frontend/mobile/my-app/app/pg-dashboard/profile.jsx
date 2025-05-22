@@ -24,6 +24,7 @@ const Profile = () => {
     const [userProfile, setUserProfile] = useState(null);
     const [parkGuideInfo, setParkGuideInfo] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [certifications, setCertifications] = useState([]);
     const [trainingProgress, setTrainingProgress] = useState([]);
@@ -32,6 +33,13 @@ const Profile = () => {
 
     useEffect(() => {
         fetchAllUserData();
+    }, []);
+
+    const onRefresh = React.useCallback(() => {
+        setIsRefreshing(true);
+        fetchAllUserData().finally(() => {
+            setIsRefreshing(false);
+        });
     }, []);
 
     const fetchAllUserData = async () => {
@@ -260,13 +268,14 @@ const Profile = () => {
             },
         ]);
     };
-
     return (
         <ProfileDashboard
             isLoading={isLoading}
             error={error}
             onRetry={fetchAllUserData}
             onLogout={handleLogout}
+            isRefreshing={isRefreshing}
+            onRefresh={onRefresh}
         >
             <UserInfoCard
                 userProfile={userProfile}

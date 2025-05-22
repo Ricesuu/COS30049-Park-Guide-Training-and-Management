@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import Header from "../PGDashboardHome/Header";
@@ -16,6 +17,8 @@ const ProfileDashboard = ({
     error,
     onRetry,
     onLogout,
+    isRefreshing,
+    onRefresh,
     children,
 }) => {
     return (
@@ -23,6 +26,14 @@ const ProfileDashboard = ({
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={onRefresh}
+                        colors={["rgb(22, 163, 74)"]}
+                        tintColor="rgb(22, 163, 74)"
+                    />
+                }
             >
                 <Header />
                 <View style={styles.dashboard}>
@@ -35,8 +46,8 @@ const ProfileDashboard = ({
                             <AntDesign name="logout" size={20} color="white" />
                             <Text style={styles.logoutText}>Logout</Text>
                         </TouchableOpacity>
-                    </View>{" "}
-                    {isLoading ? (
+                    </View>
+                    {isLoading && !isRefreshing ? (
                         <View style={styles.loadingContainer}>
                             <ActivityIndicator
                                 size="large"
