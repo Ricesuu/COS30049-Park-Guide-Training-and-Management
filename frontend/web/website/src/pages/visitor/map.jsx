@@ -110,8 +110,24 @@ const MapPage = () => {
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Semenggoh Wildlife Reserve</h1>
             <p className="text-gray-600 text-lg mb-8 text-center max-w-3xl">
               Discover the beauty of our wildlife reserve through our interactive map.
-            </p>
-            <div id="map" className="w-full h-[600px] rounded-lg overflow-hidden shadow-xl relative" style={{ zIndex: 0 }}></div>
+            </p>            <div id="map" className="w-full h-[600px] rounded-lg overflow-hidden shadow-xl relative" style={{ zIndex: 0 }}></div>
+          </div>
+        </div>
+        
+        <div className="mt-16 container mx-auto px-4 max-w-7xl">
+          <div className="flex flex-col items-center">
+            <h3 className="text-green-600 uppercase tracking-wide text-lg font-semibold mb-4">AR View of Orangutan Feeding Area</h3>
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!4v1747882298433!6m8!1m7!1sCAoSHENJQUJJaEFHYnlmUVZRbDdRbWdDQ1hBQUJtZWs.!2m2!1d1.40192369009897!2d110.3145675883793!3f166.7258219305563!4f-22.707996450787334!5f0.7820865974627469" 
+              width="600" 
+              height="450" 
+              style={{ border: 0 }} 
+              allowFullScreen="" 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Semenggoh Wildlife Reserve 360 View"
+              className="rounded-lg shadow-lg"
+            ></iframe>
           </div>
         </div>
       </section>
