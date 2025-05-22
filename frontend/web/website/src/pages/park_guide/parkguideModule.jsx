@@ -1,84 +1,183 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import "../../ParkGuideStyle.css";
-
-const moduleData = {
-  'Module 1': {
-    title: 'Module 1: Basics of Park Guiding',
-    description: 'Learn the fundamental skills required to guide visitors through the park.',
-    image: '/images/advanced_guide.png',
-    video: '/videos/firstaid.mp4',
-    content: `This module covers the basics of park guiding, including communication skills, park history, and visitor engagement techniques. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
-    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
-  },
-  'Module 2': {
-    title: 'Module 2: Advanced Park Management',
-    description: 'Master advanced techniques for managing park operations effectively.',
-    image: '/images/advanced_guide.png',
-    video: '/videos/advanced_navigation.mp4',
-    content: `This module focuses on advanced park management techniques, including resource allocation, team leadership, and crisis management. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
-    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
-  },
-  'Module 3': {
-    title: 'Module 3: Visitor Engagement & Safety',
-    description: 'Understand visitor engagement strategies and safety protocols.',
-    image: '/images/firstaid.jpg',
-    video: '/videos/wildlife_safety.mp4',
-    content: `This module emphasizes visitor engagement strategies and safety protocols to ensure a safe and enjoyable experience for all visitors. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-    quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
-    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
-  },
-};
+import { auth } from '../../Firebase';
 
 const ParkguideModule = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [module, setModule] = useState({
+    title: 'Loading...',
+    description: 'Loading module content...',
+    image: null,
+    video_url: null,
+    course_content: null,
+    quiz_id: null,
+    completion_percentage: 0
+  });
 
-  // Extract the module name from the query parameter
   const queryParams = new URLSearchParams(location.search);
-  const moduleName = queryParams.get('module');
+  const moduleId = queryParams.get('moduleId');
 
-  // Get the module data based on the module name
-  const module = moduleData[moduleName] || {
-    title: 'Module Not Found',
-    description: 'The module you are looking for does not exist.',
-    image: '/images/not_found.png',
-    video: null,
-    content: 'No content available for this module.',
+  useEffect(() => {
+    const fetchModuleData = async () => {
+      try {
+        setLoading(true);
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+        
+        const token = await user.getIdToken();
+        
+        // Fetch module data including course_content and video_url
+        const response = await fetch(`/api/training-modules/${moduleId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch module data');
+        }
+        
+        const moduleData = await response.json();
+        
+        // Check quiz completion status
+        const quizResponse = await fetch(`/api/quiz-completions?moduleId=${moduleId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (quizResponse.ok) {
+          const quizData = await quizResponse.json();
+          setQuizCompleted(quizData.passed || false);
+        }
+        
+        setModule(moduleData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching module:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (moduleId) {
+      fetchModuleData();
+    } else {
+      setError('No module ID provided');
+      setLoading(false);
+    }
+  }, [moduleId]);
+
+  const startQuiz = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const token = await user.getIdToken();
+      
+      // Check if quiz is available for this module
+      const quizCheckResponse = await fetch(`/api/training-modules/${moduleId}/quiz`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!quizCheckResponse.ok) {
+        throw new Error('Quiz not available for this module');
+      }
+      
+      // Redirect to quiz page if available
+      navigate(`/park_guide/quiz?moduleId=${moduleId}`);
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      setError(err.message);
+    }
   };
 
+  // Show quiz button only if module is completed and quiz not yet passed
+  const canTakeQuiz = module.completion_percentage >= 100;
+  const showQuizButton = canTakeQuiz && !quizCompleted;
+  const showCertificateButton = canTakeQuiz && quizCompleted;
+
   return (
-      <div className="module-main-content">
-        <div className="module-details">
-          <h2 className="module-title">{module.title}</h2>
-          <img src={module.image} alt={moduleName} className="module-image-large" />
-          <p className="module-description">{module.description}</p>
-          {module.video && (
-            <video controls className="module-video">
-              <source src={module.video} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          )}
-          <p className="module-content">{module.content}</p>
-          <div className="additional-box">
-            <h3 className="additional-box-title">Additional Information</h3>
-            <p className="additional-box-content">
-              Here you can find more resources and links related to this module. Explore further to enhance your knowledge and skills.
-            </p>
+    <div className="module-main-content">
+      <div className="module-details">
+        {loading ? (
+          <div className="loading-container">
+            <p>Loading module content...</p>
           </div>
-          <button className="back-button" onClick={() => navigate('/training')}>
-            Back to Training Modules
-          </button>
-        </div>
+        ) : error ? (
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button className="back-button" onClick={() => navigate('/park_guide/training')}>
+              Back to Training Modules
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 className="module-title">{module.module_name}</h2>
+            
+            {module.image_url && (
+              <img src={module.image_url} alt={module.module_name} className="module-image-large" />
+            )}
+            
+            <p className="module-description">{module.description}</p>
+            
+            {module.video_url && (
+              <div className="module-video">
+                <iframe
+                  src={module.video_url}
+                  title={module.module_name}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  frameBorder="0"
+                />
+              </div>
+            )}
+            
+            <div className="module-content">
+              {module.course_content && (
+                <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
+              )}
+            </div>
+            
+            <div className="module-navigation">
+              <button className="back-button" onClick={() => navigate('/park_guide/training')}>
+                Back to Training Modules
+              </button>
+              
+              {showQuizButton && (
+                <button 
+                  className="quiz-button" 
+                  onClick={startQuiz}
+                >
+                  Take Certification Quiz
+                </button>
+              )}
+              
+              {showCertificateButton && (
+                <button 
+                  className="certificate-button" 
+                  onClick={() => navigate('/park_guide/certifications')}
+                >
+                  View Certificate
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
+    </div>
   );
 };
 

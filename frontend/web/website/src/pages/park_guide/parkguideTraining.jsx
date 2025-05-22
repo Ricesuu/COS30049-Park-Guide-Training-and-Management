@@ -277,24 +277,8 @@ const ParkguideTraining = () => {
             ) : (              // Purchased modules
               <div className="training-module-grid">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2>My Training Modules</h2>
-                  <button
-                    onClick={() => setShowModuleStore(true)}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#2196F3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <span style={{ fontSize: '18px' }}>+</span> Purchase New Modules
-                  </button>
+                  
+                  
                 </div>
                 
                 {purchasedModules.length === 0 ? (

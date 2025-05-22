@@ -264,6 +264,70 @@ BEGIN
 END $$
 DELIMITER ;
 -- --------------------------------------------------------
+-- --------------------------------------------------------
+--
+-- Table structure for table `quizzes`
+--
+
+CREATE TABLE IF NOT EXISTS `quizzes` (
+  quiz_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+--
+-- Dumping data for table `quizzes`
+--
+INSERT INTO quizzes (name, description) VALUES
+('Language Basics Quiz', 'Quiz for evaluating basic language and communication skills'),
+('Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna'),
+('Tour Organization Quiz', 'Assess skills in planning and managing tours'),
+('Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors'),
+('Safety Procedures Quiz', 'Test understanding of safety protocols');
+-- --------------------------------------------------------
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `trainingmodules`
+--
+
+CREATE TABLE IF NOT EXISTS `trainingmodules` (
+  `module_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `module_code` VARCHAR(10) NOT NULL UNIQUE,  
+  `module_name` VARCHAR(255) NOT NULL,      
+  `description` TEXT,            
+  `difficulty` ENUM('beginner', 'intermediate', 'advanced') NOT NULL,  
+  `aspect` ENUM('language', 'knowledge', 'organization', 'engagement', 'safety') NOT NULL, 
+  `video_url` VARCHAR(255),
+  `course_content` LONGTEXT,
+  `quiz_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `price` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `is_compulsory` BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (`quiz_id`) REFERENCES `quizzes`(`quiz_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `trainingmodules`
+--
+
+-- Dummy Training Modules Data that reference the quizzes
+INSERT INTO `trainingmodules` (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id, is_compulsory, price) VALUES
+('PKG101', 'Park Guide Basics', 'Introduction to the role and responsibilities of a park guide.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'This module covers the basics of being a park guide, including responsibilities and expectations.', 1, TRUE, 100.00),
+('ENG201', 'Visitor Engagement Techniques', 'Effective techniques for engaging with park visitors.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'Learn effective techniques for engaging with park visitors.', 2, TRUE, 100.00),
+('KNW102', 'Flora and Fauna Identification', 'Identifying local flora and fauna in the park.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'This module focuses on identifying local flora and fauna in the park.', 1, FALSE, 0.00),
+('ORG102', 'Organization Skills for Guides', 'Essential skills for organizing tours and activities.', 'intermediate', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Learn essential organization skills for planning and executing tours.', 2, FALSE, 0.00),
+('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1, FALSE, 0.00),
+('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2, FALSE, 0.00),
+('LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1, FALSE, 0.00),
+('KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2, FALSE, 0.00),
+('ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3, FALSE, 0.00),
+('SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5, FALSE, 0.00);
+
+
 
 --
 -- Stand-in structure for view `pendingmodulepayments`
@@ -281,21 +345,49 @@ CREATE TABLE `pendingmodulepayments` (
 ,`transaction_date` timestamp
 );
 
+
+-- --------------------------------------------------------
+-- Table structure for table `parkguides`
+--
+
+CREATE TABLE IF NOT EXISTS `parkguides` (
+  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` int(11) NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
+
+
 -- --------------------------------------------------------
 --
 -- Table structure for table `quizattempts`
 --
 
 CREATE TABLE IF NOT EXISTS `quizattempts` (
-  `attempt_id` int(11) NOT NULL,
+  `attempt_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `quiz_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `guide_id` int(11) NOT NULL,
+  `module_id` int(11) NOT NULL,
   `start_time` timestamp NOT NULL DEFAULT current_timestamp(),
   `end_time` timestamp NULL DEFAULT NULL,
   `score` int(11) DEFAULT NULL,
   `passed` tinyint(1) DEFAULT NULL,
-  `attempt_number` int(11) NOT NULL
+  `attempt_number` int(11) NOT NULL,
+  FOREIGN KEY (`quiz_id`) REFERENCES `quizzes`(`quiz_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`guide_id`) REFERENCES `parkguides`(`guide_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`module_id`) REFERENCES `trainingmodules`(`module_id`) ON DELETE CASCADE
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -331,28 +423,6 @@ END
 $$
 DELIMITER ;
 
--- --------------------------------------------------------
---
--- Table structure for table `quizzes`
---
-
-CREATE TABLE IF NOT EXISTS `quizzes` (
-  quiz_id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
---
--- Dumping data for table `quizzes`
---
-INSERT INTO quizzes (name, description) VALUES
-('Language Basics Quiz', 'Quiz for evaluating basic language and communication skills'),
-('Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna'),
-('Tour Organization Quiz', 'Assess skills in planning and managing tours'),
-('Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors'),
-('Safety Procedures Quiz', 'Test understanding of safety protocols');
 -- --------------------------------------------------------
 --
 -- Table structure for table `questions`
@@ -414,44 +484,6 @@ CREATE TABLE IF NOT EXISTS `quizresponses` (
   `points_awarded` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `trainingmodules`
---
-
-CREATE TABLE IF NOT EXISTS `trainingmodules` (
-  `module_id` INT AUTO_INCREMENT PRIMARY KEY,
-  `module_code` VARCHAR(10) NOT NULL UNIQUE,  
-  `module_name` VARCHAR(255) NOT NULL,      
-  `description` TEXT,            
-  `difficulty` ENUM('beginner', 'intermediate', 'advanced') NOT NULL,  
-  `aspect` ENUM('language', 'knowledge', 'organization', 'engagement', 'safety') NOT NULL, 
-  `video_url` VARCHAR(255),
-  `course_content` LONGTEXT,
-  `quiz_id` INT,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `price` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `is_compulsory` BOOLEAN DEFAULT FALSE,
-  FOREIGN KEY (`quiz_id`) REFERENCES `quizzes`(`quiz_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `trainingmodules`
---
-
--- Dummy Training Modules Data that reference the quizzes
-INSERT INTO `trainingmodules` (module_code, module_name, description, difficulty, aspect, video_url, course_content, quiz_id, is_compulsory, price) VALUES
-('PKG101', 'Park Guide Basics', 'Introduction to the role and responsibilities of a park guide.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'This module covers the basics of being a park guide, including responsibilities and expectations.', 1, TRUE, 100.00),
-('ENG201', 'Visitor Engagement Techniques', 'Effective techniques for engaging with park visitors.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'Learn effective techniques for engaging with park visitors.', 2, TRUE, 100.00),
-('KNW102', 'Flora and Fauna Identification', 'Identifying local flora and fauna in the park.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'This module focuses on identifying local flora and fauna in the park.', 1, FALSE, 0.00),
-('ORG102', 'Organization Skills for Guides', 'Essential skills for organizing tours and activities.', 'intermediate', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Learn essential organization skills for planning and executing tours.', 2, FALSE, 0.00),
-('SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1, FALSE, 0.00),
-('ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2, FALSE, 0.00),
-('LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1, FALSE, 0.00),
-('KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2, FALSE, 0.00),
-('ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3, FALSE, 0.00),
-('SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5, FALSE, 0.00);
 
 -- --------------------------------------------------------
 --
@@ -516,25 +548,6 @@ CREATE TABLE `usermoduleaccess` (
 ,`paymentStatus` enum('pending','approved','rejected')
 );
 
--- --------------------------------------------------------
--- Table structure for table `parkguides`
---
-
-CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `user_id` int(11) NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
-  `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
-
---
--- Dumping data for table `parkguides`
---
-
-INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
 
 -- --------------------------------------------------------
 
