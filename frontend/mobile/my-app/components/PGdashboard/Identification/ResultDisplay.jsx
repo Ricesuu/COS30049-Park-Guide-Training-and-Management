@@ -2,7 +2,8 @@
 import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 
-const ResultDisplay = ({ loading, identificationResult }) => {
+const ResultDisplay = ({ loading, identificationResults, selectedIndex, setSelectedIndex }) => {
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -12,17 +13,32 @@ const ResultDisplay = ({ loading, identificationResult }) => {
         );
     }
 
-    if (!identificationResult) {
+    if (!identificationResults || identificationResults.length === 0) {
         return null;
     }
 
-    const { name, scientificName, confidence, description, careInstructions } =
-        identificationResult;
+    const selectedResult = identificationResults[selectedIndex];
+    const { name, scientificName, confidence, description, local_name, habitat } =
+        selectedResult || {};
     const confidencePercentage = Math.round(confidence * 100);
 
     return (
         <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>Identification Result</Text>
+<View style={styles.buttonGroup}>
+    {identificationResults.map((item, index) => (
+        <Text
+            key={index}
+            style={[
+                styles.resultButton,
+                selectedIndex === index && styles.selectedButton,
+            ]}
+            onPress={() => setSelectedIndex(index)}
+        >
+            {item.scientificName ? item.scientificName : `Result ${index + 1}`}
+        </Text>
+    ))}
+</View>
 
             <View style={styles.resultSection}>
                 <Text style={styles.label}>Name:</Text>
@@ -63,10 +79,16 @@ const ResultDisplay = ({ loading, identificationResult }) => {
                 </View>
             )}
 
-            {careInstructions && (
+            {local_name && (
                 <View style={styles.resultSection}>
-                    <Text style={styles.label}>Care Instructions:</Text>
-                    <Text style={styles.description}>{careInstructions}</Text>
+                    <Text style={styles.label}>Local_name:</Text>
+                    <Text style={styles.description}>{local_name}</Text>
+                </View>
+            )}
+            {habitat && (
+                <View style={styles.resultSection}>
+                    <Text style={styles.label}>Habitat:</Text>
+                    <Text style={styles.description}>{habitat}</Text>
                 </View>
             )}
         </View>
@@ -149,6 +171,28 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
     },
+    buttonGroup: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "flex-start",
+        marginBottom: 10,
+    },
+    resultButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        backgroundColor: "#e0e0e0",
+        borderRadius: 5,
+        color: "#333",
+        marginHorizontal: 4,
+        marginVertical: 4,
+        maxWidth: "45%",
+    },
+
+    selectedButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+        color: "white",
+    },
+
 });
 
 export default ResultDisplay;

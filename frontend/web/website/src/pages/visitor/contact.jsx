@@ -345,6 +345,9 @@ const ContactPage = () => {
        * FOOTER SECTION
        ******************************************************************/}
       <Footer />
+      <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+      <ChatbotWidget  />
+      </div>
     </motion.div>
   );
 };
