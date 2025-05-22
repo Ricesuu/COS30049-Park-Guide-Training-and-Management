@@ -243,13 +243,40 @@ INSERT INTO `parks` (`park_id`, `park_name`, `location`, `description`, `wildlif
 (2, 'Semenggoh Wildlife Centre', 'Kuching, Sarawak, Malaysia', 'Semenggoh Wildlife Centre is a sanctuary for rehabilitated orangutans, providing visitors with a chance to observe these magnificent creatures in their natural habitat.', 'Orangutans, gibbons, crocodiles, and local birdlife');
 
 -- --------------------------------------------------------
+--
+-- Table structure for table `users`
+--
 
+CREATE TABLE IF NOT EXISTS `users` (
+  `user_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `uid` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
+  `role` enum('admin','park_guide') NOT NULL DEFAULT 'park_guide',
+  `status` enum('pending','approved','rejected','deleted') DEFAULT 'pending',
+  `failed_attempts` int(11) DEFAULT 0,
+  `last_failed_attempt` datetime DEFAULT NULL,
+  `locked_until` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role`, `status`, `failed_attempts`, `last_failed_attempt`, `locked_until`, `created_at`) VALUES
+(1, 'vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved', 0, NULL, NULL, '2025-05-15 02:38:38'),
+(2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'parkguide@gmail.com', 'SkibidiRui', 'Wahwah', 'park_guide', 'approved', 0, NULL, NULL, '2025-05-15 06:31:20');
+
+-- --------------------------------------------------------
 --
 -- Table structure for table `paymenttransactions`
 --
 
 CREATE TABLE IF NOT EXISTS `paymenttransactions` (
-  `payment_id` int(11) NOT NULL,
+  `payment_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) NOT NULL,
   `uid` varchar(255) NOT NULL,
   `paymentPurpose` varchar(100) NOT NULL,
@@ -258,7 +285,8 @@ CREATE TABLE IF NOT EXISTS `paymenttransactions` (
   `receipt_image` longblob NOT NULL,
   `paymentStatus` enum('pending','approved','rejected') DEFAULT 'pending',
   `transaction_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `module_id` int(11) DEFAULT NULL
+  `module_id` int(11) DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -503,35 +531,6 @@ CREATE TABLE `usermoduleaccess` (
 ,`payment_id` int(11)
 ,`paymentStatus` enum('pending','approved','rejected')
 );
-
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE IF NOT EXISTS `users` (
-  `user_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  `uid` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `first_name` varchar(255) NOT NULL,
-  `last_name` varchar(255) NOT NULL,
-  `role` enum('admin','park_guide') NOT NULL DEFAULT 'park_guide',
-  `status` enum('pending','approved','rejected','deleted') DEFAULT 'pending',
-  `failed_attempts` int(11) DEFAULT 0,
-  `last_failed_attempt` datetime DEFAULT NULL,
-  `locked_until` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role`, `status`, `failed_attempts`, `last_failed_attempt`, `locked_until`, `created_at`) VALUES
-(1, 'vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved', 0, NULL, NULL, '2025-05-15 02:38:38'),
-(2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'parkguide@gmail.com', 'SkibidiRui', 'Wahwah', 'park_guide', 'approved', 0, NULL, NULL, '2025-05-15 06:31:20');
 
 -- --------------------------------------------------------
 -- Table structure for table `parkguides`
