@@ -41,6 +41,11 @@ const ParkguideModule = () => {
         });
         
         if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 403) {
+            // Handle access denied errors specifically
+            throw new Error(errorData.error || 'Access to this module is restricted');
+          }
           throw new Error('Failed to fetch module data');
         }
         
@@ -63,6 +68,10 @@ const ParkguideModule = () => {
       } catch (err) {
         console.error('Error fetching module:', err);
         setError(err.message);
+        // Redirect to training page if access is denied
+        if (err.message.includes('access') || err.message.includes('pending approval')) {
+          navigate('/park_guide/training');
+        }
       } finally {
         setLoading(false);
       }
@@ -74,7 +83,7 @@ const ParkguideModule = () => {
       setError('No module ID provided');
       setLoading(false);
     }
-  }, [moduleId]);
+  }, [moduleId, navigate]);
 
   const startQuiz = async () => {
     try {

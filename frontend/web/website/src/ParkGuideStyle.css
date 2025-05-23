@@ -709,80 +709,61 @@ body {
 /* Certification Main Content Styling */
 .cert-main-content {
   margin-left: 20rem;
-  display: flex;
-  flex-direction: column;
   padding: 2rem;
-  box-sizing: border-box;
   width: calc(100% - 20rem);
-  overflow: visible; /* Remove container scrolling */
-}
-
-/* Certification Page Specific Styling */
-.cert-page-container {
-  margin-left: 11rem;
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
+  min-height: 100vh;
   box-sizing: border-box;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  justify-content: flex-start;
+  background-color: #f9fafb;
+  overflow: auto;
 }
 
 .cert-page-title {
-  background-color: #ffffff;
-  z-index: 10;
-  padding: 0.5rem 1rem;
-  text-align: center;
   font-size: 1.75rem;
   font-weight: bold;
-  border-bottom: 1px solid #d1d5db;
+  margin-bottom: 2rem;
+  color: #333;
+  text-align: center;
 }
 
 .cert-page-grid {
+  max-width: 1400px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-  width: 100%;
-  max-height: none !important;
-  overflow: visible !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 1rem;
 }
 
 .cert-page-box {
-  background-color: #f9f9f9;
-  border: 1px solid #d1d5db;
+  background: white;
   border-radius: 12px;
-  padding: 1rem;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  position: relative;
 }
 
 .cert-page-box:hover {
-  background-color: #f3f4f6;
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .cert-page-box.completed {
-  border: 2px solid #7CC242;
-  position: relative;
-  overflow: hidden;
+  border: 2px solid #4CAF50;
 }
 
 .cert-page-box.locked {
-  border: 2px solid #ccc;
+  border: 2px solid #e5e7eb;
 }
 
 .cert-page-overlay {
   position: relative;
   height: 200px;
   overflow: hidden;
+  background-color: #f1f5f9;
 }
 
 .cert-page-image {
@@ -806,58 +787,63 @@ body {
   gap: 10px;
 }
 
-.cert-page-lock i {
-  font-size: 2rem;
-}
-
 .cert-page-details {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .cert-page-title-text {
   font-size: 1.2rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #1a1a1a;
+  color: #333;
 }
 
 .cert-page-expiry {
   font-size: 0.9rem;
   color: #666;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  flex: 1;
 }
 
 .cert-completed-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
   background-color: #4CAF50;
   color: white;
-  border-radius: 12px;
+  padding: 0.3rem 0.8rem;
+  border-radius: 1rem;
   font-size: 0.8rem;
+  font-weight: 500;
+  align-self: flex-start;
 }
 
-.cert-unpaid-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background-color: #f44336;
-  color: white;
-  border-radius: 12px;
-  font-size: 0.8rem;
-}
-
-/* No certifications message */
 .no-certs-message {
   text-align: center;
   padding: 2rem;
-  background: #f5f5f5;
+  background-color: #f9f9f9;
   border-radius: 8px;
   margin: 2rem auto;
   max-width: 600px;
 }
 
-.no-certs-message p {
-  color: #666;
-  font-size: 1.1rem;
-  line-height: 1.5;
+/* Responsive styles for certification page */
+@media (max-width: 1024px) {
+  .cert-main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .cert-page-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .cert-page-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    padding: 0.5rem;
+  }
 }
 
 /* Certificate Popup Styles */
@@ -1443,12 +1429,6 @@ canvas {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.module-video iframe {
-  width: 100%;
-  aspect-ratio: 16/9;
-  border: none;
 }
 
 .module-content {

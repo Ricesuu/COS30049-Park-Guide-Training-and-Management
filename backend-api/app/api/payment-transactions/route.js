@@ -183,8 +183,8 @@ export async function POST(req) {
           // Insert new purchase record
           await connection.execute(
             `INSERT INTO ModulePurchases 
-             (user_id, module_id, payment_id, status, is_active, completion_percentage) 
-             VALUES (?, ?, ?, 'pending', TRUE, 0)`,
+             (user_id, module_id, payment_id, status, is_active) 
+             VALUES (?, ?, ?, 'pending', TRUE)`,
             [userId, moduleId, result.insertId]
           );
         } else {
