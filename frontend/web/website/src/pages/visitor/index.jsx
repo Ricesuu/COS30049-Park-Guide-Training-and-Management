@@ -12,6 +12,7 @@ import { FaBook, FaCertificate, FaLeaf, FaArrowRight } from "react-icons/fa";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import TestimonialsCarousel from "../../components/visitor/TestimonialsCarousel";
+import ChatbotWidget from "../../components/visitor/ChatbotWidget";
 
 const VisitorLandingPage = () => {
   const navigate = useNavigate();
@@ -63,19 +64,27 @@ const VisitorLandingPage = () => {
       {/******************************************************************
        * HERO SECTION
        * Video background with welcome message and CTA button
-       ******************************************************************/}
-      <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
-        {/* YouTube Video Background */}
+       ******************************************************************/}      <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
+        {/* YouTube Video Background with Error Handling */}
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
           <div className="relative w-full h-full">
-            {" "}
-            <iframe
-              className="absolute w-[150%] h-[150%] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              src="https://www.youtube.com/embed/THrCxzbjaYM?autoplay=1&mute=1&controls=0&loop=1&playlist=THrCxzbjaYM&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&start=45"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              frameBorder="0"
-              title="Background Video"
-            ></iframe>
+            {/* Static Background Image Fallback */}
+            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/park-bg.jpg')" }}></div>
+            
+            {/* YouTube Iframe with Error Handling */}
+            <div className="absolute inset-0">
+              <iframe
+                className="absolute w-[150%] h-[150%] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                src="https://www.youtube.com/embed/THrCxzbjaYM?autoplay=1&mute=1&controls=0&loop=1&playlist=THrCxzbjaYM&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&start=45"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                frameBorder="0"
+                title="Background Video"
+                onError={(e) => {
+                  // Hide iframe on error
+                  e.target.style.display = 'none';
+                }}
+              ></iframe>
+            </div>
           </div>
           {/* Dark overlay to make the text readable */}
           <div className="absolute inset-0 bg-black/60 z-10"></div>

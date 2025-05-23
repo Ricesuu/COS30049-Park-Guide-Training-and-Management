@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
+import ChatbotWidget from "../../components/visitor/ChatbotWidget";
 import { motion } from "framer-motion";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -128,10 +129,12 @@ const MapPage = () => {
               title="Semenggoh Wildlife Reserve 360 View"
               className="rounded-lg shadow-lg"
             ></iframe>
-          </div>
-        </div>
+          </div>        </div>
       </section>
       <Footer />
+      <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+        <ChatbotWidget />
+      </div>
     </motion.div>
   );
 };

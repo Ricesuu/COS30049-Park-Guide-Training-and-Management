@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
+import ChatbotWidget from "../../components/visitor/ChatbotWidget";
 import { motion } from "framer-motion";
 import axios from "axios";
 
@@ -96,9 +97,11 @@ const InfoPage = () => {
               </div>
             )}
           </div>
-        </div>
-      </section>
+        </div>      </section>
       <Footer />
+      <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+        <ChatbotWidget />
+      </div>
     </motion.div>
   );
 };

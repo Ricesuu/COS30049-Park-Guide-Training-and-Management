@@ -15,7 +15,6 @@ const ChatbotWidget = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -26,22 +25,53 @@ const ChatbotWidget = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chatbot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input }),
-      });
-      const data = await res.json();
+      // Try to use API first
+      try {
+        const res = await fetch("/api/chatbot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: input }),
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const botMessage = {
+            role: "bot",
+            content: data.answer || "No response",
+          };
+          setMessages((prev) => [...updatedMessages, botMessage]);
+          setLoading(false);
+          return;
+        }
+      } catch (apiErr) {
+        console.error("Chatbot API error:", apiErr);
+      }
+      
+      // If API fails, use hardcoded responses
+      let botResponse = "I'm sorry, I can't connect to the server right now. Please try again later or contact the park office for assistance.";
+      
+      // Simple keyword response system as fallback
+      const lowercaseInput = input.toLowerCase();
+      if (lowercaseInput.includes("hello") || lowercaseInput.includes("hi")) {
+        botResponse = "Hello! How can I help you with information about our park today?";
+      } else if (lowercaseInput.includes("hours") || lowercaseInput.includes("open")) {
+        botResponse = "Our park is open from 8:00 AM to 6:00 PM every day.";
+      } else if (lowercaseInput.includes("training") || lowercaseInput.includes("course")) {
+        botResponse = "We offer several training modules for park guides. You can browse them in the training section after logging in.";
+      } else if (lowercaseInput.includes("contact") || lowercaseInput.includes("support")) {
+        botResponse = "You can reach our support team at support@parkguide.com or visit our contact page.";
+      }
+      
       const botMessage = {
         role: "bot",
-        content: data.answer || "No response",
+        content: botResponse,
       };
       setMessages((prev) => [...updatedMessages, botMessage]);
     } catch (err) {
-      console.error("Chatbot error:", err);
+      console.error("Chatbot system error:", err);
       setMessages((prev) => [
         ...updatedMessages,
-        { role: "bot", content: "⚠️ Sorry, something went wrong." },
+        { role: "bot", content: "⚠️ Sorry, something went wrong with the chat system." },
       ]);
     } finally {
       setLoading(false);

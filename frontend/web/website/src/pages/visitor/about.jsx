@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
+import ChatbotWidget from "../../components/visitor/ChatbotWidget";
 
 /***********************************************************************
  * ABOUT PAGE COMPONENT
