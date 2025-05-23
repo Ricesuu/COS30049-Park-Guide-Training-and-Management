@@ -1,6 +1,7 @@
 // app/api/certifications/route.js
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
+import { sendEmail } from "@/lib/emailService";
 
 export async function GET() {
     let connection;
@@ -42,6 +43,19 @@ export async function POST(request) {
             `Creating certification for guide ${guide_id}, module ${module_id}`
         );
         connection = await getConnection();
+
+        // Get user and certification information for the email
+        const [userRows] = await connection.execute(
+            "SELECT email, first_name FROM users WHERE id = ?",
+            [guide_id]
+        );
+
+        const [moduleRows] = await connection.execute(
+            "SELECT module_name FROM training_modules WHERE id = ?",
+            [module_id]
+        );
+        const user = userRows[0];
+        const trainingModule = moduleRows[0];
 
         // Use transaction if we need to update guide status as well
         if (update_guide_status) {
@@ -96,6 +110,42 @@ export async function POST(request) {
                         await connection.commit();
                     }
 
+                    // Send certification email
+                    if (user && trainingModule) {
+                        await sendEmail({
+                            to: user.email,
+                            template: "certificationApproved",
+                            data: {
+                                firstName: user.first_name,
+                                certificationName: trainingModule.module_name,
+                                expiryDate: new Date(
+                                    expiry_date
+                                ).toLocaleDateString(),
+                            },
+                        });
+
+                        // Schedule expiration reminder for 30 days before expiry
+                        const expiryDate = new Date(expiry_date);
+                        const reminderDate = new Date(expiryDate);
+                        reminderDate.setDate(reminderDate.getDate() - 30);
+
+                        if (reminderDate > new Date()) {
+                            setTimeout(async () => {
+                                await sendEmail({
+                                    to: user.email,
+                                    template: "certificationExpiring",
+                                    data: {
+                                        firstName: user.first_name,
+                                        certificationName:
+                                            trainingModule.module_name,
+                                        expiryDate:
+                                            expiryDate.toLocaleDateString(),
+                                    },
+                                });
+                            }, reminderDate.getTime() - Date.now());
+                        }
+                    }
+
                     return NextResponse.json(
                         {
                             id: result.insertId,
@@ -112,6 +162,38 @@ export async function POST(request) {
             // If we didn't update the guide status or transaction not used
             if (update_guide_status) {
                 await connection.commit();
+            }
+
+            // Send certification email
+            if (user && trainingModule) {
+                await sendEmail({
+                    to: user.email,
+                    template: "certificationApproved",
+                    data: {
+                        firstName: user.first_name,
+                        certificationName: trainingModule.module_name,
+                        expiryDate: new Date(expiry_date).toLocaleDateString(),
+                    },
+                });
+
+                // Schedule expiration reminder for 30 days before expiry
+                const expiryDate = new Date(expiry_date);
+                const reminderDate = new Date(expiryDate);
+                reminderDate.setDate(reminderDate.getDate() - 30);
+
+                if (reminderDate > new Date()) {
+                    setTimeout(async () => {
+                        await sendEmail({
+                            to: user.email,
+                            template: "certificationExpiring",
+                            data: {
+                                firstName: user.first_name,
+                                certificationName: trainingModule.module_name,
+                                expiryDate: expiryDate.toLocaleDateString(),
+                            },
+                        });
+                    }, reminderDate.getTime() - Date.now());
+                }
             }
 
             return NextResponse.json(

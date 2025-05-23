@@ -38,9 +38,9 @@ const AlertTestingTool = ({ onSubmitSuccess }) => {
                     ? sensorValue === "1"
                         ? "detected"
                         : "not detected"
-                    : `${sensorValue}${
-                          sensorType === "temperature" ? "°C" : "%"
-                      }`;
+                    : sensorType === "temperature"
+                    ? sensorValue
+                    : `${sensorValue}%`;
 
             // Add detailed logging before sending the request
             console.log("==== ALERT TESTING TOOL - SUBMIT START ====");
@@ -140,13 +140,14 @@ const AlertTestingTool = ({ onSubmitSuccess }) => {
             <Text style={styles.preview}>
                 Will submit:{" "}
                 <Text style={styles.previewValue}>
+                    {" "}
                     {sensorType === "motion"
                         ? sensorValue === "1"
                             ? "detected"
                             : "not detected"
-                        : `${sensorValue}${
-                              sensorType === "temperature" ? "°C" : "%"
-                          }`}
+                        : sensorType === "temperature"
+                        ? sensorValue
+                        : `${sensorValue}%`}
                 </Text>{" "}
                 (This value should trigger an alert)
             </Text>

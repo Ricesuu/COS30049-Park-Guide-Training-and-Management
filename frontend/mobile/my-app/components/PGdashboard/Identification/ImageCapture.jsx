@@ -1,5 +1,4 @@
-// components/PGdashboard/Identification/ImageCapture.jsx
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -10,7 +9,11 @@ const ImageCapture = ({
     identifyOrchid,
     resetIdentification,
     loading,
+    switchModel,
+    model,
 }) => {
+
+
     return (
         <>
             <View style={styles.imageContainer}>
@@ -45,29 +48,43 @@ const ImageCapture = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.actionButtonsContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.actionButton,
-                        !image && styles.disabledButton,
-                    ]}
-                    onPress={identifyOrchid}
-                    disabled={!image || loading}
-                >
-                    <MaterialIcons name="search" size={24} color="white" />
-                    <Text style={styles.buttonText}>Identify</Text>
-                </TouchableOpacity>{" "}
-                {image ? (
+            {image ? (
+                <>
+                    <View style={styles.actionButtonsContainer}>
                     <TouchableOpacity
-                        style={styles.resetButton}
-                        onPress={resetIdentification}
+                        style={styles.actionButton}
+                        onPress={switchModel}
                         disabled={loading}
                     >
-                        <MaterialIcons name="refresh" size={24} color="white" />
-                        <Text style={styles.buttonText}>Reset</Text>
+                        <MaterialIcons name="sync" size={24} color="white" />
+                        <Text style={styles.buttonText}>Switch Model ({model.toUpperCase()})</Text>
                     </TouchableOpacity>
-                ) : null}
-            </View>
+
+                        <TouchableOpacity
+                            style={styles.resetButton}
+                            onPress={resetIdentification}
+                            disabled={loading}
+                        >
+                            <MaterialIcons name="refresh" size={24} color="white" />
+                            <Text style={styles.buttonText}>Reset</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.identifyButtonWrapper}>
+                        <TouchableOpacity
+                            style={[
+                                styles.actionButton,
+                                !image && styles.disabledButton,
+                            ]}
+                            onPress={identifyOrchid}
+                            disabled={!image || loading}
+                        >
+                            <MaterialIcons name="search" size={24} color="white" />
+                            <Text style={styles.buttonText}>Identify</Text>
+                        </TouchableOpacity>
+                    </View>
+                </>
+            ) : null}
         </>
     );
 };
@@ -119,7 +136,11 @@ const styles = StyleSheet.create({
     actionButtonsContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: 20,
+        marginBottom: 10,
+    },
+    identifyButtonWrapper: {
+        width: "100%",
+        paddingHorizontal: "0%",
     },
     actionButton: {
         backgroundColor: "rgb(22, 163, 74)",

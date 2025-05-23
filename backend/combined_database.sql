@@ -66,10 +66,10 @@ CREATE TABLE IF NOT EXISTS `alertthresholds` (
 --
 
 INSERT INTO `alertthresholds` (`threshold_id`, `sensor_type`, `park_id`, `min_threshold`, `max_threshold`, `trigger_message`, `severity`, `is_enabled`, `created_at`, `updated_at`) VALUES
-(1, 'temperature', 1, 15, 19, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(2, 'temperature', 2, 16, 19, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(3, 'humidity', 1, 50, 51, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
-(4, 'humidity', 2, 60, 61, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(1, 'temperature', 1, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(2, 'temperature', 2, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(3, 'humidity', 1, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(4, 'humidity', 2, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (5, 'soil moisture', 1, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (6, 'soil moisture', 2, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
 (7, 'motion', 1, NULL, NULL, 'Unauthorized motion detected', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS `guidetrainingprogress` (
 --
 
 CREATE TABLE IF NOT EXISTS `iotmonitoring` (
-  `sensor_id` int(11) NOT NULL,
+  `sensor_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `park_id` int(11) NOT NULL,
   `sensor_type` enum('temperature','humidity','soil moisture','motion') NOT NULL,
   `recorded_value` varchar(255) NOT NULL,
@@ -210,7 +210,7 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `multillicensetrainingexemptions`
+-- Table structure for table `multilicensetrainingexemptions`
 --
 
 CREATE TABLE IF NOT EXISTS `multilicensetrainingexemptions` (
@@ -517,11 +517,12 @@ CREATE TABLE IF NOT EXISTS `users` (
   `first_name` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
   `role` enum('admin','park_guide') NOT NULL DEFAULT 'park_guide',
-  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `status` enum('pending','approved','rejected','deleted') DEFAULT 'pending',
   `failed_attempts` int(11) DEFAULT 0,
   `last_failed_attempt` datetime DEFAULT NULL,
   `locked_until` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -537,7 +538,7 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 --
 
 CREATE TABLE IF NOT EXISTS `parkguides` (
-  `guide_id` int(11) NOT NULL PRIMARY KEY,
+  `guide_id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) NOT NULL,
   `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
   `license_expiry_date` date DEFAULT NULL,
@@ -561,6 +562,13 @@ INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `licens
 -- Table: Visitor Feedback Table
 CREATE TABLE IF NOT EXISTS `visitorfeedback` (
   `feedback_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `first_name` VARCHAR(255) NOT NULL,
+  `last_name` VARCHAR(255) NOT NULL,
+  `telephone` VARCHAR(20),
+  `email` VARCHAR(255) NOT NULL,
+  `ticket_no` VARCHAR(50) NOT NULL,
+  `park` VARCHAR(255) NOT NULL,
+  `visit_date` DATE NOT NULL,
   `guide_id` INT NOT NULL,
   `language_rating` INT NOT NULL,
   `knowledge_rating` INT NOT NULL,
@@ -569,8 +577,48 @@ CREATE TABLE IF NOT EXISTS `visitorfeedback` (
   `safety_rating` INT NOT NULL,
   `comment` TEXT,
   `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (guide_id) REFERENCES parkguides(guide_id)
+  FOREIGN KEY (`guide_id`) REFERENCES `parkguides`(`guide_id`)
 );
+
+--
+-- Dumping data for table `visitorfeedback`
+--
+
+INSERT INTO `visitorfeedback` 
+(first_name, last_name, telephone, email, ticket_no, park, visit_date, guide_id, language_rating, knowledge_rating, organization_rating, engagement_rating, safety_rating, comment) 
+VALUES 
+('John', 'Smith', '+60123456789', 'john.smith@email.com', 'SW10001', 'Semenggoh Wildlife Centre', '2025-05-15', 1, 5, 4, 5, 5, 4, 'Excellent experience! The guide was very knowledgeable about orangutans and made the tour engaging.'),
+('Emma', 'Johnson', '+60187654321', 'emma.j@email.com', 'SW10002', 'Semenggoh Wildlife Centre', '2025-05-18', 1, 4, 5, 4, 5, 5, 'Very informative tour. The safety briefing was thorough and I felt secure throughout the visit.'),
+('Raj', 'Patel', '+60192345678', 'raj.patel@email.com', 'SW10003', 'Semenggoh Wildlife Centre', '2025-05-19', 1, 5, 5, 4, 4, 5, 'Amazing experience watching the orangutans. The guide was very professional and answered all our questions.'),
+('Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 1, 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `plant_info`
+--
+
+CREATE TABLE IF NOT EXISTS `plantinfo` (
+  `plant_id` int(11) NOT NULL AUTO_INCREMENT,
+  `common_name` varchar(100) NOT NULL,
+  `scientific_name` varchar(100) NOT NULL,
+  `family` varchar(100) NOT NULL,
+  `description` text NOT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`plant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `plant_info`
+--
+
+INSERT INTO `plantinfo` (`common_name`, `scientific_name`, `family`, `description`, `image_url`) VALUES
+('Spider Lily', 'Hymenocallis littoralis', 'Amaryllidaceae', 'The Spider Lily is a stunning tropical plant known for its elegant, spider-like white flowers with long, delicate petals. Native to tropical regions, it thrives in warm, humid environments and produces fragrant blooms throughout the growing season. The plant plays an important role in local ecosystems and is valued for both its ornamental beauty and cultural significance.', 'https://en.whu.edu.cn/__local/E/BB/0A/C72D750AC39F58D1F4DD1D85605_070A1AAE_7F0E.jpg'),
+('Night Queen of Flowers', 'Epiphyllum oxypetalum', 'Cactaceae', 'The Night Queen of Flowers, also known as the Queen of the Night, is a spectacular nocturnal blooming cactus. This epiphytic cactus produces large, white, highly fragrant flowers that bloom only at night and wilt by dawn. Each flower can reach up to 30 cm in length, making it one of the most impressive night-blooming plants in our collection. Its rare blooming pattern and ethereal beauty make it a highly sought-after specimen in botanical gardens.', 'https://www.southsideblooms.com/wp-content/uploads/2022/05/NightQueenofFlowers.jpg'),
+('Rafflesia', 'Rafflesia arnoldii', 'Rafflesiaceae', 'Known as the corpse flower, the Rafflesia is the largest individual flower in the world and is native to the rainforests of Borneo. This parasitic plant produces massive blooms that can reach up to 3 feet in diameter. The flower is famous for its distinctive appearance and its strong odor, which attracts pollinators. Despite its size and significance, the Rafflesia has no stems, leaves, or roots, making it one of the most unique specimens in our botanical collection.', 'https://cdn.shortpixel.ai/spai2/q_glossy+w_1082+to_auto+ret_img/www.fauna-flora.org/wp-content/uploads/2023/06/our-green-planet-resplendent-rafflesia-reigns-supreme-scaled.jpg'),
+('Cattleya Orchid', 'Cattleya labiata', 'Orchidaceae', 'The Cattleya Orchid, often referred to as the "Queen of Orchids," is renowned for its large, showy blooms and intense fragrance. Native to tropical Americas, these epiphytic orchids produce spectacular flowers in shades of purple, pink, and white, often with frilled lips and intricate patterns. Each bloom can last several weeks, and the plants typically flower once or twice a year. In our collection, these orchids demonstrate the incredible diversity of the orchid family and serve as stunning examples of tropical flora adaptation.', 'https://www.better-gro.com/uploads/1/0/3/0/103066208/shutterstock-199188980-e1428327243456_orig.jpg');
 
 -- --------------------------------------------------------
 

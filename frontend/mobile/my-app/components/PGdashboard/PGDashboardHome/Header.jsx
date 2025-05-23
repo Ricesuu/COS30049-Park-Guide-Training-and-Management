@@ -1,9 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { LogBox } from "react-native";
-
-// Ignore specific warnings
-LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const Header = () => {
     return (

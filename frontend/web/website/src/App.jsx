@@ -15,15 +15,17 @@ import ResetPasswordPage from "./pages/auth/Reset_Password";
 import VisitorLandingPage from "./pages/visitor/index";
 import AboutPage from "./pages/visitor/about";
 import ContactPage from "./pages/visitor/contact";
+import FeedbackPage from "./pages/visitor/feedback";
+import MapPage from "./pages/visitor/map";
+import InfoPage from "./pages/visitor/info";
 
 // 🛠️ Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
-import InfoManager from "./pages/admin/InfoManager";
-import InfoDetail from "./pages/admin/InfoDetail";
 import ParkGuides from "./pages/admin/ParkGuides";
 import ParkGuideDetails from "./pages/admin/ParkGuideDetails";
 import IoTHub from "./pages/admin/IoTHub";
 import AssignCourse from "./pages/admin/AdminAssignCourses";
+import InfoManager from "./pages/admin/InfoManager";
 import CourseManager from "./pages/admin/CourseManager";
 import QuizEditor from "./pages/admin/QuizEditor";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -88,15 +90,17 @@ function AppRoutes() {
       <Route path="/visitor" element={<VisitorLandingPage />} />
       <Route path="/visitor/about" element={<AboutPage />} />
       <Route path="/visitor/contact" element={<ContactPage />} />
+      <Route path="/visitor/feedback" element={<FeedbackPage />} />
+      <Route path="/visitor/map" element={<MapPage />} />
+      <Route path="/visitor/info" element={<InfoPage />} />
       {/* Admin Section */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="iot-hub" element={<IoTHub />} />
-        <Route path="info-manager" element={<InfoManager />} />
-        <Route path="info-manager/:title" element={<InfoDetail />} />
         <Route path="park-guides" element={<ParkGuides />} />
-        <Route path="guides/:id" element={<ParkGuideDetails />} />
+        <Route path="guides/:id" element={<ParkGuideDetails />} />        
         <Route path="assign-course" element={<AssignCourse />} />
+        <Route path="info-manager" element={<InfoManager />} />
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
       </Route>
@@ -107,7 +111,8 @@ function AppRoutes() {
         <Route path="certifications" element={<ParkguideCert />} />
         <Route path="plants" element={<ParkguidePlantInfo />} />
         <Route path="identify" element={<ParkguideIdentification />} />
-        <Route path="performance" element={<ParkguidePerformance />} />        <Route path="module" element={<ParkguideModule />} />
+        <Route path="performance" element={<ParkguidePerformance />} />        
+        <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />
         <Route path="payment" element={<ParkguidePayment />} />
       </Route>

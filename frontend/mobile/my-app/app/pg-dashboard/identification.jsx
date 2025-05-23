@@ -1,30 +1,29 @@
 import React, { useState } from "react";
 import { Alert, LogBox } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Camera } from "expo-camera";
+import { View, ActivityIndicator } from "react-native";
+import * as FileSystem from 'expo-file-system';
+import IdentificationContainer from "../../components/PGdashboard/Identification/IdentificationContainer";
+import ImageCapture from "../../components/PGdashboard/Identification/ImageCapture";
+import ResultDisplay from "../../components/PGdashboard/Identification/ResultDisplay";
+import CameraComponent from "../../components/PGdashboard/Identification/PlantCamera";
 
 // Ignore specific warnings
 LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
-// Import Components
-import IdentificationContainer from "../../components/PGdashboard/Identification/IdentificationContainer";
-import ImageCapture from "../../components/PGdashboard/Identification/ImageCapture";
-import ResultDisplay from "../../components/PGdashboard/Identification/ResultDisplay";
+const API_URL = "http://192.168.239.1:3000/api/plantmodel";
 
 const Identification = () => {
     const [image, setImage] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [cameraPermission, setCameraPermission] = useState(null);
     const [identificationResult, setIdentificationResult] = useState(null);
-
+    const [usePlantCamera, setUsePlantCamera] = useState(false);
+    const [model, setModel] = useState('mbn'); // Default model set to 'mbn'
+    const [identificationResults, setIdentificationResults] = useState([]);
+    const [selectedIndex, setSelectedIndex] = useState(0);
     const requestCameraPermission = async () => {
-        const { status: cameraStatus } =
-            await Camera.requestCameraPermissionsAsync();
-        const { status: mediaLibraryStatus } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        console.log("Camera Permission:", cameraStatus);
-        console.log("Media Library Permission:", mediaLibraryStatus);
+        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+        const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (cameraStatus !== "granted" || mediaLibraryStatus !== "granted") {
             Alert.alert(
@@ -33,14 +32,11 @@ const Identification = () => {
             );
             return false;
         }
-
-        setCameraPermission(true);
         return true;
     };
 
     const requestMediaLibraryPermission = async () => {
-        const { status } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
             Alert.alert(
                 "Permission Denied",
@@ -52,38 +48,14 @@ const Identification = () => {
     };
 
     const takePicture = async () => {
-        console.log("Take Picture button pressed");
         const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            console.log("Camera permission not granted");
-            return;
-        }
-
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
-        });
-
-        console.log("Camera result:", result);
-
-        if (!result.canceled) {
-            setImage(result.uri || result.assets?.[0]?.uri);
-            setIdentificationResult(null);
-            console.log("Image URI:", result.uri || result.assets?.[0]?.uri);
-        } else {
-            console.log("Camera action canceled");
-        }
+        if (!hasPermission) return;
+        setUsePlantCamera(true);
     };
 
     const uploadImage = async () => {
-        console.log("Upload Image button pressed");
         const hasPermission = await requestMediaLibraryPermission();
-        if (!hasPermission) {
-            console.log("Media library permission not granted");
-            return;
-        }
+        if (!hasPermission) return;
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -92,75 +64,123 @@ const Identification = () => {
             quality: 1,
         });
 
-        console.log("Image picker result:", result);
-
         if (!result.canceled) {
-            setImage(result.uri || result.assets?.[0]?.uri);
+            setImage(result.assets[0].uri);
             setIdentificationResult(null);
-            console.log("Image URI:", result.uri || result.assets?.[0]?.uri);
-        } else {
-            console.log("Image picker action canceled");
+        }
+    };
+
+    const convertImageToBase64 = async (uri) => {
+        try {
+            return await FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+        } catch (error) {
+            console.error("Error converting image to base64:", error);
+            throw error;
         }
     };
 
     const identifyOrchid = async () => {
         if (!image) {
             Alert.alert("No Image", "Please take or upload an image first.");
-            console.log("No image selected");
             return;
         }
 
-        console.log("Identifying orchid for image:", image);
         setLoading(true);
 
         try {
-            // This is a mock identification - in a real app, this would call an API
-            // Simulate API call delay
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            const base64Image = await convertImageToBase64(image);
 
-            // Mock result - would be replaced by actual API response
-            const mockResult = {
-                name: "Phalaenopsis Orchid",
-                scientificName: "Phalaenopsis sp.",
-                confidence: 0.92,
-                description:
-                    "Also known as the Moth Orchid, this is one of the most popular orchids.",
-                careInstructions:
-                    "Keep in bright, indirect light. Water when the growing medium is dry.",
-            };
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    model: model // Using the model state
+                }),
+            });
 
-            setIdentificationResult(mockResult);
-            console.log("Identification result:", mockResult);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.predictions?.length > 0) {
+                const topResults = data.predictions.slice(0, 3).map((result) => ({
+                    name: result.info?.common_name || result.label,
+                    scientificName: result.label,
+                    confidence: result.probability,
+                    description: result.info?.description || "No description available",
+                    local_name: result.info?.local_name,
+                    habitat: result.info?.habitat,
+                }));
+                setIdentificationResults(topResults);
+                setSelectedIndex(0);
+            } else {
+                Alert.alert("No Results", "Could not identify the plant.");
+            }
+
         } catch (error) {
             console.error("Error identifying orchid:", error);
-            Alert.alert(
-                "Error",
-                "Failed to identify the orchid. Please try again."
-            );
+            Alert.alert("Error", "Failed to identify the orchid. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
-    const resetIdentification = () => {
-        setImage(null);
+        const resetIdentification = () => {
+            setImage(null);
+            setIdentificationResults([]);
+            setSelectedIndex(0);
+        };
+
+
+    const onPlantCameraPhotoTaken = (photoUri) => {
+        setImage(photoUri);
+        setUsePlantCamera(false);
         setIdentificationResult(null);
     };
 
+    const switchModel = () => {
+        setModel(prev => {
+            if (prev === 'mbn') return 'rn';
+            if (prev === 'rn') return 'vit';
+            return 'mbn';
+        });
+    };
+
     return (
-        <IdentificationContainer>
-            <ImageCapture
-                image={image}
-                takePicture={takePicture}
-                uploadImage={uploadImage}
-                identifyOrchid={identifyOrchid}
-                resetIdentification={resetIdentification}
-                loading={loading}
-            />
-            <ResultDisplay
-                loading={loading}
-                identificationResult={identificationResult}
-            />
+        <IdentificationContainer fullscreen={usePlantCamera}>
+            {!usePlantCamera ? (
+                <>
+                    <ImageCapture
+                        image={image}
+                        takePicture={takePicture}
+                        uploadImage={uploadImage}
+                        identifyOrchid={identifyOrchid}
+                        resetIdentification={resetIdentification}
+                        loading={loading}
+                        model={model}
+                        switchModel={switchModel}
+                    />
+                <ResultDisplay
+                    loading={loading}
+                    identificationResults={identificationResults}
+                    selectedIndex={selectedIndex}
+                    setSelectedIndex={setSelectedIndex}
+                />
+
+                </>
+            ) : (
+                <CameraComponent
+                    onPhotoTaken={onPlantCameraPhotoTaken}
+                    onCancel={() => setUsePlantCamera(false)}
+                />
+            )}
         </IdentificationContainer>
     );
 };

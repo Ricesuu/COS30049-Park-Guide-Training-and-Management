@@ -1,10 +1,6 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { LogBox } from "react-native";
 import { formatDate } from "../../../utils/formatHelpers";
-
-// Ignore specific warnings
-LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
 const CertContainer = ({ certifications }) => {
     return (

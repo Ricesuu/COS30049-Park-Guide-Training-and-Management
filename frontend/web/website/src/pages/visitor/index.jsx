@@ -215,6 +215,9 @@ const VisitorLandingPage = () => {
        * Site footer with links and copyright information
        ******************************************************************/}
       <Footer />
+      <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
+      <ChatbotWidget  />
+      </div>
     </motion.div>
   );
 };

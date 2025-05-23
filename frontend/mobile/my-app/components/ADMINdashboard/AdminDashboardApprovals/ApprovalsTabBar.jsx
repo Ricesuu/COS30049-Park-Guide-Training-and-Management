@@ -1,6 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import {
+    MaterialCommunityIcons,
+    MaterialIcons,
+    FontAwesome5,
+} from "@expo/vector-icons";
 
 const white = "#FFFFFF";
 const lightGray = "#D9D9D9";
@@ -12,7 +16,7 @@ const CustomTabBar = ({ navigationState, jumpTo }) => {
                 const isFocused = navigationState.index === index;
 
                 const onPress = () => {
-                    jumpTo(route.key); // Use jumpTo to navigate between tabs
+                    jumpTo(route.key);
                 };
 
                 return (
@@ -31,6 +35,12 @@ const CustomTabBar = ({ navigationState, jumpTo }) => {
                                         ? "account-alert"
                                         : "account-alert-outline"
                                 }
+                                size={24}
+                                color={isFocused ? white : lightGray}
+                            />
+                        ) : route.key === "certification" ? (
+                            <FontAwesome5
+                                name="certificate"
                                 size={24}
                                 color={isFocused ? white : lightGray}
                             />

@@ -52,12 +52,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             <Link to="/admin/iot-hub">
               <p className="block text-white hover:text-green-300 p-3">IoT Hub</p>
             </Link>
-            <Link to="/admin/info-manager">
-              <p className="block text-white hover:text-green-300 p-3">Info Manager</p>
-            </Link>
             <Link to="/admin/assign-course">
               <p className="block text-white hover:text-green-300 p-3">Assign Courses</p>
             </Link>
+            <Link to="/admin/info-manager">
+              <p className="block text-white hover:text-green-300 p-3">Info Manager</p>
+            </Link>            
             <Link to="/admin/course-manager">
               <p className="block text-white hover:text-green-300 p-3">Course Manager</p>
             </Link>

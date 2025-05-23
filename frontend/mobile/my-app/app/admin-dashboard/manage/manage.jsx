@@ -276,79 +276,39 @@ const Manage = () => {
             setError("Failed to update guide status. Please try again later.");
         }
     };
-
     const handleDelete = async (id) => {
         try {
             console.log(`Deleting guide with ID ${id}`);
+            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+                method: "DELETE",
+                headers: {},
+            });
 
-            Alert.alert(
-                "Confirm Delete",
-                "Are you sure you want to delete this guide?",
-                [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: async () => {
-                            try {
-                                const response = await fetch(
-                                    `${API_URL}/api/park-guides/${id}`,
-                                    {
-                                        method: "DELETE",
-                                        headers: {},
-                                    }
-                                );
+            const responseText = await response.text();
+            console.log("Raw response:", responseText);
 
-                                const responseText = await response.text();
-                                console.log("Raw response:", responseText);
+            if (!response.ok) {
+                throw new Error(
+                    `Delete failed with status ${response.status}: ${responseText}`
+                );
+            }
 
-                                if (!response.ok) {
-                                    throw new Error(
-                                        `Delete failed with status ${response.status}: ${responseText}`
-                                    );
-                                }
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.warn("Could not parse response as JSON:", e);
+            }
 
-                                let result;
-                                try {
-                                    result = JSON.parse(responseText);
-                                } catch (e) {
-                                    console.warn(
-                                        "Could not parse response as JSON:",
-                                        e
-                                    );
-                                }
+            // Update local state
+            setGuides((prev) => prev.filter((guide) => guide.id !== id));
 
-                                // Update local state
-                                setGuides((prev) =>
-                                    prev.filter((guide) => guide.id !== id)
-                                );
+            filterGuides();
 
-                                filterGuides();
-
-                                Alert.alert(
-                                    "Success",
-                                    "Guide has been successfully deleted"
-                                );
-                            } catch (error) {
-                                console.error(
-                                    "Delete operation failed:",
-                                    error
-                                );
-                                Alert.alert(
-                                    "Error",
-                                    "Failed to delete guide. Please try again."
-                                );
-                            }
-                        },
-                    },
-                ]
-            );
-        } catch (err) {
-            console.error("Error in handleDelete:", err);
-            Alert.alert(
-                "Error",
-                "An unexpected error occurred. Please try again."
-            );
+            Alert.alert("Success", "Guide has been successfully deleted");
+        } catch (error) {
+            console.error("Delete operation failed:", error);
+            Alert.alert("Error", "Failed to delete guide. Please try again.");
         }
     };
 
@@ -365,48 +325,49 @@ const Manage = () => {
                 }}
             >
                 Manage Park Guides
-            </Text>
+            </Text>{" "}
+            {/* Filters Row */}
+            <View style={{ flexDirection: "row", padding: 10 }}>
+                {/* Park Filter */}
+                <View style={{ flex: 1, marginRight: 5 }}>
+                    <Picker
+                        selectedValue={selectedPark}
+                        onValueChange={(itemValue) => {
+                            setSelectedPark(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                        <Picker.Item label="All Parks" value="all" />
+                        {parks.map((park) => (
+                            <Picker.Item
+                                key={park.park_id}
+                                label={park.park_name}
+                                value={park.park_name}
+                            />
+                        ))}
+                    </Picker>
+                </View>
 
-            {/* Park Filter */}
-            <View style={{ padding: 10 }}>
-                <Picker
-                    selectedValue={selectedPark}
-                    onValueChange={(itemValue) => {
-                        setSelectedPark(itemValue);
-                        filterGuides();
-                    }}
-                >
-                    <Picker.Item label="All Parks" value="all" />
-                    {parks.map((park) => (
+                {/* Status Filter */}
+                <View style={{ flex: 1, marginLeft: 5 }}>
+                    <Picker
+                        selectedValue={selectedStatus}
+                        onValueChange={(itemValue) => {
+                            setSelectedStatus(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                        <Picker.Item label="All Statuses" value="all" />
+                        <Picker.Item label="Active" value="Active" />
+                        <Picker.Item label="Training" value="Training" />
+                        <Picker.Item label="Suspended" value="Suspended" />
                         <Picker.Item
-                            key={park.park_id}
-                            label={park.park_name}
-                            value={park.park_name}
+                            label="Ready for Certification"
+                            value="Ready for Certification"
                         />
-                    ))}
-                </Picker>
+                    </Picker>
+                </View>
             </View>
-
-            {/* Status Filter */}
-            <View style={{ padding: 10 }}>
-                <Picker
-                    selectedValue={selectedStatus}
-                    onValueChange={(itemValue) => {
-                        setSelectedStatus(itemValue);
-                        filterGuides();
-                    }}
-                >
-                    <Picker.Item label="All Statuses" value="all" />
-                    <Picker.Item label="Active" value="Active" />
-                    <Picker.Item label="Training" value="Training" />
-                    <Picker.Item label="Suspended" value="Suspended" />
-                    <Picker.Item
-                        label="Ready for Certification"
-                        value="Ready for Certification"
-                    />
-                </Picker>
-            </View>
-
             {/* Search Bar */}
             <View style={{ padding: 10 }}>
                 <TextInput
@@ -424,7 +385,6 @@ const Manage = () => {
                     }}
                 />
             </View>
-
             {/* Loading state */}
             {loading ? (
                 <View

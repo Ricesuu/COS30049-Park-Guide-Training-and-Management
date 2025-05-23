@@ -24,37 +24,85 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      guide_id,
-      language_rating,
-      knowledge_rating,
-      organization_rating,
-      engagement_rating,
-      safety_rating,
-      comment,
-      visitor_name,
+      firstName,
+      lastName,
+      telephone,
+      email,
+      ticketNo,
+      park,
+      visitDate,
+      guideId,
+      languageRating,
+      knowledgeRating,
+      organizationRating,
+      engagementRating,
+      safetyRating,
+      feedback
     } = body;
 
+    console.log('Received feedback submission:', body);
+
+    // Validate required fields
+    const requiredFields = {
+      firstName,
+      lastName,
+      email,
+      ticketNo,
+      park,
+      visitDate,
+      guideId,
+      languageRating,
+      knowledgeRating,
+      organizationRating,
+      engagementRating,
+      safetyRating
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([field]) => field);
+
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields', fields: missingFields },
+        { status: 400 }
+      );
+    }
+
+    // Connect to database
     connection = await getConnection();
     const [result] = await connection.execute(
-      `INSERT INTO VisitorFeedback (
-                guide_id, 
-                language_rating, 
-                knowledge_rating, 
-                organization_rating, 
-                engagement_rating, 
-                safety_rating, 
-                comment,
-                visitor_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO visitorfeedback (
+                first_name,
+                last_name,
+                telephone,
+                email,
+                ticket_no,
+                park,
+                visit_date,
+                guide_id,
+                language_rating,
+                knowledge_rating,
+                organization_rating,
+                engagement_rating,
+                safety_rating,
+                comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        guide_id,
-        language_rating || 0,
-        knowledge_rating || 0,
-        organization_rating || 0,
-        engagement_rating || 0,
-        safety_rating || 0,
-        comment || "",
-        visitor_name || "Anonymous Visitor",
+        firstName,
+        lastName,
+        telephone,
+        email,
+        ticketNo,
+        park,
+        visitDate,
+        guideId,
+        languageRating,
+        knowledgeRating,
+        organizationRating,
+        engagementRating,
+        safetyRating,
+        feedback
       ]
     );
 

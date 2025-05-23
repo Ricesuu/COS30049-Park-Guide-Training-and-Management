@@ -127,11 +127,9 @@ const IoTMonitoring = forwardRef((props, ref) => {
 
         // Check if the most recent reading is from today
         const mostRecentDate = new Date(sortedSensors[0].recorded_at);
-        const isToday = mostRecentDate >= today;
-
-        // Return "No readings today" if the latest reading is not from today
+        const isToday = mostRecentDate >= today; // Return "N/A" if the latest reading is not from today
         if (!isToday) {
-            return "No readings today";
+            return "N/A";
         }
 
         return sortedSensors[0].recorded_value;
@@ -205,21 +203,16 @@ const IoTMonitoring = forwardRef((props, ref) => {
                     <View style={styles.card}>
                         <Text
                             style={
-                                getLatestSensorValue("temperature") ===
-                                "No readings today"
+                                getLatestSensorValue("temperature") === "N/A"
                                     ? styles.smallValue
                                     : styles.value
                             }
                         >
-                            {getLatestSensorValue("temperature") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("temperature")}${
-                                      getLatestSensorValue("temperature") !==
-                                      "N/A"
-                                          ? "°C"
-                                          : ""
-                                  }`}
+                            {`${getLatestSensorValue("temperature")}${
+                                getLatestSensorValue("temperature") !== "N/A"
+                                    ? "°C"
+                                    : ""
+                            }`}
                         </Text>
                         <Text style={styles.label}>Temperature</Text>
                     </View>
@@ -227,20 +220,16 @@ const IoTMonitoring = forwardRef((props, ref) => {
                     <View style={styles.card}>
                         <Text
                             style={
-                                getLatestSensorValue("humidity") ===
-                                "No readings today"
+                                getLatestSensorValue("humidity") === "N/A"
                                     ? styles.smallValue
                                     : styles.value
                             }
                         >
-                            {getLatestSensorValue("humidity") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("humidity")}${
-                                      getLatestSensorValue("humidity") !== "N/A"
-                                          ? ""
-                                          : ""
-                                  }`}
+                            {`${getLatestSensorValue("humidity")}${
+                                getLatestSensorValue("humidity") !== "N/A"
+                                    ? "%"
+                                    : ""
+                            }`}
                         </Text>
                         <Text style={styles.label}>Humidity</Text>
                     </View>
@@ -250,21 +239,16 @@ const IoTMonitoring = forwardRef((props, ref) => {
                     <View style={styles.card}>
                         <Text
                             style={
-                                getLatestSensorValue("soil moisture") ===
-                                "No readings today"
+                                getLatestSensorValue("soil moisture") === "N/A"
                                     ? styles.smallValue
                                     : styles.value
                             }
                         >
-                            {getLatestSensorValue("soil moisture") ===
-                            "No readings today"
-                                ? "No readings today"
-                                : `${getLatestSensorValue("soil moisture")}${
-                                      getLatestSensorValue("soil moisture") !==
-                                      "N/A"
-                                          ? ""
-                                          : ""
-                                  }`}
+                            {`${getLatestSensorValue("soil moisture")}${
+                                getLatestSensorValue("soil moisture") !== "N/A"
+                                    ? "%"
+                                    : ""
+                            }`}
                         </Text>
                         <Text style={styles.label}>Soil Moisture</Text>
                     </View>
@@ -278,7 +262,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                 </View>
 
                 {/* Park selection moved below IoT cards */}
-                {selectedParkName && (
+                {selectedParkName ? (
                     <View style={styles.parkInfoContainer}>
                         <Text style={styles.parkInfoText}>
                             Monitoring:{" "}
@@ -286,7 +270,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                 {selectedParkName}
                             </Text>
                         </Text>
-                        {parks.length > 1 && (
+                        {parks.length > 1 ? (
                             <TouchableOpacity
                                 style={styles.changeParkButton}
                                 onPress={() => {
@@ -309,11 +293,11 @@ const IoTMonitoring = forwardRef((props, ref) => {
                                     Change Park
                                 </Text>
                             </TouchableOpacity>
-                        )}
+                        ) : null}
                     </View>
-                )}
+                ) : null}
 
-                {activeAlerts.length > 0 && (
+                {activeAlerts.length > 0 ? (
                     <View style={styles.alertsContainer}>
                         <Text style={styles.alertsTitle}>
                             Active Alerts ({activeAlerts.length})
@@ -329,7 +313,7 @@ const IoTMonitoring = forwardRef((props, ref) => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : null}
             </View>
         </ScrollView>
     );
@@ -376,6 +360,8 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "bold",
         textAlign: "center",
+        color: "#666",
+        opacity: 0.8,
     },
     label: {
         fontSize: 16,

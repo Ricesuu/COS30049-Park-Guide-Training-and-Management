@@ -245,38 +245,31 @@ const IoTMonitoringPage = () => {
     // Navigate to threshold settings page
     const navigateToThresholdSettings = () => {
         navigation.navigate("ThresholdSettings");
-    };
-
-    // Helper function to get the latest value of a specific sensor type
+    }; // Helper function to get the latest value of a specific sensor type
     const getLatestSensorValue = (sensorType) => {
         if (!iotData || iotData.length === 0) return "N/A";
 
         // Get today's date at midnight for comparison
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const now = new Date();
 
-        // Find values for the given sensor type
-        const matchingSensors = iotData.filter(
-            (sensor) => sensor.sensor_type === sensorType
-        );
+        // Find values for the given sensor type from today only
+        const todaysSensors = iotData.filter((sensor) => {
+            const sensorDate = new Date(sensor.recorded_at);
+            const isToday = sensorDate >= today;
+            const isCorrectType = sensor.sensor_type === sensorType;
+            return isCorrectType && isToday;
+        });
 
-        if (matchingSensors.length === 0) return "N/A";
+        if (todaysSensors.length === 0) return "No readings today";
 
         // Sort by recorded_at in descending order to get the most recent first
-        const sortedSensors = matchingSensors.sort(
+        const sortedSensors = todaysSensors.sort(
             (a, b) => new Date(b.recorded_at) - new Date(a.recorded_at)
         );
-
-        // Check if the most recent reading is from today
-        const mostRecentDate = new Date(sortedSensors[0].recorded_at);
-        const isToday = mostRecentDate >= today;
-
-        // Return "No readings today" if the latest reading is not from today
-        if (!isToday) {
-            return "No readings today";
-        }
-
-        return sortedSensors[0].recorded_value;
+        const latestReading = sortedSensors[0];
+        return `${latestReading.recorded_value}`;
     };
 
     // Get the count of motion detections for the current day
@@ -435,86 +428,62 @@ const IoTMonitoringPage = () => {
                             Current Sensor Readings
                         </Text>
 
+                        {/* 2x2 Grid for Monitoring Cards */}
                         <View
                             style={{
                                 flexDirection: "row",
-                                justifyContent: "space-between",
                                 flexWrap: "wrap",
+                                justifyContent: "space-between",
+                                marginBottom: 10,
                             }}
                         >
-                            <MonitoringCard
-                                type="Temperature"
-                                value={
-                                    getLatestSensorValue("temperature") ===
-                                    "No readings today"
-                                        ? "No readings today"
-                                        : `${getLatestSensorValue(
-                                              "temperature"
-                                          )}${
-                                              getLatestSensorValue(
-                                                  "temperature"
-                                              ) !== "N/A"
-                                                  ? ""
-                                                  : ""
-                                          }`
-                                }
-                                threshold={getThresholdForSensor("temperature")}
-                                onPress={() => handlePress("temperature")}
-                                style={{ width: "48%" }}
-                            />
-                            <MonitoringCard
-                                type="Humidity"
-                                value={
-                                    getLatestSensorValue("humidity") ===
-                                    "No readings today"
-                                        ? "No readings today"
-                                        : `${getLatestSensorValue("humidity")}${
-                                              getLatestSensorValue(
-                                                  "humidity"
-                                              ) !== "N/A"
-                                                  ? ""
-                                                  : ""
-                                          }`
-                                }
-                                threshold={getThresholdForSensor("humidity")}
-                                onPress={() => handlePress("humidity")}
-                                style={{ width: "48%" }}
-                            />
-                            <MonitoringCard
-                                type="Soil Moisture"
-                                value={
-                                    getLatestSensorValue("soil moisture") ===
-                                    "No readings today"
-                                        ? "No readings today"
-                                        : `${getLatestSensorValue(
-                                              "soil moisture"
-                                          )}${
-                                              getLatestSensorValue(
-                                                  "soil moisture"
-                                              ) !== "N/A"
-                                                  ? ""
-                                                  : ""
-                                          }`
-                                }
-                                threshold={getThresholdForSensor(
-                                    "soil moisture"
-                                )}
-                                onPress={() => handlePress("soil moisture")}
-                                style={{ width: "48%" }}
-                            />
-                            <MonitoringCard
-                                type="Motion Detection"
-                                value={`${getMotionDetectionCount()} motion(s) today`}
-                                threshold={getThresholdForSensor("motion")}
-                                onPress={() => handlePress("motion")}
-                                style={{ width: "48%" }}
-                            />
+                            <View style={{ width: "48%", marginBottom: 15 }}>
+                                <MonitoringCard
+                                    type="Temperature"
+                                    value={getLatestSensorValue("temperature")}
+                                    threshold={getThresholdForSensor(
+                                        "temperature"
+                                    )}
+                                    onPress={() => handlePress("temperature")}
+                                />
+                            </View>
+                            <View style={{ width: "48%", marginBottom: 15 }}>
+                                <MonitoringCard
+                                    type="Humidity"
+                                    value={getLatestSensorValue("humidity")}
+                                    threshold={getThresholdForSensor(
+                                        "humidity"
+                                    )}
+                                    onPress={() => handlePress("humidity")}
+                                />
+                            </View>
+                            <View style={{ width: "48%", marginBottom: 15 }}>
+                                <MonitoringCard
+                                    type="Soil Moisture"
+                                    value={getLatestSensorValue(
+                                        "soil moisture"
+                                    )}
+                                    threshold={getThresholdForSensor(
+                                        "soil moisture"
+                                    )}
+                                    onPress={() => handlePress("soil moisture")}
+                                />
+                            </View>
+                            <View style={{ width: "48%", marginBottom: 15 }}>
+                                <MonitoringCard
+                                    type="Motion Detection"
+                                    value={`${getMotionDetectionCount()} motion(s) today`}
+                                    threshold={getThresholdForSensor("motion")}
+                                    onPress={() => handlePress("motion")}
+                                />
+                            </View>
                         </View>
 
                         <Text className="text-2xl font-bold text-gray-800 mt-6 mb-4">
                             Active Alerts{" "}
-                            {activeAlerts.length > 0 &&
-                                `(${activeAlerts.length})`}
+                            {activeAlerts.length > 0
+                                ? `(${activeAlerts.length})`
+                                : null}
                         </Text>
 
                         {activeAlerts.length === 0 ? (
@@ -570,11 +539,11 @@ const IoTMonitoringPage = () => {
                         </TouchableOpacity>
 
                         {/* Conditionally render the testing tool and pass the refresh callback */}
-                        {showTestingTool && (
+                        {showTestingTool ? (
                             <AlertTestingTool
                                 onSubmitSuccess={handleTestDataSubmitted}
                             />
-                        )}
+                        ) : null}
                     </>
                 )}
             </ScrollView>
