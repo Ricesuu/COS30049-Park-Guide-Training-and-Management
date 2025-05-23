@@ -103,21 +103,22 @@ const ParkguideQuiz = () => {
         throw new Error('User not authenticated');
       }
 
-      const token = await user.getIdToken();      // Submit answers and get results
+      const token = await user.getIdToken();
+
+      // Send only moduleId and answers
       const submitResponse = await fetch(`/api/quiz-completions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },      body: JSON.stringify({
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           moduleId: parseInt(moduleId),
-          quizId: quizData.id,
-          attemptId: attemptId,
           answers: selectedAnswers.map((answer, index) => ({
             questionId: questions[index].question_id,
-            selectedOptionId: answer
-          }))
-        })
+            selectedOptionId: answer,
+          })),
+        }),
       });
 
       if (!submitResponse.ok) {
@@ -173,17 +174,24 @@ const ParkguideQuiz = () => {
           <h2 className="module-title">{quizData?.name} - Certification Quiz</h2>
           <div className="question-counter">Question {currentQuestion + 1} of {questions.length}</div>
           <p className="module-description">
-            {questions[currentQuestion]?.text}
+            {questions[currentQuestion]?.question_text}
           </p>
-          <div className="quiz-options">              {questions[currentQuestion]?.options.map((option, index) => (
+          <div className="quiz-options">
+            {questions[currentQuestion]?.options.map((option, index) => {
+              console.log("Current Question Object:", questions[currentQuestion]);
+              console.log("Option:", option); // 🐞 Log each option for debugging
+              return (
                 <button
                   key={index}
-                  className={`quiz-option-button ${selectedAnswers[currentQuestion] === option.options_id ? 'selected' : ''}`}
-                  onClick={() => handleAnswer(option.options_id)}
+                  className={`quiz-option-button ${
+                    selectedAnswers[currentQuestion] === option.option_id ? 'selected' : ''
+                  }`}
+                  onClick={() => handleAnswer(option.option_id)}
                 >
-                  {option.text}
+                  {option.option_text || `Option ${index + 1}`} {/* fallback if text is missing */}
                 </button>
-              ))}
+              );
+            })}
           </div>
           <div className="quiz-navigation">
             <button
