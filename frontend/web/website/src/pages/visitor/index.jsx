@@ -8,7 +8,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaBook, FaCertificate, FaLeaf, FaArrowRight } from "react-icons/fa";
+import {
+  FaBook,
+  FaCertificate,
+  FaLeaf,
+  FaArrowRight,
+  FaMap,
+} from "react-icons/fa";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import TestimonialsCarousel from "../../components/visitor/TestimonialsCarousel";
@@ -64,13 +70,17 @@ const VisitorLandingPage = () => {
       {/******************************************************************
        * HERO SECTION
        * Video background with welcome message and CTA button
-       ******************************************************************/}      <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
+       ******************************************************************/}{" "}
+      <section className="pt-24 min-h-screen relative flex items-center overflow-hidden">
         {/* YouTube Video Background with Error Handling */}
         <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
           <div className="relative w-full h-full">
             {/* Static Background Image Fallback */}
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/park-bg.jpg')" }}></div>
-            
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: "url('/images/park-bg.jpg')" }}
+            ></div>
+
             {/* YouTube Iframe with Error Handling */}
             <div className="absolute inset-0">
               <iframe
@@ -81,7 +91,7 @@ const VisitorLandingPage = () => {
                 title="Background Video"
                 onError={(e) => {
                   // Hide iframe on error
-                  e.target.style.display = 'none';
+                  e.target.style.display = "none";
                 }}
               ></iframe>
             </div>
@@ -131,24 +141,45 @@ const VisitorLandingPage = () => {
             <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">
               Everything you need to become an expert park guide
             </p>
-          </div>
-
+          </div>{" "}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {" "}
             <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
               <div className="flex justify-center mb-6">
-                <FaBook className="text-5xl text-emerald-600" />
+                <FaLeaf className="text-5xl text-emerald-600" />
               </div>
               <h3 className="text-xl font-semibold mb-4 text-center">
-                Training Modules
+                Plant Information
               </h3>
               <p className="text-gray-600 text-center mb-5">
-                Comprehensive learning materials to enhance your knowledge about
-                the park and its ecosystem.
+                Access detailed information about the flora and fauna within the
+                park.
               </p>{" "}
               <div className="text-center">
                 <a
-                  onClick={() => navigate("/visitor/training")}
+                  onClick={() => navigate("/visitor/info")}
+                  className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
+                >
+                  Learn More
+                  <FaArrowRight className="h-4 w-4 ml-1" />
+                </a>
+              </div>
+            </div>{" "}
+            <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              {" "}
+              <div className="flex justify-center mb-6">
+                <FaMap className="text-5xl text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-center">
+                Interactive Map/AR
+              </h3>
+              <p className="text-gray-600 text-center mb-5">
+                Explore the park with our interactive map and augmented reality
+                features to enhance your guide experience.
+              </p>{" "}
+              <div className="text-center">
+                <a
+                  onClick={() => navigate("/visitor/map")}
                   className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
                 >
                   Learn More
@@ -169,28 +200,7 @@ const VisitorLandingPage = () => {
               </p>{" "}
               <div className="text-center">
                 <a
-                  onClick={() => navigate("/visitor/certification")}
-                  className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
-                >
-                  Learn More
-                  <FaArrowRight className="h-4 w-4 ml-1" />
-                </a>
-              </div>
-            </div>{" "}
-            <div className="bg-white p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="flex justify-center mb-6">
-                <FaLeaf className="text-5xl text-emerald-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">
-                Plant Information
-              </h3>
-              <p className="text-gray-600 text-center mb-5">
-                Access detailed information about the flora and fauna within the
-                park.
-              </p>{" "}
-              <div className="text-center">
-                <a
-                  onClick={() => navigate("/visitor/plant-info")}
+                  onClick={() => navigate("/register")}
                   className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center cursor-pointer transition-colors"
                 >
                   Learn More
@@ -225,7 +235,7 @@ const VisitorLandingPage = () => {
        ******************************************************************/}
       <Footer />
       <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
-      <ChatbotWidget  />
+        <ChatbotWidget />
       </div>
     </motion.div>
   );
