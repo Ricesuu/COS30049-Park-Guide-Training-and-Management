@@ -420,8 +420,8 @@ const ParkguideTraining = () => {
                               Completed
                             </div>
                           )}
-                          {(module.module_status === 'in progress' || module.status === 'in progress') && (
-                            <div className="training-module-badge in-progress" style={{ 
+                          {(module.paymentStatus === 'pending') && (
+                            <div className="training-module-badge pending" style={{ 
                               position: 'absolute', 
                               top: '10px', 
                               right: '10px',
@@ -432,7 +432,22 @@ const ParkguideTraining = () => {
                               fontSize: '12px',
                               fontWeight: 'bold'
                             }}>
-                              In Progress
+                              Pending Approval
+                            </div>
+                          )}
+                          {(module.paymentStatus === 'rejected') && (
+                            <div className="training-module-badge rejected" style={{ 
+                              position: 'absolute', 
+                              top: '10px', 
+                              right: '10px',
+                              backgroundColor: '#f44336',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 'bold'
+                            }}>
+                              Payment Rejected
                             </div>
                           )}
                         </div>
@@ -465,20 +480,26 @@ const ParkguideTraining = () => {
                           <button 
                             className="training-module-button"
                             onClick={(e) => startTraining(module.id || module.module_id, e)}
+                            disabled={module.paymentStatus === 'pending' || module.paymentStatus === 'rejected'}
                             style={{
                               padding: '8px 16px',
-                              backgroundColor: (module.module_status === 'completed' || module.status === 'completed') ? '#2196F3' : 
-                                              (module.module_status === 'in progress' || module.status === 'in progress') ? '#FF9800' : '#4CAF50',
+                              backgroundColor: module.paymentStatus === 'pending' ? '#FF9800' :
+                                             module.paymentStatus === 'rejected' ? '#f44336' :
+                                             (module.module_status === 'completed' || module.status === 'completed') ? '#2196F3' : 
+                                             (module.module_status === 'in progress' || module.status === 'in progress') ? '#FF9800' : '#4CAF50',
                               color: 'white',
                               border: 'none',
                               borderRadius: '4px',
                               width: '100%',
-                              cursor: 'pointer',
+                              cursor: module.paymentStatus === 'pending' || module.paymentStatus === 'rejected' ? 'not-allowed' : 'pointer',
                               fontWeight: 'bold',
+                              opacity: module.paymentStatus === 'pending' || module.paymentStatus === 'rejected' ? '0.7' : '1',
                               transition: 'background-color 0.3s, transform 0.2s'
                             }}
                           >
-                            {(module.module_status === 'completed' || module.status === 'completed') ? 'Review Module' : 
+                            {module.paymentStatus === 'pending' ? 'Pending Approval' :
+                             module.paymentStatus === 'rejected' ? 'Payment Rejected' :
+                             (module.module_status === 'completed' || module.status === 'completed') ? 'Review Module' : 
                              (module.module_status === 'in progress' || module.status === 'in progress') ? 'Continue Module' : 'Start Module'}
                           </button>
                         </div>

@@ -45,7 +45,6 @@ export async function GET(request) {
                     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
                 }/module-videos/', tm.module_id, '.mp4') AS videoUrl,
                 mp.purchase_date,
-                mp.completion_percentage,
                 mp.status AS module_status,
                 pt.paymentStatus,
                 pt.payment_id,
@@ -86,7 +85,6 @@ export async function GET(request) {
                         "http://localhost:3001"
                     }/module-videos/', pt.module_id, '.mp4') AS videoUrl,
                     pt.transaction_date AS purchase_date,
-                    0 AS completion_percentage,
                     'pending' AS module_status,
                     pt.paymentStatus,
                     pt.payment_id
