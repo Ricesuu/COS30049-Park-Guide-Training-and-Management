@@ -630,6 +630,85 @@ DROP TABLE IF EXISTS `pendingmodulepayments`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `pendingmodulepayments`  AS SELECT `pt`.`payment_id` AS `payment_id`, `u`.`user_id` AS `user_id`, concat(`u`.`first_name`,' ',`u`.`last_name`) AS `user_name`, `u`.`email` AS `email`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `pt`.`amountPaid` AS `amountPaid`, `pt`.`paymentMethod` AS `paymentMethod`, `pt`.`transaction_date` AS `transaction_date` FROM ((`paymenttransactions` `pt` join `users` `u` on(`pt`.`user_id` = `u`.`user_id`)) join `trainingmodules` `tm` on(`pt`.`module_id` = `tm`.`module_id`)) WHERE `pt`.`paymentStatus` = 'pending' AND `pt`.`module_id` is not null ;
 
 -- --------------------------------------------------------
+-- Table: Plant result Table
+CREATE TABLE IF NOT EXISTS plants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    scientific_name VARCHAR(255) NOT NULL,
+    common_name VARCHAR(255),
+    local_name VARCHAR(255),
+    family VARCHAR(100),
+    genus VARCHAR(100),
+    species VARCHAR(100),
+    description TEXT,
+    habitat VARCHAR(255),
+    uses VARCHAR(255),
+    toxicity VARCHAR(100),
+    image_url VARCHAR(2083),
+    leaf_type VARCHAR(100),
+    flower_color VARCHAR(100),
+    fruit_type VARCHAR(100),
+    growth_form VARCHAR(100),
+    distribution VARCHAR(255),
+    conservation_status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Info of the plants
+INSERT INTO plants (
+    scientific_name, common_name, local_name, family, genus, species,
+    description, habitat, uses, toxicity, image_url,
+    leaf_type, flower_color, fruit_type, growth_form, distribution,
+    conservation_status
+)
+VALUES
+('Angraecum', 'Angraecum orchid', 'Orkid Angraecum', 'Orchidaceae', 'Angraecum', '', 'Epiphytic orchid with star-shaped flowers.', 'Tropical forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'White', 'None', 'Epiphyte', 'Madagascar, Africa', 'Least Concern'),
+
+('Arundina graminifolia', 'Bamboo orchid', 'Orkid Buluh', 'Orchidaceae', 'Arundina', 'graminifolia', 'Terrestrial orchid resembling bamboo.', 'Hillsides, grasslands', 'Ornamental', 'Non-toxic', '', 'Deciduous', 'Pink', 'Capsule', 'Terrestrial', 'Southeast Asia', 'Least Concern'),
+
+('Brassavola', 'Brassavola orchid', 'Orkid Brassavola', 'Orchidaceae', 'Brassavola', '', 'Fragrant night-blooming orchids.', 'Lowland tropical forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'White', 'Capsule', 'Epiphyte', 'Central and South America', 'Least Concern'),
+
+('Brassia', 'Spider orchid', 'Orkid Labah-labah', 'Orchidaceae', 'Brassia', '', 'Long-petaled orchid resembling spiders.', 'Humid forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Yellow-brown', 'Capsule', 'Epiphyte', 'Central America', 'Least Concern'),
+
+('Cattleya', 'Cattleya orchid', 'Orkid Cattleya', 'Orchidaceae', 'Cattleya', '', 'Showy orchids used in corsages.', 'Cloud forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Purple', 'Capsule', 'Epiphyte', 'South America', 'Least Concern'),
+
+('Coelogyne asperata', 'Coelogyne orchid', 'Orkid Coelogyne', 'Orchidaceae', 'Coelogyne', 'asperata', 'Large fragrant orchid with pale flowers.', 'Rainforests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Cream', 'Capsule', 'Epiphyte', 'Southeast Asia', 'Least Concern'),
+
+('Cymbidium', 'Cymbidium orchid', 'Orkid Cymbidium', 'Orchidaceae', 'Cymbidium', '', 'Popular cool-growing orchids.', 'Montane forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Various', 'Capsule', 'Terrestrial', 'Asia, Australia', 'Least Concern'),
+
+('Dendrobium', 'Dendrobium orchid', 'Orkid Dendrobium', 'Orchidaceae', 'Dendrobium', '', 'Large genus with diverse forms.', 'Forests and grasslands', 'Medicinal, ornamental', 'Non-toxic', '', 'Deciduous', 'White, Purple', 'Capsule', 'Epiphyte', 'Asia-Pacific', 'Least Concern'),
+
+('Encyclia', 'Encyclia orchid', 'Orkid Encyclia', 'Orchidaceae', 'Encyclia', '', 'Pseudobulbous orchid with ruffled flowers.', 'Dry forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Brown, Green', 'Capsule', 'Epiphyte', 'Americas', 'Least Concern'),
+
+('Epidendrum', 'Epidendrum orchid', 'Orkid Epidendrum', 'Orchidaceae', 'Epidendrum', '', 'Reed-stemmed orchids with vibrant blooms.', 'Tropical forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Orange, Pink', 'Capsule', 'Epiphyte', 'Americas', 'Least Concern'),
+
+('Lycaste', 'Lycaste orchid', 'Orkid Lycaste', 'Orchidaceae', 'Lycaste', '', 'Orchid with triangular flowers.', 'Cloud forests', 'Ornamental', 'Non-toxic', '', 'Deciduous', 'Green, Yellow', 'Capsule', 'Epiphyte', 'Central and South America', 'Least Concern'),
+
+('Masdevallia', 'Masdevallia orchid', 'Orkid Masdevallia', 'Orchidaceae', 'Masdevallia', '', 'Orchid with short-lived but striking flowers.', 'Cloud forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Red, Orange', 'Capsule', 'Epiphyte', 'South America', 'Least Concern'),
+
+('Maxillaria', 'Maxillaria orchid', 'Orkid Maxillaria', 'Orchidaceae', 'Maxillaria', '', 'Diverse orchid genus with various flower shapes.', 'Tropical forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Yellow', 'Capsule', 'Epiphyte', 'Americas', 'Least Concern'),
+
+('Miltonia', 'Miltonia orchid', 'Orkid Miltonia', 'Orchidaceae', 'Miltonia', '', 'Pansy-like flowers, often fragrant.', 'Tropical forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'White, Purple', 'Capsule', 'Epiphyte', 'Brazil', 'Least Concern'),
+
+('Miltoniopsis', 'Miltoniopsis orchid', 'Orkid Miltoniopsis', 'Orchidaceae', 'Miltoniopsis', '', 'Cool-growing orchids with large flowers.', 'Cloud forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Pink, White', 'Capsule', 'Epiphyte', 'South America', 'Least Concern'),
+
+('Odontoglossum', 'Odontoglossum orchid', 'Orkid Odontoglossum', 'Orchidaceae', 'Odontoglossum', '', 'Cool-climate orchids with spotted flowers.', 'High altitude forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Various', 'Capsule', 'Epiphyte', 'Andes', 'Least Concern'),
+
+('Oncidium', 'Dancing Lady orchid', 'Orkid Menari', 'Orchidaceae', 'Oncidium', '', 'Distinctive dancing flowers.', 'Forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Yellow, Brown', 'Capsule', 'Epiphyte', 'Americas', 'Least Concern'),
+
+('Paphiopedilum', 'Lady\'s Slipper orchid', 'Orkid Selipar Wanita', 'Orchidaceae', 'Paphiopedilum', '', 'Pouch-like flowers, terrestrial.', 'Limestone forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Green, White', 'Capsule', 'Terrestrial', 'Asia', 'Vulnerable'),
+
+('Phalaenopsis', 'Moth orchid', 'Orkid Rama-rama', 'Orchidaceae', 'Phalaenopsis', '', 'Popular houseplant with long-lasting flowers.', 'Lowland forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'White, Pink', 'Capsule', 'Epiphyte', 'Asia, Australia', 'Least Concern'),
+
+('Paphiopedilum stonei', 'Stone\'s slipper orchid', 'Orkid Batu', 'Orchidaceae', 'Paphiopedilum', 'stonei', 'Rare species with long petals.', 'Rocky limestone areas', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'White, Brown', 'Capsule', 'Terrestrial', 'Borneo', 'Endangered'),
+
+('Spathoglottis plicata', 'Ground orchid', 'Orkid Tanah', 'Orchidaceae', 'Spathoglottis', 'plicata', 'Common terrestrial orchid with showy flowers.', 'Open grasslands', 'Ornamental', 'Non-toxic', '', 'Deciduous', 'Purple', 'Capsule', 'Terrestrial', 'Tropics', 'Least Concern'),
+
+('Vanda', 'Vanda orchid', 'Orkid Vanda', 'Orchidaceae', 'Vanda', '', 'Large, showy tropical orchids.', 'Lowland forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Blue, Purple', 'Capsule', 'Epiphyte', 'Asia, Australia', 'Least Concern'),
+
+('Vanilla', 'Vanilla orchid', 'Orkid Vanila', 'Orchidaceae', 'Vanilla', '', 'Source of natural vanilla flavor.', 'Tropical forests', 'Culinary, ornamental', 'Non-toxic', '', 'Evergreen', 'Greenish-white', 'Capsule', 'Vine', 'Tropics', 'Least Concern'),
+
+('Zygopetalum', 'Zygopetalum orchid', 'Orkid Zygopetalum', 'Orchidaceae', 'Zygopetalum', '', 'Fragrant, waxy flowers.', 'Cloud forests', 'Ornamental', 'Non-toxic', '', 'Evergreen', 'Green, Purple', 'Capsule', 'Epiphyte', 'South America', 'Least Concern');
 
 --
 -- Structure for view `usermoduleaccess`
