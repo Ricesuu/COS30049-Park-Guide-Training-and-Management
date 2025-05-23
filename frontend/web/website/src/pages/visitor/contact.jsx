@@ -7,7 +7,10 @@ import {
   FaInstagram,
   FaFacebook,
   FaLinkedin,
+  FaCheckCircle,
+  FaExclamationTriangle,
 } from "react-icons/fa";
+import { BiLoaderAlt } from "react-icons/bi";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import ChatbotWidget from "../../components/visitor/ChatbotWidget";
@@ -28,6 +31,65 @@ const ContactPage = () => {
     email: "",
     message: "",
   });
+
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notification, setNotification] = useState({
+    show: false,
+    type: "", // 'success' or 'error'
+    message: "",
+  });
+
+  // Function to show a notification
+  const showNotification = (type, message) => {
+    setNotification({
+      show: true,
+      type,
+      message,
+    });
+
+    // Auto-hide notification after 5 seconds
+    setTimeout(() => {
+      setNotification({
+        show: false,
+        type: "",
+        message: "",
+      });
+    }, 5000);
+  };
+
+  // Notification component
+  const Notification = () => {
+    if (!notification.show) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className={`fixed top-25 left-1/2 transform -translate-x-1/2 z-50 p-4 rounded-md shadow-lg flex items-center gap-3 max-w-md w-full mx-auto ${
+          notification.type === "success"
+            ? "bg-green-100 text-green-800 border-l-4 border-green-500"
+            : "bg-red-100 text-red-800 border-l-4 border-red-500"
+        }`}
+      >
+        {notification.type === "success" ? (
+          <FaCheckCircle className="text-green-500 text-xl" />
+        ) : (
+          <FaExclamationTriangle className="text-red-500 text-xl" />
+        )}
+        <span>{notification.message}</span>
+        <button
+          onClick={() =>
+            setNotification({ show: false, type: "", message: "" })
+          }
+          className="ml-4 text-gray-500 hover:text-gray-700"
+        >
+          ×
+        </button>
+      </motion.div>
+    );
+  };
 
   // Check if user is authenticated when the component mounts
   useEffect(() => {
@@ -56,7 +118,6 @@ const ContactPage = () => {
     // Refresh the page to reflect the changes
     window.location.reload();
   };
-
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -64,26 +125,126 @@ const ContactPage = () => {
       ...formData,
       [name]: value,
     });
+
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: "",
+      });
+    }
+  };
+
+  // Validate form data
+  const validateForm = () => {
+    const errors = {};
+
+    // First name validation
+    if (!formData.firstName.trim()) {
+      errors.firstName = "First name is required";
+    }
+
+    // Last name validation
+    if (!formData.lastName.trim()) {
+      errors.lastName = "Last name is required";
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Telephone validation (optional but validate format if provided)
+    if (
+      formData.telephone &&
+      !/^[0-9+\-\s()]{6,20}$/.test(formData.telephone)
+    ) {
+      errors.telephone = "Please enter a valid phone number";
+    }
+
+    // Message validation
+    if (!formData.message.trim()) {
+      errors.message = "Message is required";
+    } else if (formData.message.trim().length < 10) {
+      errors.message = "Message should be at least 10 characters";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real application, you would send the form data to a server here
-    console.log("Form submitted:", formData);
-    // Clear form after submission
-    setFormData({
-      firstName: "",
-      lastName: "",
-      address: "",
-      telephone: "",
-      email: "",
-      message: "",
-    });
-    // Show success message (in a real app, use a proper notification system)
-    alert("Your message has been sent successfully!");
-  };
 
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Send form data to the backend API
+      const response = await fetch(`http://localhost:3000/api/contact`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      // Check if the response is valid JSON
+      const contentType = response.headers.get("content-type");
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON response received:", text);
+        throw new Error(
+          "Server returned an unexpected response. Please try again later."
+        );
+      }
+
+      if (!response.ok) {
+        if (data.fields) {
+          // Handle validation errors from backend
+          const backendErrors = {};
+          data.fields.forEach((field) => {
+            backendErrors[field] = `${field} is required`;
+          });
+          setFormErrors(backendErrors);
+          throw new Error(data.error || "Please fill in all required fields");
+        } else {
+          throw new Error(data.error || "Failed to submit contact form");
+        }
+      }
+
+      // Clear form after successful submission
+      setFormData({
+        firstName: "",
+        lastName: "",
+        address: "",
+        telephone: "",
+        email: "",
+        message: "",
+      });
+
+      // Show success notification
+      showNotification(
+        "success",
+        "Your message has been sent successfully! We'll get back to you soon."
+      );
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      showNotification("error", error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -92,6 +253,9 @@ const ContactPage = () => {
       transition={{ duration: 0.5 }}
       className="flex flex-col min-h-screen bg-white text-gray-800"
     >
+      {/* Display the notification component */}
+      <Notification />
+
       {/******************************************************************
        * NAVIGATION BAR SECTION
        ******************************************************************/}
@@ -203,12 +367,13 @@ const ContactPage = () => {
                 </h2>
                 <form onSubmit={handleSubmit}>
                   <div className="flex flex-col md:flex-row gap-4 mb-4">
+                    {" "}
                     <div className="flex-1">
                       <label
                         htmlFor="firstName"
                         className="block text-gray-700 font-medium mb-2"
                       >
-                        First Name
+                        First Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -217,18 +382,28 @@ const ContactPage = () => {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        className={`w-full px-4 py-2 border ${
+                          formErrors.firstName
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-300"
+                        } rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                      hover:border-green-300 transition-all duration-300 ease-in-out
-                      bg-white hover:bg-green-50/30"
+                        hover:border-green-300 transition-all duration-300 ease-in-out
+                        bg-white hover:bg-green-50/30`}
+                        disabled={isSubmitting}
                       />
+                      {formErrors.firstName && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {formErrors.firstName}
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1">
                       <label
                         htmlFor="lastName"
                         className="block text-gray-700 font-medium mb-2"
                       >
-                        Last Name
+                        Last Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -237,14 +412,23 @@ const ContactPage = () => {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        className={`w-full px-4 py-2 border ${
+                          formErrors.lastName
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-300"
+                        } rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                      hover:border-green-300 transition-all duration-300 ease-in-out
-                      bg-white hover:bg-green-50/30"
+                        hover:border-green-300 transition-all duration-300 ease-in-out
+                        bg-white hover:bg-green-50/30`}
+                        disabled={isSubmitting}
                       />
+                      {formErrors.lastName && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {formErrors.lastName}
+                        </p>
+                      )}
                     </div>
-                  </div>
-
+                  </div>{" "}
                   <div className="mb-4">
                     <label
                       htmlFor="address"
@@ -258,14 +442,24 @@ const ContactPage = () => {
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      className={`w-full px-4 py-2 border ${
+                        formErrors.address
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
+                      } rounded-md 
                       focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                    hover:border-green-300 transition-all duration-300 ease-in-out
-                    bg-white hover:bg-green-50/30"
+                      hover:border-green-300 transition-all duration-300 ease-in-out
+                      bg-white hover:bg-green-50/30`}
+                      disabled={isSubmitting}
                     />
+                    {formErrors.address && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.address}
+                      </p>
+                    )}
                   </div>
-
                   <div className="flex flex-col md:flex-row gap-4 mb-4">
+                    {" "}
                     <div className="flex-1">
                       <label
                         htmlFor="telephone"
@@ -279,18 +473,28 @@ const ContactPage = () => {
                         name="telephone"
                         value={formData.telephone}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        className={`w-full px-4 py-2 border ${
+                          formErrors.telephone
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-300"
+                        } rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                      hover:border-green-300 transition-all duration-300 ease-in-out
-                      bg-white hover:bg-green-50/30"
+                        hover:border-green-300 transition-all duration-300 ease-in-out
+                        bg-white hover:bg-green-50/30`}
+                        disabled={isSubmitting}
                       />
+                      {formErrors.telephone && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {formErrors.telephone}
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1">
                       <label
                         htmlFor="email"
                         className="block text-gray-700 font-medium mb-2"
                       >
-                        Email
+                        Email <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="email"
@@ -299,20 +503,29 @@ const ContactPage = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                        className={`w-full px-4 py-2 border ${
+                          formErrors.email
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-300"
+                        } rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                      hover:border-green-300 transition-all duration-300 ease-in-out
-                      bg-white hover:bg-green-50/30"
+                        hover:border-green-300 transition-all duration-300 ease-in-out
+                        bg-white hover:bg-green-50/30`}
+                        disabled={isSubmitting}
                       />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {formErrors.email}
+                        </p>
+                      )}
                     </div>
-                  </div>
-
+                  </div>{" "}
                   <div className="mb-6">
                     <label
                       htmlFor="message"
                       className="block text-gray-700 font-medium mb-2"
                     >
-                      Message
+                      Message <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="message"
@@ -321,21 +534,41 @@ const ContactPage = () => {
                       onChange={handleInputChange}
                       rows="5"
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md 
+                      className={`w-full px-4 py-2 border ${
+                        formErrors.message
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-300"
+                      } rounded-md 
                       focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent 
-                    hover:border-green-300 transition-all duration-300 ease-in-out 
-                    bg-white hover:bg-green-50/30 resize-vertical"
+                      hover:border-green-300 transition-all duration-300 ease-in-out 
+                      bg-white hover:bg-green-50/30 resize-vertical`}
+                      disabled={isSubmitting}
                     ></textarea>
+                    {formErrors.message && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors.message}
+                      </p>
+                    )}
                   </div>
-
                   <button
                     type="submit"
                     className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-md font-medium
                     transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95
-                    hover:shadow-lg active:shadow-md"
+                    hover:shadow-lg active:shadow-md flex items-center justify-center"
+                    disabled={isSubmitting}
                   >
-                    Send Message
+                    {isSubmitting ? (
+                      <>
+                        <BiLoaderAlt className="animate-spin mr-2" /> Sending...
+                      </>
+                    ) : (
+                      "Send Message"
+                    )}
                   </button>
+                  {/* Form submission note */}
+                  <p className="text-gray-500 text-sm mt-4">
+                    <span className="text-red-500">*</span> Required fields
+                  </p>
                 </form>
               </div>
             </div>
@@ -347,7 +580,7 @@ const ContactPage = () => {
        ******************************************************************/}
       <Footer />
       <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
-      <ChatbotWidget  />
+        <ChatbotWidget />
       </div>
     </motion.div>
   );
