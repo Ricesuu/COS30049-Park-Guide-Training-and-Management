@@ -9,6 +9,10 @@ const ModulePurchase = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    console.log('ModulePurchase mounted with moduleId:', moduleId);
+  }, [moduleId]);
   const [module, setModule] = useState(null);
   const [purchaseStatus, setPurchaseStatus] = useState(null);
   const [formData, setFormData] = useState({
@@ -282,35 +286,77 @@ const ModulePurchase = () => {
         });
         
         // Show receipt for free modules
-        setShowReceipt(true);
-      } else {
-        // For paid modules, simulate payment processing
-        setTimeout(() => {
-          try {
-            console.log('Payment processed successfully');
-            
-            // Generate transaction details for the receipt with appropriate details
-            const transactionId = `TRX-${Date.now()}`;
-            const transactionDate = new Date().toLocaleString();
-            
-            setTransactionDetails({
-              transactionId: transactionId,
-              date: transactionDate,
-              module: module.module_name || module.name,
-              price: parseFloat(module.price).toFixed(2),
-              cardLast4: formData.cardNumber.slice(-4),
-              status: 'Completed'
-            });
-            
-            setPurchaseStatus('active');
-            
-            // Show receipt instead of navigating away immediately
-            setShowReceipt(true);
-          } catch (paymentError) {
-            console.error('Payment processing error:', paymentError);
-            throw new Error(`Payment processing failed: ${paymentError.message}`);
+        setShowReceipt(true);      } else {
+        try {
+          // Create form data for submission
+          const paymentFormData = new FormData();
+          paymentFormData.append('moduleId', moduleId);
+          paymentFormData.append('paymentPurpose', `Module Purchase: ${module.module_name || module.name}`);
+          paymentFormData.append('paymentMethod', 'credit_card');
+          paymentFormData.append('amountPaid', parseFloat(module.price));
+
+          // Create a simple receipt image with essential details
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 500;
+          canvas.height = 300;
+
+          // Process card number to get last 4 digits
+          const cardNumberDigits = formData.cardNumber.replace(/\s/g, '');
+          const lastFourDigits = cardNumberDigits.slice(-4);
+
+          // Draw receipt details
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'black';
+          ctx.font = '16px Arial';
+          ctx.fillText(`Payment Receipt for ${module.module_name || module.name}`, 20, 40);
+          ctx.fillText(`Date: ${new Date().toLocaleString()}`, 20, 80);
+          ctx.fillText(`Amount: $${parseFloat(module.price).toFixed(2)}`, 20, 120);
+          ctx.fillText(`Card ending in: ${lastFourDigits}`, 20, 160);
+          ctx.fillText(`Billing: ${formData.addressLine1}`, 20, 200);
+          ctx.fillText(`${formData.city}, ${formData.state} ${formData.zipCode}`, 20, 240);
+
+          // Convert canvas to blob and upload
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+          const receiptFile = new File([blob], 'receipt.jpg', { type: 'image/jpeg' });
+          paymentFormData.append('receipt_image', receiptFile);
+
+          // Send payment with receipt to backend
+          const paymentResponse = await fetch('/api/payment-transactions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: paymentFormData
+          });
+
+          if (!paymentResponse.ok) {
+            const errorData = await paymentResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Payment failed: ${paymentResponse.status} ${paymentResponse.statusText}`);
           }
-        }, 2000);
+
+          const paymentResult = await paymentResponse.json();
+          console.log('Payment processed successfully:', paymentResult);
+            
+          // Generate transaction details for the receipt
+          setTransactionDetails({
+            transactionId: paymentResult.paymentId || `TRX-${Date.now()}`,
+            date: new Date().toLocaleString(),
+            module: module.module_name || module.name,
+            price: parseFloat(module.price).toFixed(2),
+            cardLast4: lastFourDigits,
+            status: 'Pending Approval'
+          });
+            
+          setPurchaseStatus('payment_pending');
+            
+          // Show receipt
+          setShowReceipt(true);
+        } catch (paymentError) {
+          console.error('Payment processing error:', paymentError);
+          throw new Error(paymentError.message || 'Payment processing failed');
+        }
       }
     } catch (err) {
       console.error('Error processing payment:', err);
@@ -319,11 +365,10 @@ const ModulePurchase = () => {
       setIsProcessing(false);
     }
   };
-
   const handleReceiptClose = () => {
     setShowReceipt(false);
-    // Navigate back to training page
-    navigate('/park_guide/training');
+    // Navigate back to training page with refresh parameter to trigger data reload
+    navigate('/park_guide/training?refresh=' + Date.now());
   };
 
   const handleConfirmationCancel = () => {

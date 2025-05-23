@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import "../../ParkGuideStyle.css";
 import { auth } from '../../Firebase';
 
@@ -13,11 +13,20 @@ import phalaenopsisImg from '/images/phalaenopsis.jpg';
 
 const ParkguideTraining = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [purchasedModules, setPurchasedModules] = useState([]);
   const [availableModules, setAvailableModules] = useState([]);
   const [showModuleStore, setShowModuleStore] = useState(false);
+
+  // Add new state for compulsory modules tracking
+  const [hasAllCompulsoryModules, setHasAllCompulsoryModules] = useState(false);
+  const [missingCompulsoryModules, setMissingCompulsoryModules] = useState([]);
+
+  // Get query params to check if we need to refresh data
+  const queryParams = new URLSearchParams(location.search);
+  const hasRefresh = queryParams.has('refresh');
 
   // Map of module images for both purchased and available modules
   const moduleImages = {
@@ -34,13 +43,9 @@ const ParkguideTraining = () => {
     const fetchModuleData = async () => {
       try {
         setLoading(true);
-        // Get current auth token
         const user = auth.currentUser;
         if (!user) {
-          console.error('User not authenticated');
-          setError('User not authenticated');
-          setLoading(false);
-          return;
+          throw new Error('User not authenticated');
         }
         
         const token = await user.getIdToken();
@@ -52,10 +57,11 @@ const ParkguideTraining = () => {
           }
         });
         
+        let purchasedModulesData = [];
         if (modulesResponse.ok) {
-          const modulesData = await modulesResponse.json();
-          console.log('User modules received:', modulesData);
-          setPurchasedModules(modulesData || []);
+          purchasedModulesData = await modulesResponse.json();
+          console.log('User modules received:', purchasedModulesData);
+          setPurchasedModules(purchasedModulesData || []);
         } else {
           console.error('Failed to fetch user modules');
         }
@@ -70,10 +76,23 @@ const ParkguideTraining = () => {
         if (availableModulesResponse.ok) {
           const availableModulesData = await availableModulesResponse.json();
           console.log('Available modules received:', availableModulesData);
+
+          // Find all compulsory modules
+          const compulsoryModules = availableModulesData.filter(module => module.is_compulsory);
+          const purchasedCompulsoryModules = compulsoryModules.filter(
+            module => purchasedModulesData.some(purchased => purchased.id === module.id)
+          );
+
+          // Set compulsory module states
+          const missingModules = compulsoryModules.filter(
+            module => !purchasedModulesData.some(purchased => purchased.id === module.id)
+          );
+          setMissingCompulsoryModules(missingModules);
+          setHasAllCompulsoryModules(purchasedCompulsoryModules.length === compulsoryModules.length);
           
           // Filter out modules that are already purchased
           const notPurchasedModules = availableModulesData.filter(
-            module => module.purchase_status === 'not_purchased'
+            module => !purchasedModulesData.some(purchased => purchased.id === module.id)
           );
           
           setAvailableModules(notPurchasedModules || []);
@@ -81,6 +100,7 @@ const ParkguideTraining = () => {
           console.error('Failed to fetch available modules');
         }
         
+        setError(null);
       } catch (err) {
         console.error('Error fetching module data:', err);
         setError(err.message);
@@ -89,8 +109,11 @@ const ParkguideTraining = () => {
       }
     };
     
-    fetchModuleData();
-  }, []);
+    // Fetch data when component mounts or when returning from purchase page
+    if (hasRefresh || !purchasedModules.length) {
+      fetchModuleData();
+    }
+  }, [location.search, hasRefresh, purchasedModules.length]); // Add all dependencies
 
   const startTraining = (moduleId, event) => {
     // Prevent the event from bubbling up to parent elements
@@ -99,12 +122,24 @@ const ParkguideTraining = () => {
     }
     navigate(`/park_guide/module?moduleId=${moduleId}`);
   };
-  const purchaseModule = (moduleId, event) => {
+
+  const purchaseModule = (moduleId, event, isCompulsory) => {
     if (event) {
       event.stopPropagation();
     }
     
-    // Navigate to module purchase page with moduleId parameter
+    // Prevent purchase of non-compulsory modules if compulsory ones are not completed
+    if (!isCompulsory && !hasAllCompulsoryModules) {
+      const missingModuleNames = missingCompulsoryModules.map(m => m.name || m.module_name).join(', ');
+      alert(`You must complete the following compulsory modules first:\n${missingModuleNames}`);
+      return;
+    }
+    
+    if (!moduleId) {
+      console.error('No module ID provided to purchaseModule function');
+      return;
+    }
+    
     navigate(`/modules/purchase/${moduleId}`);
   };
 
@@ -170,7 +205,7 @@ const ParkguideTraining = () => {
           </div>
         ) : (
           <>
-            {showModuleStore ? (              // Available modules for purchase
+            {showModuleStore ? (
               <div className="training-module-store">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <h2>Available Training Modules</h2>
@@ -188,6 +223,25 @@ const ParkguideTraining = () => {
                     Return to My Modules
                   </button>
                 </div>
+
+                {!hasAllCompulsoryModules && (
+                  <div style={{
+                    backgroundColor: '#fff3cd',
+                    border: '1px solid #ffeeba',
+                    color: '#856404',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    borderRadius: '4px'
+                  }}>
+                    <h3 style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Complete Required Modules First</h3>
+                    <p>Please complete these compulsory modules before purchasing additional modules:</p>
+                    <ul style={{ marginTop: '0.5rem', marginLeft: '1.5rem', listStyle: 'disc' }}>
+                      {missingCompulsoryModules.map((module, index) => (
+                        <li key={index}>{module.name || module.module_name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 
                 {availableModules.length === 0 ? (
                   <p className="no-modules-message" style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
@@ -206,12 +260,13 @@ const ParkguideTraining = () => {
                           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                           transition: 'transform 0.3s, box-shadow 0.3s',
                           cursor: 'pointer',
+                          opacity: !module.is_compulsory && !hasAllCompulsoryModules ? 0.7 : 1,
                           backgroundColor: '#fff'
                         }}
-                        onClick={() => purchaseModule(module.module_id || module.id, null)}
+                        onClick={() => purchaseModule(module.module_id || module.id, null, module.is_compulsory)}
                         onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                          e.currentTarget.style.transform = (module.is_compulsory || hasAllCompulsoryModules) ? 'translateY(-5px)' : 'none';
+                          e.currentTarget.style.boxShadow = (module.is_compulsory || hasAllCompulsoryModules) ? '0 5px 15px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)';
                         }}
                         onMouseOut={(e) => {
                           e.currentTarget.style.transform = 'translateY(0)';
@@ -219,9 +274,25 @@ const ParkguideTraining = () => {
                         }}
                       >
                         <div className="store-module-image" style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
+                          {module.is_compulsory && (
+                            <div style={{ 
+                              position: 'absolute', 
+                              top: '10px', 
+                              left: '10px', 
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              zIndex: 1
+                            }}>
+                              Required
+                            </div>
+                          )}
                           <div style={{ 
                             position: 'absolute', 
-                            top: '10px', 
+                            top: module.is_compulsory ? '40px' : '10px', 
                             left: '10px', 
                             backgroundColor: (module.price === 0 || module.price === '0' || module.price === '0.00') ? '#4CAF50' : '#2196F3',
                             color: 'white',
@@ -254,18 +325,23 @@ const ParkguideTraining = () => {
                               )}
                             </span>
                             <button 
-                              onClick={(e) => purchaseModule(module.module_id || module.id, e)}
+                              onClick={(e) => purchaseModule(module.module_id || module.id, e, module.is_compulsory)}
+                              disabled={!module.is_compulsory && !hasAllCompulsoryModules}
                               style={{
                                 padding: '8px 16px',
-                                backgroundColor: (module.price === 0 || module.price === '0' || module.price === '0.00') ? '#4CAF50' : '#2196F3',
+                                backgroundColor: !module.is_compulsory && !hasAllCompulsoryModules ? '#ccc' 
+                                  : (module.price === 0 || module.price === '0' || module.price === '0.00') ? '#4CAF50' 
+                                  : '#2196F3',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '4px',
-                                cursor: 'pointer',
+                                cursor: !module.is_compulsory && !hasAllCompulsoryModules ? 'not-allowed' : 'pointer',
                                 fontWeight: 'bold'
                               }}
                             >
-                              {(module.price === 0 || module.price === '0' || module.price === '0.00') ? 'Enroll Now' : 'Purchase'}
+                              {!module.is_compulsory && !hasAllCompulsoryModules ? 'Complete Required Modules First' 
+                                : (module.price === 0 || module.price === '0' || module.price === '0.00') ? 'Enroll Now' 
+                                : 'Purchase'}
                             </button>
                           </div>
                         </div>

@@ -108,76 +108,99 @@ const ParkguideModule = () => {
   const canTakeQuiz = module.completion_percentage >= 100;
   const showQuizButton = canTakeQuiz && !quizCompleted;
   const showCertificateButton = canTakeQuiz && quizCompleted;
-
   return (
-    <div className="module-main-content">
-      <div className="module-details">
-        {loading ? (
-          <div className="loading-container">
-            <p>Loading module content...</p>
-          </div>
-        ) : error ? (
-          <div className="error-container">
-            <p className="error-message">{error}</p>
-            <button className="back-button" onClick={() => navigate('/park_guide/training')}>
-              Back to Training Modules
-            </button>
-          </div>
-        ) : (
-          <>
-            <h2 className="module-title">{module.module_name}</h2>
-            
-            {module.image_url && (
-              <img src={module.image_url} alt={module.module_name} className="module-image-large" />
-            )}
-            
-            <p className="module-description">{module.description}</p>
-            
-            {module.video_url && (
-              <div className="module-video">
-                <iframe
-                  src={module.video_url}
-                  title={module.module_name}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  frameBorder="0"
-                />
-              </div>
-            )}
-            
-            <div className="module-content">
-              {module.course_content && (
-                <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
-              )}
+    <>
+      <div className="module-main-content">
+        <div className="module-details">
+          {loading ? (
+            <div className="loading-container" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: '2rem' 
+            }}>
+              <div className="loading-spinner" style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid #f3f3f3',
+                borderTop: '4px solid #4CAF50',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '1rem'
+              }}></div>
+              <p>Loading module content...</p>
             </div>
-            
-            <div className="module-navigation">
+          ) : error ? (
+            <div className="error-container">
+              <p className="error-message">{error}</p>
               <button className="back-button" onClick={() => navigate('/park_guide/training')}>
                 Back to Training Modules
               </button>
-              
-              {showQuizButton && (
-                <button 
-                  className="quiz-button" 
-                  onClick={startQuiz}
-                >
-                  Take Certification Quiz
-                </button>
-              )}
-              
-              {showCertificateButton && (
-                <button 
-                  className="certificate-button" 
-                  onClick={() => navigate('/park_guide/certifications')}
-                >
-                  View Certificate
-                </button>
-              )}
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <h2 className="module-title">{module.module_name}</h2>
+              
+              {module.image_url && (
+                <img src={module.image_url} alt={module.module_name} className="module-image-large" />
+              )}
+              
+              <p className="module-description">{module.description}</p>
+              
+              {module.video_url && (
+                <div className="module-video">
+                  <iframe
+                    src={module.video_url}
+                    title={module.module_name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    frameBorder="0"
+                  />
+                </div>
+              )}
+              
+              <div className="module-content">
+                {module.course_content && (
+                  <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
+                )}
+              </div>
+              
+              <div className="module-navigation">
+                <button className="back-button" onClick={() => navigate('/park_guide/training')}>
+                  Back to Training Modules
+                </button>
+                
+                {showQuizButton && (
+                  <button 
+                    className="quiz-button" 
+                    onClick={startQuiz}
+                  >
+                    Take Certification Quiz
+                  </button>
+                )}
+                
+                {showCertificateButton && (
+                  <button 
+                    className="certificate-button" 
+                    onClick={() => navigate('/park_guide/certifications')}
+                  >
+                    View Certificate
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </>
   );
 };
 

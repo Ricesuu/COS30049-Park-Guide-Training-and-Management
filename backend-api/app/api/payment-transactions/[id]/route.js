@@ -45,140 +45,93 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
     const { id } = params;
     let connection;
+
     try {
-        const body = await request.json();
-        // Extract fields from the request body with the correct names
-        const { user_id, amountPaid, paymentStatus, paymentMethod } = body;
+        const { paymentStatus } = await request.json();
+        
+        if (!paymentStatus) {
+            return NextResponse.json(
+                { error: "Payment status is required" },
+                { status: 400 }
+            );
+        }
 
         connection = await getConnection();
 
-        // Build SQL dynamically based on the provided fields
-        let sqlParts = [];
-        let values = [];
+        // Get the current payment status before updating
+        const [currentPayment] = await connection.execute(
+            "SELECT paymentStatus, module_id, user_id FROM PaymentTransactions WHERE payment_id = ?",
+            [id]
+        );
 
-        if (user_id !== undefined) {
-            sqlParts.push("user_id = ?");
-            values.push(user_id);
-        }
-
-        if (amountPaid !== undefined) {
-            sqlParts.push("amountPaid = ?");
-            values.push(amountPaid);
-        }
-
-        if (paymentStatus !== undefined) {
-            sqlParts.push("paymentStatus = ?");
-            values.push(paymentStatus);
-        }
-
-        if (paymentMethod !== undefined) {
-            sqlParts.push("paymentMethod = ?");
-            values.push(paymentMethod);
-        }
-
-        // Support for old field names for backwards compatibility
-        if (body.amount !== undefined && amountPaid === undefined) {
-            sqlParts.push("amountPaid = ?");
-            values.push(body.amount);
-        }
-
-        if (body.payment_status !== undefined && paymentStatus === undefined) {
-            sqlParts.push("paymentStatus = ?");
-            values.push(body.payment_status);
-        }
-
-        if (body.payment_method !== undefined && paymentMethod === undefined) {
-            sqlParts.push("paymentMethod = ?");
-            values.push(body.payment_method);
-        }
-
-        if (sqlParts.length === 0) {
-            return NextResponse.json(
-                { error: "No fields to update provided" },
-                { status: 400 }
-            );
-        }        const sqlQuery = `UPDATE PaymentTransactions SET ${sqlParts.join(
-            ", "
-        )} WHERE payment_id = ?`;
-        values.push(id);
-
-        const [result] = await connection.execute(sqlQuery, values);
-
-        if (result.affectedRows === 0) {
+        if (currentPayment.length === 0) {
             return NextResponse.json(
                 { error: "Payment transaction not found" },
                 { status: 404 }
             );
-        }        // When payment status changes to approved, update the ModulePurchases record too
-        if (paymentStatus === 'approved') {
-            try {
-                // First check if this payment has a related module purchase
-                const [modulePayment] = await connection.execute(
-                    `SELECT module_id, user_id FROM PaymentTransactions WHERE payment_id = ?`,
-                    [id]
+        }
+
+        // Begin transaction
+        await connection.beginTransaction();
+
+        // Update payment status
+        await connection.execute(
+            "UPDATE PaymentTransactions SET paymentStatus = ? WHERE payment_id = ?",
+            [paymentStatus, id]
+        );
+
+        // If this payment is for a module purchase
+        if (currentPayment[0].module_id) {
+            const moduleId = currentPayment[0].module_id;
+            const userId = currentPayment[0].user_id;
+
+            if (paymentStatus === 'approved') {
+                // Check if there's a ModulePurchases record
+                const [existingPurchase] = await connection.execute(
+                    `SELECT purchase_id FROM ModulePurchases WHERE payment_id = ? AND module_id = ?`,
+                    [id, moduleId]
                 );
-                
-                if (modulePayment.length > 0 && modulePayment[0].module_id) {
-                    const moduleId = modulePayment[0].module_id;
-                    const userId = modulePayment[0].user_id;
-                    
-                    console.log(`Payment ID ${id} is for module ID ${moduleId}`);
-                    
-                    // Check if there's already a ModulePurchases record
-                    const [existingPurchase] = await connection.execute(
-                        `SELECT purchase_id FROM ModulePurchases WHERE payment_id = ? AND module_id = ?`,
+
+                if (existingPurchase.length === 0) {
+                    // Create new module purchase record if it doesn't exist
+                    await connection.execute(
+                        `INSERT INTO ModulePurchases (user_id, module_id, payment_id, status, is_active)
+                         VALUES (?, ?, ?, 'active', 1)`,
+                        [userId, moduleId, id]
+                    );
+                } else {
+                    // Update existing module purchase record
+                    await connection.execute(
+                        `UPDATE ModulePurchases SET status = 'active', is_active = 1 
+                         WHERE payment_id = ? AND module_id = ?`,
                         [id, moduleId]
                     );
-                    
-                    if (existingPurchase.length === 0) {
-                        // No ModulePurchases record exists, create one
-                        console.log(`Creating missing ModulePurchases record for moduleId: ${moduleId}, userId: ${userId}, paymentId: ${id}`);
-                        
-                        await connection.execute(
-                            `INSERT INTO ModulePurchases (user_id, module_id, payment_id, status)
-                             VALUES (?, ?, ?, 'pending')`,
-                            [userId, moduleId, id]
-                        );
-                        
-                        console.log(`ModulePurchases record created successfully`);
-                    }
-                    
-                    // Now update the module purchase status to active
-                    await connection.execute(
-                        `UPDATE ModulePurchases SET status = 'active' WHERE payment_id = ?`,
-                        [id]
-                    );
-                    
-                    console.log(`ModulePurchases record updated to 'active' status`);
                 }
-            } catch (moduleError) {
-                console.error(`Error updating ModulePurchases record:`, moduleError);
-                // Don't fail the transaction if updating ModulePurchases fails
-            }
-        } else if (paymentStatus === 'rejected') {
-            // For rejected payments, update ModulePurchases status accordingly
-            try {
+            } else if (paymentStatus === 'rejected') {
+                // Update any existing module purchase record to rejected status
                 await connection.execute(
-                    `UPDATE ModulePurchases SET status = 'rejected' WHERE payment_id = ?`,
-                    [id]
+                    `UPDATE ModulePurchases SET status = 'rejected', is_active = 0 
+                     WHERE payment_id = ? AND module_id = ?`,
+                    [id, moduleId]
                 );
-            } catch (moduleError) {
-                console.error(`Error updating ModulePurchases record for rejected payment:`, moduleError);
             }
         }
 
+        // Commit all changes
+        await connection.commit();
+
         return NextResponse.json({
             message: `Payment transaction with ID ${id} updated successfully`,
+            status: paymentStatus
         });
+
     } catch (error) {
-        console.error(
-            `Error updating payment transaction with ID ${id}:`,
-            error
-        );
+        if (connection) {
+            await connection.rollback();
+        }
+        console.error(`Error updating payment transaction with ID ${id}:`, error);
         return NextResponse.json(
-            {
-                error: `Failed to update payment transaction with ID ${id}: ${error.message}`,
-            },
+            { error: `Failed to update payment transaction: ${error.message}` },
             { status: 500 }
         );
     } finally {

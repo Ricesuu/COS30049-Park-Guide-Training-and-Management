@@ -40,13 +40,12 @@ import ParkguideIdentification from "./pages/park_guide/parkguideIdentification"
 import ParkguidePerformance from "./pages/park_guide/parkguidePerformance";
 import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
-import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
 
 // Import the landing page
 import LandingPage from "./pages/index";
 
-// Iport the module purchasing page
+// Import the module purchasing page
 import ModulePurchase from "./pages/modules/ModulePurchase";
 
 
@@ -103,9 +102,7 @@ function AppRoutes() {
         <Route path="info-manager" element={<InfoManager />} />
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
-      </Route>
-      {/* Park Guide Section */}
-      <Route path="/park_guide" element={<ParkGuideLayout />}>
+      </Route>      {/* Park Guide Section */}      <Route path="/park_guide" element={<ParkGuideLayout />}>
         <Route path="dashboard" element={<ParkguideDashboard />} />
         <Route path="training" element={<ParkguideTraining />} />
         <Route path="certifications" element={<ParkguideCert />} />
@@ -114,14 +111,13 @@ function AppRoutes() {
         <Route path="performance" element={<ParkguidePerformance />} />        
         <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />
-        <Route path="payment" element={<ParkguidePayment />} />
       </Route>
-
-      {/* Catch-all route redirects to the landing page */}
-      <Route path="*" element={<Navigate to="/" replace />} />
 
       {/* Module Purchase Section */}
       <Route path="/modules/purchase/:moduleId" element={<ModulePurchase />} />
+
+      {/* Catch-all route redirects to the landing page */}
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   );

@@ -132,7 +132,19 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error("User not authenticated");
 
-      const idToken = await currentUser.getIdToken();      const formData = new FormData();
+      const idToken = await currentUser.getIdToken();
+      
+      console.log("Creating form data with:", {
+        uid: currentUser.uid,
+        paymentPurpose: form.paymentPurpose,
+        paymentMethod: form.paymentMethod,
+        amountPaid: form.amountPaid,
+        moduleId: form.moduleId || null,
+        fileName: form.file.fileName || "receipt.jpg",
+        fileType: form.file.mimeType || "image/jpeg"
+      });
+      
+      const formData = new FormData();
       formData.append("uid", currentUser.uid);
       formData.append("paymentPurpose", form.paymentPurpose);
       formData.append("paymentMethod", form.paymentMethod);
@@ -144,21 +156,22 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
         formData.append("moduleId", moduleId);
         formData.append("paymentPurpose", `Module Purchase: ${form.moduleName || 'Training Module'}`);
         console.log(`Submitting module purchase for moduleId: ${moduleId}`);
-        
-        // Debug: log all form data
-        console.log("Form data for module purchase:", {
-          moduleId: moduleId,
-          moduleName: form.moduleName,
-          paymentPurpose: `Module Purchase: ${form.moduleName || 'Training Module'}`,
-          amountPaid: form.amountPaid
-        });
+      }
+
+      // Log FormData entries
+      for (let [key, value] of formData.entries()) {
+        console.log(`FormData entry - ${key}:`, value);
       }
       
-      formData.append("receipt", {
+      formData.append("receipt_image", {
         uri: form.file.uri,
         name: form.file.fileName || "receipt.jpg",
         type: form.file.mimeType || "image/jpeg",
-      });      const response = await fetch(
+      });
+
+      console.log("Sending request to:", `${apiClient.defaults.baseURL}/payment-transactions`);
+      
+      const response = await fetch(
         `${apiClient.defaults.baseURL}/payment-transactions`,
         {
           method: "POST",
@@ -169,10 +182,13 @@ export default function usePaymentHandler({ refreshTransactions } = {}) {
         }
       );
 
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+
       let data;
       try {
         data = await response.json();
-        console.log("Payment response:", data);
+        console.log("Payment response data:", data);
       } catch (err) {
         console.error("Failed to parse JSON:", err);
         Toast.show({
