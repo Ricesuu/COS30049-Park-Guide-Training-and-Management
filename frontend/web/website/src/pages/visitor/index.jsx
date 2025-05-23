@@ -12,6 +12,8 @@ import { FaBook, FaCertificate, FaLeaf, FaArrowRight } from "react-icons/fa";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import TestimonialsCarousel from "../../components/visitor/TestimonialsCarousel";
+import ChatbotWidget from "../../components/visitor/ChatbotWidget";
+
 
 const VisitorLandingPage = () => {
   const navigate = useNavigate();

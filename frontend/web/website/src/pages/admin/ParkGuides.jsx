@@ -9,9 +9,6 @@ export default function ParkGuides() {
 
     useEffect(() => {
         fetchGuides();
-    }, []);
-
-    useEffect(() => {
         fetchGuide();
     }, []);
 
@@ -28,34 +25,6 @@ export default function ParkGuides() {
             setLoading(false);
         }
     };
-
-     const handleCertify = async (guideId) => {
-        try {
-            const res = await fetch(`/api/park-guides/${guideId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ certification_status: "certified" }),
-            });
-
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || "Certification failed");
-
-            // Refresh state after update
-            setGuides(prev =>
-                prev.map(guide =>
-                    guide.guide_id === guideId
-                        ? { ...guide, certification_status: "certified" }
-                        : guide
-                )
-            );
-        } catch (err) {
-            console.error("Certify error:", err);
-            alert("Error: " + err.message);
-        }
-    };
-
 
     const fetchGuides = async () => {
         try {
@@ -74,6 +43,26 @@ export default function ParkGuides() {
         }
     };
 
+    const handleCertify = async (guideId) => {
+        try {
+            const res = await fetch(`/api/park-guides/${guideId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ certification_status: "certified" }),
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "Certification failed");
+
+            await fetchGuide(); // Refresh park guide data
+        } catch (err) {
+            console.error("Certify error:", err);
+            alert("Error: " + err.message);
+        }
+    };
+
     const handleApprove = async (uid) => {
         try {
             const res = await fetch(`/api/users/${uid}`, {
@@ -87,11 +76,8 @@ export default function ParkGuides() {
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || "Approval failed");
 
-            setGuides(prev =>
-                prev.map(guide =>
-                    guide.uid === uid ? { ...guide, status: "approved" } : guide
-                )
-            );
+            await fetchGuides(); // Refresh user data
+            await fetchGuide(); //Refresh park guide table
         } catch (err) {
             console.error("Error approving user:", err);
             setError(err.message);
@@ -107,7 +93,6 @@ export default function ParkGuides() {
         <div className="p-6 space-y-6 text-green-900">
             <h1 className="text-2xl font-bold">Park Guide Management</h1>
 
-            
             <div className="bg-green-100 rounded-xl p-4 shadow-md border border-green-300">
                 <h2 className="text-xl font-semibold mb-4">Registration Approvals</h2>
                 {pendingGuides.length === 0 ? (
