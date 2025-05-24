@@ -13,9 +13,8 @@ export async function POST(request) {
                 { error: "Unauthorized" },
                 { status: 401 }
             );
-        }
-          const userId = auth.user.id;
-        const { module_id, quiz_id, selectedAnswers, question_ids } = await request.json();
+        }          const userId = auth.user.id;
+        const { module_id, quiz_id, selectedAnswers, question_ids, answerTimes } = await request.json();
 
         if (!module_id || !quiz_id || !selectedAnswers || !question_ids) {
             return NextResponse.json(
@@ -51,6 +50,17 @@ export async function POST(request) {
         // Calculate pass percentage
         const passPercentage = score / totalquestions;
         const passed = passPercentage >= 0.75; // 75% passing requirement
+          // Get guide_id for the current user
+        const [guideRows] = await connection.execute(
+            "SELECT guide_id FROM parkguides WHERE user_id = ?",
+            [userId]
+        );
+        
+        if (!guideRows || guideRows.length === 0) {
+            throw new Error('No guide record found for this user');
+        }
+        
+        const guide_id = guideRows[0].guide_id;
         
         // Start a transaction
         await connection.beginTransaction();
@@ -58,35 +68,37 @@ export async function POST(request) {
         try {
             // Insert quiz attempt
             const [quizAttemptResult] = await connection.execute(
-                `INSERT INTO quizattempts (quiz_id, user_id, guide_id, module_id, score, passed, total_questions, start_time, end_time, attempt_number)
+                `INSERT INTO quizattempts (quiz_id, user_id, guide_id, module_id, score, passed, totalquestions, start_time, end_time, attempt_number)
                  VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 
                     (SELECT COALESCE(MAX(attempt_number), 0) + 1 
                      FROM quizattempts AS qa 
                      WHERE qa.user_id = ? AND qa.module_id = ?))`,
-                [quiz_id, userId, userId, module_id, score, passed ? 1 : 0, totalquestions, userId, module_id]
+                [quiz_id, userId, guide_id, module_id, score, passed ? 1 : 0, totalquestions, userId, module_id]
             );
             
             const attemptId = quizAttemptResult.insertId;
 
             // Insert quiz responses for each answer with proper tracking
-            for (let i = 0; i < question_ids.length; i++) {
-                const isCorrect = selectedAnswers[i] === correctAnswers.get(question_ids[i]);
+            for (let i = 0; i < question_ids.length; i++) {                const isCorrect = selectedAnswers[i] === correctAnswers.get(question_ids[i]);
+                const timeTaken = Array.isArray(answerTimes) ? (answerTimes[i] || 0) : 0;
                 await connection.execute(
                     `INSERT INTO quizresponses (
                         attempt_id, 
                         question_id, 
                         selected_option_id, 
                         is_correct, 
+                        time_taken,
                         answer_sequence,
-                        time_taken
-                    ) VALUES (?, ?, ?, ?, ?, ?)`,
+                        created_at,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                     [
                         attemptId,
                         question_ids[i],
                         selectedAnswers[i],
                         isCorrect ? 1 : 0,
-                        i + 1, // answer_sequence is 1-based
-                        answerTimes[i] // Using the answer times we collected
+                        timeTaken,
+                        i + 1  // answer_sequence is 1-based
                     ]
                 );
             }

@@ -144,14 +144,15 @@ const ParkguideQuiz = () => {
       // Calculate final answer time for the last question if not yet recorded
       if (!answerTimes[currentQuestion]) {
         answerTimes[currentQuestion] = Math.floor((Date.now() - questionStartTime) / 1000);
-      }
+      }      // Convert answerTimes object to array matching question order
+      const answerTimesArray = questions.map((_, index) => answerTimes[index] || 0);
 
       const requestData = {
         module_id: parseInt(moduleId),
         quiz_id: parseInt(quizData.quiz_id),
         selectedAnswers: selectedAnswers,
         question_ids: questions.map(q => q.question_id),
-        answerTimes: Object.values(answerTimes)
+        answerTimes: answerTimesArray
       };
 
       console.log('Submitting quiz data:', requestData); // For debugging
