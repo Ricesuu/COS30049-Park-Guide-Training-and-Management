@@ -37,7 +37,7 @@ const ParkguideCert = () => {
 
         // For each purchased module, fetch its quiz completion status
         const modulesWithStatus = await Promise.all(purchasedModules.map(async (module) => {
-          const quizResponse = await fetch(`/api/quiz-completions?moduleId=${module.id}`, {
+          const quizResponse = await fetch(`/api/quizattempts?moduleId=${module.id}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

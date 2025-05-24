@@ -64,20 +64,16 @@ export async function POST(request) {
         await connection.beginTransaction();
 
         try {
-            await connection.execute(
-                `INSERT INTO QuizCompletions 
-                 (user_id, module_id, score, total_questions, passed, completion_date)
-                 VALUES (?, ?, ?, ?, ?, NOW())`,
-                [userId, moduleId, score, totalQuestions, passed ? 1 : 0]
+            await connection.execute(                `INSERT INTO quizattempts
+                 (quiz_id, user_id, guide_id, module_id, score, passed, totalquestions, start_time, end_time, attempt_number)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 
+                    (SELECT COALESCE(MAX(attempt_number), 0) + 1 
+                     FROM quizattempts AS qa 
+                     WHERE qa.user_id = ? AND qa.module_id = ?))`,
+                [quizId, userId, guide_id, moduleId, score, passed ? 1 : 0, totalQuestions, userId, moduleId]
             );
 
             if (passed) {
-                await connection.execute(
-                    `UPDATE ModulePurchases 
-                     SET completion_percentage = 100 
-                     WHERE user_id = ? AND module_id = ?`,
-                    [userId, moduleId]
-                );
 
                 const [existingCerts] = await connection.execute(
                     `SELECT cert_id FROM Certifications 
@@ -117,10 +113,9 @@ export async function POST(request) {
             await connection.rollback();
             throw error;
         }
-    } catch (error) {
-        console.error("Error recording quiz completion:", error);
+    } catch (error) {        console.error("Error recording quiz attempt:", error);
         return NextResponse.json(
-            { error: "Failed to record quiz completion", details: error.message },
+            { error: "Failed to record quiz attempt", details: error.message },
             { status: 500 }
         );
     } finally {
@@ -140,37 +135,37 @@ export async function GET(request) {
         const url = new URL(request.url);
         const moduleId = url.searchParams.get("moduleId");
 
-        connection = await getConnection();
-
-        let query = `
+        connection = await getConnection();        let query = `
             SELECT 
-                qc.module_id,
-                qc.score,
-                qc.total_questions,
-                qc.passed,
-                qc.completion_date,
+                qa.attempt_id,
+                qa.quiz_id,
+                qa.module_id,
+                qa.score,
+                qa.totalquestions,
+                qa.passed,
+                qa.start_time,
+                qa.end_time,
+                qa.attempt_number,
                 tm.module_name
             FROM 
-                QuizCompletions qc
+                quizattempts qa
             JOIN 
-                TrainingModules tm ON qc.module_id = tm.module_id
+                TrainingModules tm ON qa.module_id = tm.module_id
             WHERE 
-                qc.user_id = ?`;
+                qa.user_id = ?`;
 
         const params = [userId];
 
-        if (moduleId) {
-            query += ` AND qc.module_id = ?`;
+        if (moduleId) {            query += ` AND qa.module_id = ?`;
             params.push(moduleId);
         }
 
-        query += ` ORDER BY qc.completion_date DESC`;
+        query += ` ORDER BY qa.end_time DESC, qa.attempt_number DESC`;
 
         const [rows] = await connection.execute(query, params);
         return NextResponse.json(rows);
-    } catch (error) {
-        console.error("Error fetching quiz completions:", error);
-        return NextResponse.json({ error: "Failed to fetch quiz completions" }, { status: 500 });
+    } catch (error) {        console.error("Error fetching quiz attempts:", error);
+        return NextResponse.json({ error: "Failed to fetch quiz attempts" }, { status: 500 });
     } finally {
         if (connection) connection.release();
     }

@@ -52,7 +52,7 @@ const ParkguideModule = () => {
         const moduleData = await response.json();
         
         // Check quiz completion status
-        const quizResponse = await fetch(`/api/quiz-completions?moduleId=${moduleId}`, {
+        const quizResponse = await fetch(`/api/quizattempts?moduleId=${moduleId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
