@@ -292,27 +292,27 @@ const ContactPage = () => {
               <div className="space-y-6">
                 <div className="space-y-3 pb-5 border-b border-gray-200">
                   <h3 className="text-xl font-semibold text-gray-800 relative after:content-[''] after:absolute after:left-0 after:bottom-[-0.3rem] after:w-8 after:h-0.5 after:bg-green-500">
-                    Office Address
+                    Corporate Office
                   </h3>
                   <address className="not-italic text-gray-600 leading-relaxed">
-                    123 Conservation Way
+                    Lot 218, KCLD, Jalan Tapang, Kota Sentosa,
                     <br />
-                    Nature Park, VIC 3000
+                    93250 Kuching, Sarawak,
                     <br />
-                    Australia
+                    Malaysia
                   </address>
                 </div>
 
                 <div className="space-y-3 pb-5 border-b border-gray-200">
                   <h3 className="text-xl font-semibold text-gray-800 relative after:content-[''] after:absolute after:left-0 after:bottom-[-0.3rem] after:w-8 after:h-0.5 after:bg-green-500">
-                    Headquarters
+                    Regional Office
                   </h3>
                   <address className="not-italic text-gray-600 leading-relaxed">
-                    456 Environmental Boulevard
+                    KM20, Semenggoh, Jalan Puncak Borneo,
                     <br />
-                    Green City, VIC 3001
+                    93250 Kuching, Sarawak,
                     <br />
-                    Australia
+                    Malaysia
                   </address>
                 </div>
 
@@ -322,11 +322,11 @@ const ContactPage = () => {
                   </h3>
                   <div className="space-y-2 text-gray-600">
                     <p className="flex items-center gap-3">
-                      <FaPhone className="text-green-600" /> +61 3 1234 5678
+                      <FaPhone className="text-green-600" /> (+6) 082-610088
                     </p>
                     <p className="flex items-center gap-3">
                       <FaEnvelope className="text-green-600" />{" "}
-                      contact@parkguidetraining.com
+                      info@sarawakforestry.com
                     </p>
                   </div>
                 </div>
@@ -337,20 +337,29 @@ const ContactPage = () => {
                   </h3>
                   <div className="flex gap-4 text-2xl text-gray-600">
                     <a
-                      href="#"
+                      href="https://www.instagram.com/sfcsarawak/?hl=en"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="hover:text-green-600 transition-colors"
+                      aria-label="Instagram"
                     >
                       <FaInstagram />
                     </a>
                     <a
-                      href="#"
+                      href="https://www.facebook.com/sfcsarawak/"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="hover:text-green-600 transition-colors"
+                      aria-label="Facebook"
                     >
                       <FaFacebook />
                     </a>
                     <a
-                      href="#"
+                      href="https://www.linkedin.com/company/sarawak-forestry-corporation-sdn.-bhd./"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="hover:text-green-600 transition-colors"
+                      aria-label="LinkedIn"
                     >
                       <FaLinkedin />
                     </a>

@@ -78,14 +78,14 @@ const AboutPage = () => {
                 ABOUT US
               </h3>{" "}
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight">
-                Connecting People with Nature through Education and Conservation
+                Sarawak Forestry Corporation (SFC)
               </h2>
               <p className="text-gray-200 leading-tight text-base md:text-lg">
-                Founded in 2020, our Park Guide Training and Management System
-                was created to address the growing need for professional
-                development in nature conservation. We're dedicated to training
-                the next generation of park guides who will educate visitors
-                about our natural world and inspire conservation efforts.{" "}
+                Sarawak Forestry Corporation (SFC) is a statutory body under the
+                Sarawak Government responsible for managing Totally Protected
+                Areas (TPAs) and conserving biodiversity. Governed by relevant
+                ordinances, SFC plays a key role in protecting wildlife and
+                promoting sustainable eco-tourism across Sarawak.
               </p>{" "}
               <button
                 onClick={() => navigate("/visitor/contact")}
@@ -117,8 +117,8 @@ const AboutPage = () => {
               Attractions Highlights
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto text-base md:text-lg">
-              Discover the unique features and experiences our park has to offer
-              visitors
+              Discover the unique features and experiences Sarawak Forestry
+              Corporation has to offer.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -128,38 +128,11 @@ const AboutPage = () => {
                 <FaTree className="text-4xl text-green-600" />
               </div>
               <h3 className="text-xl font-semibold mb-4 text-center">
-                Native Forests
+                National Parks & Nature Reserves
               </h3>
               <p className="text-gray-600 text-base">
-                Explore our extensive native forests with trees dating back
-                hundreds of years, creating a vital ecosystem for countless
-                species.
-              </p>
-            </div>{" "}
-            <div className="bg-gray-50 p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="flex justify-center mb-6">
-                <FaLeaf className="text-4xl text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">
-                Botanical Gardens
-              </h3>
-              <p className="text-gray-600 text-base">
-                Visit our world-class botanical gardens featuring over 2,000
-                species of plants from various climate zones and geographic
-                regions.
-              </p>
-            </div>{" "}
-            <div className="bg-gray-50 p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="flex justify-center mb-6">
-                <FaBinoculars className="text-4xl text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-center">
-                Wildlife Observation
-              </h3>
-              <p className="text-gray-600 text-base">
-                Our observation platforms offer unparalleled opportunities to
-                view native wildlife in their natural habitats without
-                disturbance.
+                Explore Sarawak’s breathtaking national parks and nature
+                reserves, home to diverse ecosystems and unique wildlife.
               </p>
             </div>{" "}
             <div className="bg-gray-50 p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
@@ -167,12 +140,36 @@ const AboutPage = () => {
                 <FaChalkboardTeacher className="text-4xl text-green-600" />
               </div>
               <h3 className="text-xl font-semibold mb-4 text-center">
-                Educational Programs
+                Licensed Park Guides
               </h3>
               <p className="text-gray-600 text-base">
-                Participate in our interactive educational programs designed for
-                all ages to learn about conservation and ecosystem management.
-              </p>{" "}
+                Benefit from the expertise of our licensed park guides, trained
+                to provide insightful and educational tours.
+              </p>
+            </div>{" "}
+            <div className="bg-gray-50 p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="flex justify-center mb-6">
+                <FaBinoculars className="text-4xl text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-center">
+                Protected Animals
+              </h3>
+              <p className="text-gray-600 text-base">
+                Witness Sarawak’s protected animal species in their natural
+                habitats, safeguarded through our conservation efforts.
+              </p>
+            </div>{" "}
+            <div className="bg-gray-50 p-10 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="flex justify-center mb-6">
+                <FaLeaf className="text-4xl text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-center">
+                Eco-Tourism Programs
+              </h3>
+              <p className="text-gray-600 text-base">
+                Participate in our eco-tourism programs designed to promote
+                sustainable travel and environmental awareness.
+              </p>
             </div>{" "}
           </div>
         </div>
@@ -190,12 +187,12 @@ const AboutPage = () => {
               Our Mission
             </h2>
             <p className="text-gray-700 text-base md:text-lg leading-relaxed">
-              Our mission is to preserve and protect our natural heritage
-              through education, conservation, and sustainable management
-              practices. We aim to train knowledgeable park guides who can
-              effectively communicate the importance of biodiversity and inspire
-              the next generation of environmental stewards.
-            </p>{" "}
+              To safeguard Sarawak’s rich biodiversity through professional
+              management of TPAs, effective wildlife protection, and innovative
+              conservation efforts—empowering communities and future generations
+              through education, awareness, and sustainable eco-tourism
+              development.
+            </p>
           </div>
         </div>
       </section>
@@ -219,23 +216,17 @@ const AboutPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {" "}
             <div className="p-8 border-l-4 border-green-500 bg-white shadow-lg rounded-r-lg">
-              <h3 className="text-xl font-semibold mb-4">
-                Environmental Stewardship
-              </h3>
+              <h3 className="text-xl font-semibold mb-4">Stewardship</h3>
               <p className="text-gray-600 text-base">
-                We are committed to protecting natural resources and promoting
-                sustainable practices that minimize human impact on delicate
-                ecosystems.
+                Committed to preserving nature for future generations through
+                responsible conservation practices.
               </p>
             </div>{" "}
             <div className="p-8 border-l-4 border-green-500 bg-white shadow-lg rounded-r-lg">
-              <h3 className="text-xl font-semibold mb-4">
-                Education & Awareness
-              </h3>
+              <h3 className="text-xl font-semibold mb-4">Professionalism</h3>
               <p className="text-gray-600 text-base">
-                We believe in the transformative power of knowledge and strive
-                to create meaningful educational experiences that inspire
-                conservation action.
+                Delivering results with integrity, scientific rigor, and a
+                modern management approach.
               </p>
             </div>{" "}
             <div className="p-8 border-l-4 border-green-500 bg-white shadow-lg rounded-r-lg">
@@ -243,9 +234,8 @@ const AboutPage = () => {
                 Community Engagement
               </h3>
               <p className="text-gray-600 text-base">
-                We recognize that conservation efforts are most effective when
-                they involve local communities and stakeholders in
-                decision-making processes.
+                Collaborating with stakeholders and communities to foster
+                awareness and shared responsibility.
               </p>
             </div>{" "}
           </div>
@@ -257,7 +247,7 @@ const AboutPage = () => {
        ******************************************************************/}
       <Footer />
       <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
-      <ChatbotWidget  />
+        <ChatbotWidget />
       </div>
     </motion.div>
   );

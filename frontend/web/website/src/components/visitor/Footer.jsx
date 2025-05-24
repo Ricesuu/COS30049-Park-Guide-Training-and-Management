@@ -14,8 +14,8 @@ import {
   FaMapMarkerAlt,
   FaInstagram,
   FaFacebookF,
-  FaTwitter,
 } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -23,32 +23,36 @@ const Footer = () => {
   return (
     <footer className="bg-gray-800 text-white py-10 pb-6 w-full">
       <div className="w-full px-8">
+        {" "}
         <div className="flex flex-col md:flex-row justify-between max-w-[1600px] mx-auto">
           {/******************************************************************
            * COMPANY INFORMATION SECTION
            * Displays logo, contact email, phone, and address
            ******************************************************************/}
-          <div className="mb-8 md:mb-0">
+          <div className="mb-8 md:mb-0 md:max-w-[380px]">
             <h3 className="text-xl font-semibold mb-3 inline-block border-b-2 border-green-500 pb-1">
               SFC
             </h3>{" "}
             <div className="space-y-3 mt-3">
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
                 <FaEnvelope className="w-6 h-6 mr-3 text-green-400" />
-                info@parkguide.com
+                info@sarawakforestry.com
               </p>
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
                 <FaPhone className="w-6 h-6 mr-3 text-green-400" />
-                +1 (123) 456-7890
-              </p>
+                (+6) 082-610088
+              </p>{" "}
               <p className="flex items-center hover:text-green-400 transition-colors cursor-pointer text-base">
-                <FaMapMarkerAlt className="w-6 h-6 mr-3 text-green-400" />
-                123 Nature Park Ave
+                <FaMapMarkerAlt className="w-6 h-6 mr-3 text-green-400 flex-shrink-0" />
+                <span>
+                  Lot 218, KCLD, Jalan Tapang, Kota Sentosa, 93250 Kuching,
+                  Sarawak, Malaysia
+                </span>
               </p>
-            </div>
+            </div>{" "}
           </div>
           {/* Right Side Content */}
-          <div className="flex flex-col md:flex-row gap-8 md:gap-48">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-20 lg:gap-48 ml-0 md:ml-8 lg:ml-16">
             {/******************************************************************
              * NAVIGATION LINKS SECTION
              * Quick links to main pages of the site
@@ -126,25 +130,34 @@ const Footer = () => {
               </h3>{" "}
               <div className="flex space-x-4 mt-3">
                 <a
-                  href="#"
+                  href="https://www.instagram.com/sfcsarawak/?hl=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
+                  aria-label="Instagram"
                 >
                   <FaInstagram className="w-5 h-5 text-white" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.facebook.com/sfcsarawak/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
+                  aria-label="Facebook"
                 >
                   <FaFacebookF className="w-5 h-5 text-white" />
-                </a>
+                </a>{" "}
                 <a
-                  href="#"
+                  href="https://x.com/sfcsarawak?lang=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-700 p-2.5 rounded-full hover:bg-green-600 transition-colors"
+                  aria-label="X (formerly Twitter)"
                 >
-                  <FaTwitter className="w-5 h-5 text-white" />
+                  <FaXTwitter className="w-5 h-5 text-white" />
                 </a>
               </div>
-              {/* Legal Links */}
+              {/* Legal Links */}{" "}
               <div className="mt-4">
                 <a
                   href="#"
@@ -168,8 +181,7 @@ const Footer = () => {
          ******************************************************************/}
         <div className="border-t border-gray-700 w-full max-w-screen mt-8 pt-5 pb-2 text-center text-gray-400 text-base">
           <p className="my-1">
-            &copy; {new Date().getFullYear()} Park Guide Training and
-            Management. All rights reserved.
+            &copy; {new Date().getFullYear()} SFC. All rights reserved.
           </p>
         </div>
       </div>
