@@ -106,7 +106,11 @@ const ParkguideCert = () => {
 
   return (
     <div className="cert-main-content">
-      <h2 className="cert-page-title">Certification & Licensing</h2>
+      <div className="page-title-card">
+        <h1>Certification & Licensing</h1>
+        <p>View and manage your professional park guide certifications. Complete training modules to earn new certifications.</p>
+      </div>
+
       {loading && <div className="loading-spinner">Loading certifications...</div>}
       {error && <div className="error-message">{error}</div>}
       

@@ -71,7 +71,9 @@ export async function POST(request, { params }) {
             return NextResponse.json({
                 message: "You are already enrolled in this module",
             });
-        } // Create a "free" payment record with an empty BLOB for receipt_image (since it can't be NULL)
+        } 
+        
+        // Create a "free" payment record with an empty BLOB for receipt_image (since it can't be NULL)
         const [paymentResult] = await connection.execute(
             `INSERT INTO PaymentTransactions 
        (user_id, uid, paymentPurpose, paymentMethod, amountPaid, receipt_image, paymentStatus, transaction_date, module_id) 
@@ -80,7 +82,7 @@ export async function POST(request, { params }) {
                 userId,
                 uid,
                 `Free Module: ${moduleData.module_name}`,
-                "free",
+                "debit", // Using 'debit' instead of 'free' to match ENUM values
                 0,
                 moduleId,
             ]

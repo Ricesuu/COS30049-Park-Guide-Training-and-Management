@@ -156,13 +156,15 @@ const ParkguideTraining = () => {
 
   return (
       <div className="training-main-content">
-        <h1 className="training-page-title">Training Modules</h1>
-          <div className="training-header">
-          <p className="training-introduction">
+        <div className="page-title-card">
+          <h1>Training Modules</h1>
+          <p>
             Welcome to the Park Guide Training Program. These modules are designed to enhance your skills and knowledge
             as a professional park guide.
           </p>
-          
+        </div>
+
+        <div className="training-header">
           <div className="module-view-toggle">
             <button 
               className={`toggle-btn ${!showModuleStore ? 'active' : ''}`}

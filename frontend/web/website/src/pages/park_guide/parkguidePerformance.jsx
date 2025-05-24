@@ -12,18 +12,21 @@ const ParkguidePerformance = () => {
     { id: 4, module: 'Module 4: Wildlife Conservation', reason: 'Important for educating visitors about wildlife protection.' },
     { id: 5, module: 'Module 5: First Aid Training', reason: 'Vital for ensuring visitor safety during emergencies.' },
   ];
-
   return (
       <div className="performance-main-content">
-        <h2 className="section-title">Performance Overview</h2>
+        <div className="page-title-card">
+          <h1>Performance Overview</h1>
+          <p>Track your performance metrics and view personalized training recommendations.</p>
+        </div>
 
         {/* Module Recommendations */}
         <div className="recommendations-section">
-          <h3 className="subsection-title">Module Recommendations</h3>
+          <h2 className="boxtitle">Module Recommendations</h2>
           <ul className="recommendations-list">
             {recommendations.map((rec) => (
               <li key={rec.id} className="recommendation-item">
-                <strong>{rec.module}</strong>: {rec.reason}
+                <strong>{rec.module}</strong>
+                <span>{rec.reason}</span>
               </li>
             ))}
           </ul>
@@ -31,7 +34,8 @@ const ParkguidePerformance = () => {
 
         {/* Visitor Reviews */}
         <div className="reviews-section">
-          <div className='m-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-start'>
+          <h2 className="boxtitle">Visitor Feedback & Ratings</h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-4'>
             <GuideRatingRadar />
             <GuideVisitorComments />
           </div>

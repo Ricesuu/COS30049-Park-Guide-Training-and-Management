@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import "../../ParkGuideStyle.css";
+import "../../ModuleStyle.css";
 import { auth } from '../../Firebase';
 
 const ParkguideModule = () => {
@@ -126,9 +127,12 @@ const ParkguideModule = () => {
 
   return (
     <div className="module-content">
-      <h2>{module.title}</h2>
-      {loading && <p>Loading module content...</p>}
-      {error && <p className="error-message">{error}</p>}
+      <div className="module-header">
+        <h2>{module.title}</h2>
+      </div>
+
+      {loading && <div className="loading-spinner">Loading module content...</div>}
+      {error && <div className="error-message">{error}</div>}
       
       {!loading && !error && (
         <div className="module-details">
@@ -159,7 +163,10 @@ const ParkguideModule = () => {
           <div className="module-actions">
             {quizCompleted || module.status === 'completed' ? (
               <div className="module-completed">
-                <p className="success-message">✓ Module Completed</p>                <button 
+                <p className="success-message">
+                  <span>✓</span> Module Completed
+                </p>
+                <button 
                   className="view-cert-button"
                   onClick={() => navigate('/park_guide/certifications')}
                 >

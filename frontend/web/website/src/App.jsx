@@ -107,7 +107,6 @@ function AppRoutes() {
         <Route path="training" element={<ParkguideTraining />} />
         <Route path="certifications" element={<ParkguideCert />} />
         <Route path="plants" element={<ParkguidePlantInfo />} />
-        <Route path="identify" element={<ParkguideIdentification />} />
         <Route path="performance" element={<ParkguidePerformance />} />        
         <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />

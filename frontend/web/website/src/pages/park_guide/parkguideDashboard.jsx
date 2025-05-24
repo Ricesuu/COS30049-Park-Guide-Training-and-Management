@@ -153,45 +153,69 @@ const Dashboard = () => {
   // Removed unused certImages array
 
   return (
-      <div className="dashboard-main-content">
-        {/* User Info Container */}
-        <div className="box user-info">
-          {loading ? (
-            <p>Loading user information...</p>
-          ) : error ? (
-            <p>Error loading user information: {error}</p>          ) : (
-            <>
-              
-                <div className="user-details" style={{textAlign: 'center'}}>
-                <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>
-                <p className="user-id">Guide ID: {guideData?.guide_id || 'Not Available'}</p>                <p className="user-park">Park: {guideData?.assigned_park || 'Unassigned'}</p>
-                <p className="user-cert-status">Certification Status: {guideData?.certification_status || 'Pending'}</p>
-                {userData && (
-                  <p className="user-email">Email: {userData.email}</p>
-                )}
+    <div className="dashboard-main-content">
+      <div className="page-title-card">
+        <h1>Dashboard</h1>
+        <p>Welcome to your park guide dashboard. Track your training progress and manage your certifications.</p>
+      </div>
+
+      {/* User Info Container */}
+      <div className="user-info-card">
+        {loading ? (
+          <div className="loading-spinner">Loading user information...</div>
+        ) : error ? (
+          <div className="error-message">Error loading user information: {error}</div>
+        ) : (
+          <div className="user-details">
+            <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>
+            <div className="user-info-grid">
+              <div className="user-info-item">
+                <span className="info-label">Guide ID:</span>
+                <span className="info-value">{guideData?.guide_id || 'Not Available'}</span>
               </div>
-            </>
-          )}        </div>        {/* Only show content if there's no loading and no errors */}
-        {!loading && !error && (          <div className="centered-boxes">
-            {/* Modules Container */}
-            <div className="box module-container">
-              <h2 className="boxtitle">Your Training Modules</h2>
-              {modules && modules.length > 0 ? (
-                <div className="modules-list">
-                  {modules.map((module, index) => (
-                    <div className="module-item" key={index}>                      <div className="module-image-container" style={{ height: '120px', maxWidth: '180px', margin: '0 auto 15px auto' }}>
+              <div className="user-info-item">
+                <span className="info-label">Park:</span>
+                <span className="info-value">{guideData?.assigned_park || 'Unassigned'}</span>
+              </div>
+              <div className="user-info-item">
+                <span className="info-label">Certification Status:</span>
+                <span className={`info-value status-${guideData?.certification_status?.toLowerCase() || 'pending'}`}>
+                  {guideData?.certification_status || 'Pending'}
+                </span>
+              </div>
+              {userData && (
+                <div className="user-info-item">
+                  <span className="info-label">Email:</span>
+                  <span className="info-value">{userData.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Only show content if there's no loading and no errors */}
+      {!loading && !error && (
+        <div className="centered-boxes">
+          {/* Modules Container */}
+          <div className="box module-container">
+            <h2 className="boxtitle">Your Training Modules</h2>
+            {modules && modules.length > 0 ? (
+              <div className="modules-list">
+                {modules.map((module, index) => (                  <div className="module-item" key={index}>
+                      <div className="module-image-container">
                         <img 
                           src={placeholderModuleImg} 
                           alt={`Module ${index + 1}`} 
-                          className="module-image" 
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                          className="module-image"
                         />
                       </div>
                       <div className="module-content">
                         <h3>{module.name}</h3>
-                        <p>{module.description}</p>
-                        <div className="module-status">
-                          <span><strong>Status:</strong> {module.module_status || 'In Progress'}</span>
+                        <p>{module.description}</p>                        <div className="module-status">
+                          <span className={`status-${module.module_status?.toLowerCase() || 'not-started'}`}>
+                            <strong>Status:</strong> {module.module_status || 'Not Started'}
+                          </span>
                           {module.completion_percentage && (
                             <div className="progress-bar">
                               <div 
@@ -205,53 +229,56 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <p className="no-modules-message">You don't have any training modules yet.</p>
-              )}            </div>
+              </div>
+            ) : (
+              <div className="no-modules-message">
+                <p>You don't have any training modules yet.</p>
+              </div>
+            )}          </div>
 
-            {/* Certification Section */}            <div className="box certification">
-              <h2 className="boxtitle">Your Certifications</h2>
-              {certifications && certifications.length > 0 ? (
-                <div className="certification-grid">
-                  {certifications.map((cert, index) => (
-                    <div 
-                      className="dashboard-cert-card" 
-                      key={cert.cert_id || index} 
-                      onClick={() => navigate('/park_guide/certifications')}
-                    >
-                      <div className="dashboard-cert-image-container">
-                        <img
-                          src={cert.image_url}
-                          alt={cert.module_name || `Certification ${index + 1}`}
-                          className="dashboard-cert-image"
-                        />
-                        <div className={`cert-status-badge ${                          checkExpired(cert.expiry_date) ? 'expired' : 
+          {/* Certification Section */}
+          <div className="box certification">
+            <h2 className="boxtitle">Your Certifications</h2>
+            {certifications && certifications.length > 0 ? (
+              <div className="certification-grid">
+                {certifications.map((cert, index) => (
+                  <div 
+                    className="dashboard-cert-card" 
+                    key={cert.cert_id || index} 
+                    onClick={() => navigate('/park_guide/certifications')}
+                  >
+                    <div className="dashboard-cert-image-container">
+                      <img
+                        src={cert.image_url}
+                        alt={cert.module_name || `Certification ${index + 1}`}
+                        className="dashboard-cert-image"
+                      />
+                      <div className={`cert-status-badge ${                          checkExpired(cert.expiry_date) ? 'expired' : 
                           checkExpiringSoon(cert.expiry_date) ? 'expiring-soon' : 'active'
                         }`}>                          {checkExpired(cert.expiry_date) ? 'Expired' : 
                            checkExpiringSoon(cert.expiry_date) ? 'Expiring Soon' : 'Active'}
-                        </div>
-                      </div>
-                      <div className="dashboard-cert-info">
-                        <h3 className="dashboard-cert-title">{cert.module_name || 'Untitled Certificate'}</h3>                        <p className="dashboard-cert-expiry">
-                          Issued: {formatDateString(cert.issued_date)}
-                        </p>
-                        <p className={`dashboard-cert-expiry ${checkExpired(cert.expiry_date) ? 'expired' : ''}`}>
-                          Expires: {formatDateString(cert.expiry_date)}
-                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-certs-message">
-                  <p>Complete training modules to earn certifications</p>
-                </div>
-              )}
-            </div>
+                    <div className="dashboard-cert-info">
+                      <h3 className="dashboard-cert-title">{cert.module_name || 'Untitled Certificate'}</h3>                        <p className="dashboard-cert-expiry">
+                        Issued: {formatDateString(cert.issued_date)}
+                      </p>
+                      <p className={`dashboard-cert-expiry ${checkExpired(cert.expiry_date) ? 'expired' : ''}`}>
+                        Expires: {formatDateString(cert.expiry_date)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-certs-message">
+                <p>Complete training modules to earn certifications</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
   );
 };
 
