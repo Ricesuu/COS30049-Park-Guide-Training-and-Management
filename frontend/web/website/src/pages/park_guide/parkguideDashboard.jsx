@@ -86,19 +86,30 @@ const Dashboard = () => {
         const guideData = await guideResponse.json();
         setGuideData(guideData);
 
-        // Get modules
-        const modulesResponse = await fetch('/api/training-modules', {
+        // Get modules from guide training progress
+        const modulesResponse = await fetch('/api/guide-training-progress/user', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
+        const modulesData = await modulesResponse.json();
         if (!modulesResponse.ok) {
-          throw new Error('Failed to fetch modules');
+          throw new Error(modulesData.error || 'Failed to fetch training progress');
         }
 
-        const modulesData = await modulesResponse.json();
-        setModules(modulesData);
+        // Transform the data to match the expected format
+        let formattedModules = [];
+        if (modulesData && modulesData.length > 0) {
+          formattedModules = modulesData.map(module => ({
+            ...module,
+            name: module.module_name,
+            module_status: module.status,
+            completion_percentage: module.status === 'completed' ? 100 : 
+                                module.status === 'in progress' ? 50 : 0
+          }));
+        }
+        setModules(formattedModules);
 
         // Get certifications using guide_id
         const certsResponse = await fetch(`/api/certifications/user/${guideData.guide_id}`, {
@@ -107,15 +118,21 @@ const Dashboard = () => {
           }
         });
 
+        // Handle certification response
         if (!certsResponse.ok) {
-          throw new Error('Failed to fetch certifications');
+          // Don't throw error for 404 - just means no certifications yet
+          if (certsResponse.status === 404) {
+            setCertifications([]);
+          } else {
+            throw new Error('Failed to fetch certifications');
+          }
+        } else {
+          const certsData = await certsResponse.json();
+          setCertifications(certsData.map(cert => ({
+            ...cert,
+            image_url: '/images/advanced_guide.png' // Default image
+          })));
         }
-
-        const certsData = await certsResponse.json();
-        setCertifications(certsData.map(cert => ({
-          ...cert,
-          image_url: '/images/advanced_guide.png' // Default image
-        })));
 
         setError(null);
       } catch (err) {
@@ -157,7 +174,7 @@ const Dashboard = () => {
           )}        </div>        {/* Only show content if there's no loading and no errors */}
         {!loading && !error && (          <div className="centered-boxes">
             {/* Modules Container */}
-            <div className="box module-container" style={{ flex: 1, maxWidth: '48%' }}>
+            <div className="box module-container">
               <h2 className="boxtitle">Your Training Modules</h2>
               {modules && modules.length > 0 ? (
                 <div className="modules-list">

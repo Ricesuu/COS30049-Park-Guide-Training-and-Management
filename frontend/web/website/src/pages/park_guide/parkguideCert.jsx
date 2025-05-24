@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import "../../ParkGuideStyle.css";
+import "../../CertificationStyle.css";
 import { auth } from '../../Firebase';
 
 const formatDate = (dateString) => {
