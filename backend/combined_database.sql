@@ -369,6 +369,23 @@ INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `licens
 
 -- --------------------------------------------------------
 --
+-- Table structure for table `quizcompletions`
+--
+CREATE TABLE quizcompletions (
+  completion_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  module_id INT NOT NULL,
+  score INT NOT NULL,
+  total_questions INT NOT NULL,
+  passed BOOLEAN NOT NULL,
+  completion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (module_id) REFERENCES trainingmodules(module_id)
+);
+
+
+-- --------------------------------------------------------
+--
 -- Table structure for table `quizattempts`
 --
 
