@@ -41,9 +41,12 @@ body {
 }
 
 .sidebar img {
-  width: 60%; /* Slightly larger logo */
+  width: 80%; /* Larger logo */
+  height: auto; /* Maintain aspect ratio */
   margin-bottom: 2rem; /* 32px */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Keep the original shape */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  object-fit: contain; /* Preserve aspect ratio */
+  border-radius: 8px; /* Slightly rounded corners */
 }
 
 .sidebar button {

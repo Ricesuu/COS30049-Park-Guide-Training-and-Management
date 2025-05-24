@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Sidebar from '../../components/park_guide/sidebar';
 import "../../ParkGuideStyle.css";
+import "../../PlantInfoStyle.css";
 
 // Import plant images for proper loading in Vite
 import phalaenopsisImg from '/images/phalaenopsis.jpg';
@@ -9,8 +11,13 @@ import semenggohImg from '/images/Semenggoh.jpg';
 import firstaidImg from '/images/firstaid.jpg';
 
 const ParkguidePlantInfo = () => {
-  // State to track which plant's details are being viewed
   const [selectedPlant, setSelectedPlant] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading delay
+    setTimeout(() => setLoading(false), 1000);
+  }, []);
 
   // Plant data
   const plants = [
@@ -92,90 +99,86 @@ const ParkguidePlantInfo = () => {
   };
 
   return (
-      <div className="plant-info-main-content">
-        <h1 className="plant-info-title">Plant Information</h1>
-        
-        <p className="plant-info-introduction">
-          Explore the diverse plant species found in our park. Click on any plant to learn more about its characteristics,
-          habitat, conservation status, and cultural significance.
-        </p>
-        
-        {/* Plant Grid */}
-        <div className="plant-info-grid">
-          {plants.map((plant) => (
-            <div
-              key={plant.id}
-              className="plant-info-card"
-              onClick={() => openPlantDetails(plant)}
-            >
-              <div className="plant-info-image-container">
-                <img src={plant.image} alt={plant.name} className="plant-info-image" />
-              </div>
-              <div className="plant-info-content">
-                <h3 className="plant-info-name">{plant.name}</h3>
-                <p className="plant-info-scientific-name">{plant.scientificName}</p>
-                <button className="plant-info-button">View Details</button>
-              </div>
-            </div>
-          ))}
+    <div className="dashboard-container">
+      <Sidebar />
+      <div className="dashboard-main-content">
+        <div className="page-title-card">
+          <h1>Plant Information</h1>
+          <p>Learn about the diverse plant species found in our parks and their significance.</p>
         </div>
-        
-        {/* Plant Detail Popup */}
-        {selectedPlant && (
-          <div className="plant-detail-overlay" onClick={closePlantDetails}>
-            <div className="plant-detail-popup" onClick={(e) => e.stopPropagation()}>
-              <button className="plant-detail-close" onClick={closePlantDetails}>×</button>
-              
-              <div className="plant-detail-header">
-                <img 
-                  src={selectedPlant.image} 
-                  alt={selectedPlant.name} 
-                  className="plant-detail-image" 
-                />
-                <h2 className="plant-detail-title">{selectedPlant.name}</h2>
-                <p className="plant-detail-scientific-name">{selectedPlant.scientificName}</p>
+
+        {loading ? (
+          <div className="loading-spinner">Loading plant information...</div>
+        ) : (
+          <div className="plant-grid">
+            {plants.map((plant) => (
+              <div
+                key={plant.id}
+                className="plant-card"
+                onClick={() => openPlantDetails(plant)}
+              >
+                <div className="plant-image-container">
+                  <img src={plant.image} alt={plant.name} className="plant-image" />
+                </div>
+                <div className="plant-content">
+                  <h3 className="plant-name">{plant.name}</h3>
+                  <p className="scientific-name">{plant.scientificName}</p>
+                  <p className="plant-info">{plant.habitat}</p>
+                </div>
               </div>
-              
-              <div className="plant-detail-content">
-                <div className="plant-info-row">
-                  <span className="plant-info-label">Family:</span>
-                  <span className="plant-info-value">{selectedPlant.family}</span>
+            ))}
+          </div>
+        )}
+
+        {selectedPlant && (
+          <div className="modal-overlay" onClick={closePlantDetails}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={closePlantDetails}>×</button>
+              <h2 className="modal-title">{selectedPlant.name}</h2>
+              <div className="modal-content">
+                <div>
+                  <img src={selectedPlant.image} alt={selectedPlant.name} className="modal-image" />
                 </div>
-                
-                <div className="plant-info-row">
-                  <span className="plant-info-label">Native Region:</span>
-                  <span className="plant-info-value">{selectedPlant.nativeRegion}</span>
-                </div>
-                
-                <div className="plant-info-row">
-                  <span className="plant-info-label">Habitat:</span>
-                  <span className="plant-info-value">{selectedPlant.habitat}</span>
-                </div>
-                
-                <div className="plant-description">
-                  <h3 className="plant-description-title">Description</h3>
-                  <p>{selectedPlant.description}</p>
-                </div>
-                
-                <div className="plant-conservation">
-                  <h3 className="plant-conservation-title">Conservation Status</h3>
-                  <p>{selectedPlant.conservation}</p>
-                </div>
-                
-                <div className="plant-cultural">
-                  <h3 className="plant-cultural-title">Cultural Significance</h3>
-                  <p>{selectedPlant.culturalSignificance}</p>
-                </div>
-                
-                <div className="plant-medicinal">
-                  <h3 className="plant-medicinal-title">Medicinal Uses</h3>
-                  <p>{selectedPlant.medicinalUses}</p>
+                <div className="modal-info">
+                  <div className="info-section">
+                    <h3>Scientific Name</h3>
+                    <p>{selectedPlant.scientificName}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Family</h3>
+                    <p>{selectedPlant.family}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Native Region</h3>
+                    <p>{selectedPlant.nativeRegion}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Habitat</h3>
+                    <p>{selectedPlant.habitat}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Description</h3>
+                    <p>{selectedPlant.description}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Conservation Status</h3>
+                    <p>{selectedPlant.conservation}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Medicinal Uses</h3>
+                    <p>{selectedPlant.medicinalUses}</p>
+                  </div>
+                  <div className="info-section">
+                    <h3>Cultural Significance</h3>
+                    <p>{selectedPlant.culturalSignificance}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+    </div>
   );
 };
 
