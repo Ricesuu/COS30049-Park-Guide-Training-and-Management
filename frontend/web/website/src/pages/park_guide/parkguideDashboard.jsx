@@ -3,13 +3,41 @@ import React, { useState, useEffect } from 'react';
 import "../../ParkGuideStyle.css";
 import { auth } from '../../Firebase';
 
-// Import images to ensure they're properly handled by Vite
-import semenggohImg from '/images/Semenggoh.jpg';
-import advancedGuideImg from '/images/advanced_guide.png';
-import firstaidImg from '/images/firstaid.jpg';
-import placeholderModuleImg from '/images/advanced_guide.png'; // Placeholder for modules
+// Using direct path for images
+const placeholderModuleImg = '/images/advanced_guide.png'; // Placeholder for modules
 
+// Helper function that is used in the component
+const formatDateString = (dateString) => {
+  if (!dateString) return 'Not available';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
+  }
+};
 
+const checkExpired = (dateString) => {
+  if (!dateString) return false;
+  const expiryDate = new Date(dateString);
+  const now = new Date();
+  return expiryDate < now;
+};
+
+const checkExpiringSoon = (dateString) => {
+  if (!dateString) return false;
+  const expiryDate = new Date(dateString);
+  const now = new Date();
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(now.getDate() + 30);
+  return expiryDate > now && expiryDate <= thirtyDaysFromNow;
+};
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -22,72 +50,74 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get current auth token
+        setLoading(true);
         const user = auth.currentUser;
         if (!user) {
-          console.error('User not authenticated');
-          setError('User not authenticated');
-          setLoading(false);
-          return;
+          throw new Error('User not authenticated');
         }
         
         const token = await user.getIdToken();
         
         // Fetch user data
-        const userResponse = await fetch('/api/users/'+user.uid, {
+        const userResponse = await fetch('/api/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (!userResponse.ok) {
           throw new Error('Failed to fetch user data');
         }
-          const userData = await userResponse.json();
-        console.log('User data received:', userData);
+
+        const userData = await userResponse.json();
         setUserData(userData);
-        
-        // Fetch park guide data
+
+        // Get guide data
         const guideResponse = await fetch('/api/park-guides/user', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (!guideResponse.ok) {
           throw new Error('Failed to fetch guide data');
         }
-        
+
         const guideData = await guideResponse.json();
-        console.log('Guide data received:', guideData);
         setGuideData(guideData);
-        
-        // Fetch training modules
-        const modulesResponse = await fetch('/api/training-modules/user', {
+
+        // Get modules
+        const modulesResponse = await fetch('/api/training-modules', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (modulesResponse.ok) {
-          const modulesData = await modulesResponse.json();
-          console.log('Modules data received:', modulesData);
-          setModules(modulesData || []);
+
+        if (!modulesResponse.ok) {
+          throw new Error('Failed to fetch modules');
         }
-        
-        // Fetch certifications
-        const certificationsResponse = await fetch('/api/certifications/user', {
+
+        const modulesData = await modulesResponse.json();
+        setModules(modulesData);
+
+        // Get certifications using guide_id
+        const certsResponse = await fetch(`/api/certifications/user/${guideData.guide_id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (certificationsResponse.ok) {
-          const certificationsData = await certificationsResponse.json();
-          console.log('Certifications data received:', certificationsData);
-          setCertifications(certificationsData || []);
+
+        if (!certsResponse.ok) {
+          throw new Error('Failed to fetch certifications');
         }
-        
+
+        const certsData = await certsResponse.json();
+        setCertifications(certsData.map(cert => ({
+          ...cert,
+          image_url: '/images/advanced_guide.png' // Default image
+        })));
+
+        setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
@@ -95,14 +125,15 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-      fetchUserData();  }, []);
+
+    fetchUserData();
+  }, []);
+  // Helper functions are now moved to top of file
 
   const navigate = (path) => {
     window.location.href = path;
   };
-
-  // Use imported images instead of string paths
-  const certImages = [semenggohImg, advancedGuideImg, firstaidImg];
+  // Removed unused certImages array
 
   return (
       <div className="dashboard-main-content">
@@ -162,32 +193,43 @@ const Dashboard = () => {
                 <p className="no-modules-message">You don't have any training modules yet.</p>
               )}            </div>
 
-            {/* Certification Section */}
-            <div className="box certification" style={{ flex: 1, maxWidth: '48%' }}>
-              <h2 className="boxtitle">Your Certifications</h2>              {certifications && certifications.length > 0 ? (
-                <div className="certification-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>                  {certifications.map((cert, index) => (
-                    <div className="dashboard-cert-card" key={index} onClick={() => navigate('/certifications')}>
+            {/* Certification Section */}            <div className="box certification">
+              <h2 className="boxtitle">Your Certifications</h2>
+              {certifications && certifications.length > 0 ? (
+                <div className="certification-grid">
+                  {certifications.map((cert, index) => (
+                    <div 
+                      className="dashboard-cert-card" 
+                      key={cert.cert_id || index} 
+                      onClick={() => navigate('/park_guide/certifications')}
+                    >
                       <div className="dashboard-cert-image-container">
                         <img
-                          src={certImages[index % certImages.length]}
-                          alt={`Certification ${index + 1}`}
+                          src={cert.image_url}
+                          alt={cert.module_name || `Certification ${index + 1}`}
                           className="dashboard-cert-image"
                         />
+                        <div className={`cert-status-badge ${                          checkExpired(cert.expiry_date) ? 'expired' : 
+                          checkExpiringSoon(cert.expiry_date) ? 'expiring-soon' : 'active'
+                        }`}>                          {checkExpired(cert.expiry_date) ? 'Expired' : 
+                           checkExpiringSoon(cert.expiry_date) ? 'Expiring Soon' : 'Active'}
+                        </div>
                       </div>
                       <div className="dashboard-cert-info">
-                        <h3 className="dashboard-cert-title">{cert.module_name}</h3>
-                        <p className="dashboard-cert-expiry">
-                          Expiry: <span>{new Date(cert.expiry_date).toLocaleDateString()}</span>
+                        <h3 className="dashboard-cert-title">{cert.module_name || 'Untitled Certificate'}</h3>                        <p className="dashboard-cert-expiry">
+                          Issued: {formatDateString(cert.issued_date)}
                         </p>
-                        <p className="dashboard-cert-issued">
-                          Issued: <span>{new Date(cert.issued_date).toLocaleDateString()}</span>
+                        <p className={`dashboard-cert-expiry ${checkExpired(cert.expiry_date) ? 'expired' : ''}`}>
+                          Expires: {formatDateString(cert.expiry_date)}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="no-certs-message">You don't have any completed certifications yet.</p>
+                <div className="no-certs-message">
+                  <p>Complete training modules to earn certifications</p>
+                </div>
               )}
             </div>
           </div>

@@ -34,12 +34,13 @@ export async function GET(request, { params }) {
 
         const userId = users[0].user_id;
 
-        // First get the module details with purchase status
+        // First get the module details with purchase status and completion status
         const [rows] = await connection.execute(
             `SELECT 
                 tm.*,
                 mp.status as purchase_status,
-                pt.paymentStatus as payment_status
+                pt.paymentStatus as payment_status,
+                gtp.status as completion_status
              FROM TrainingModules tm
              LEFT JOIN (
                 SELECT module_id, status, payment_id
@@ -47,8 +48,10 @@ export async function GET(request, { params }) {
                 WHERE user_id = ? AND is_active = TRUE
              ) mp ON tm.module_id = mp.module_id
              LEFT JOIN PaymentTransactions pt ON mp.payment_id = pt.payment_id
+             LEFT JOIN ParkGuides pg ON pg.user_id = ?
+             LEFT JOIN GuideTrainingProgress gtp ON gtp.guide_id = pg.guide_id AND gtp.module_id = tm.module_id
              WHERE tm.module_id = ?`,
-            [userId, id]
+            [userId, userId, id]
         );
 
         if (rows.length === 0) {
@@ -62,6 +65,11 @@ export async function GET(request, { params }) {
 
         // If module is free, allow access
         if (moduleData.price === 0 || moduleData.price === "0" || moduleData.price === "0.00") {
+            return NextResponse.json(moduleData);
+        }
+
+        // Allow access if module is completed
+        if (moduleData.completion_status === 'completed') {
             return NextResponse.json(moduleData);
         }
 

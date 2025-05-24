@@ -16,7 +16,8 @@ const ParkguideModule = () => {
     video_url: null,
     course_content: null,
     quiz_id: null,
-    completion_percentage: 0
+    completion_percentage: 0,
+    status: null
   });
 
   const queryParams = new URLSearchParams(location.search);
@@ -43,7 +44,6 @@ const ParkguideModule = () => {
         if (!response.ok) {
           const errorData = await response.json();
           if (response.status === 403) {
-            // Handle access denied errors specifically
             throw new Error(errorData.error || 'Access to this module is restricted');
           }
           throw new Error('Failed to fetch module data');
@@ -51,7 +51,7 @@ const ParkguideModule = () => {
         
         const moduleData = await response.json();
         
-        // Check quiz completion status
+        // Check module completion status and quiz attempts
         const quizResponse = await fetch(`/api/quizattempts?moduleId=${moduleId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -60,7 +60,13 @@ const ParkguideModule = () => {
         
         if (quizResponse.ok) {
           const quizData = await quizResponse.json();
-          setQuizCompleted(quizData.passed || false);
+          const hasPassedQuiz = quizData && quizData.some(attempt => attempt.passed);
+          setQuizCompleted(hasPassedQuiz);
+          
+          // Update module status if quiz is passed
+          if (hasPassedQuiz) {
+            moduleData.status = 'completed';
+          }
         }
         
         setModule(moduleData);
@@ -68,7 +74,6 @@ const ParkguideModule = () => {
       } catch (err) {
         console.error('Error fetching module:', err);
         setError(err.message);
-        // Redirect to training page if access is denied
         if (err.message.includes('access') || err.message.includes('pending approval')) {
           navigate('/park_guide/training');
         }
@@ -84,11 +89,18 @@ const ParkguideModule = () => {
       setLoading(false);
     }
   }, [moduleId, navigate]);
+
   const startQuiz = async () => {
     try {
       const user = auth.currentUser;
       if (!user) {
         throw new Error('User not authenticated');
+      }
+      
+      if (quizCompleted || module.status === 'completed') {
+        // If quiz is already completed, don't start a new attempt
+        navigate('/park_guide/cert');
+        return;
       }
       
       const token = await user.getIdToken();
@@ -101,116 +113,71 @@ const ParkguideModule = () => {
       });
       
       if (!quizCheckResponse.ok) {
-        const errorData = await quizCheckResponse.json();
-        throw new Error(errorData.error || 'Quiz not available for this module');
-      }        // Redirect to quiz page if available      console.log('Navigating to quiz page with moduleId:', moduleId);
-      navigate('/park_guide/quiz', { state: { moduleId } });
+        throw new Error('Quiz is not available for this module');
+      }
+      
+      // Navigate to quiz page
+      navigate(`/park_guide/quiz?moduleId=${moduleId}`);
     } catch (err) {
       console.error('Error starting quiz:', err);
       setError(err.message);
     }
   };
 
-  // Remove completion percentage check
-  const showQuizButton = !quizCompleted;
-  const showCertificateButton = quizCompleted;
-  
   return (
-    <>
-      <div className="module-main-content">
+    <div className="module-content">
+      <h2>{module.title}</h2>
+      {loading && <p>Loading module content...</p>}
+      {error && <p className="error-message">{error}</p>}
+      
+      {!loading && !error && (
         <div className="module-details">
-          {loading ? (
-            <div className="loading-container" style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              padding: '2rem' 
-            }}>
-              <div className="loading-spinner" style={{
-                width: '40px',
-                height: '40px',
-                border: '4px solid #f3f3f3',
-                borderTop: '4px solid #4CAF50',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: '1rem'
-              }}></div>
-              <p>Loading module content...</p>
-            </div>
-          ) : error ? (
-            <div className="error-container">
-              <p className="error-message">{error}</p>
-              <button className="back-button" onClick={() => navigate('/park_guide/training')}>
-                Back to Training Modules
-              </button>
-            </div>
-          ) : (
-            <>
-              <h2 className="module-title">{module.module_name}</h2>
-              
-              {module.image_url && (
-                <img src={module.image_url} alt={module.module_name} className="module-image-large" />
-              )}
-              
-              <p className="module-description">{module.description}</p>
-              
-              {module.video_url && (
-                <div className="module-video">
-                  <iframe
-                    src={module.video_url}
-                    title={module.module_name}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    frameBorder="0"
-                  />
-                </div>
-              )}
-              
-              <div className="module-content">
-                {module.course_content && (
-                  <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
-                )}
-              </div>
-
-              <button className="back-button" onClick={() => navigate('/park_guide/training')}>
-                Back to Training Modules
-              </button>
-
-              {/* Fixed Quiz/Certificate Button */}
-              {showQuizButton && (
-                <div className="quiz-button-container">
-                  <button 
-                    className="quiz-button" 
-                    onClick={startQuiz}
-                  >
-                    Take Quiz
-                  </button>
-                </div>
-              )}
-              
-              {showCertificateButton && (
-                <div className="quiz-button-container">
-                  <button 
-                    className="certificate-button" 
-                    onClick={() => navigate('/park_guide/certifications')}
-                  >
-                    View Certificate
-                  </button>
-                </div>
-              )}
-            </>
+          {module.image && (
+            <img src={module.image} alt={module.title} className="module-image" />
           )}
+          
+          <div className="module-description">
+            <p>{module.description}</p>
+          </div>
+          
+          {module.video_url && (
+            <div className="video-section">
+              <h3>Course Video</h3>
+              <video controls src={module.video_url}>
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+          
+          {module.course_content && (
+            <div className="course-content">
+              <h3>Course Materials</h3>
+              <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
+            </div>
+          )}
+          
+          <div className="module-actions">
+            {quizCompleted || module.status === 'completed' ? (
+              <div className="module-completed">
+                <p className="success-message">✓ Module Completed</p>                <button 
+                  className="view-cert-button"
+                  onClick={() => navigate('/park_guide/certifications')}
+                >
+                  View Certificate
+                </button>
+              </div>
+            ) : (
+              <button 
+                className="start-quiz-button"
+                onClick={startQuiz}
+              >
+                Start Quiz
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </>
+      )}
+    </div>
   );
 };
 

@@ -10,7 +10,8 @@ export async function POST(request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const userId = auth.user.id;        const { module_id: moduleId, selectedAnswers, question_ids, answerTimes, passingScore = 0.7 } = await request.json();
+        const userId = auth.user.id;
+        const { module_id: moduleId, selectedAnswers, question_ids, answerTimes, passingScore = 0.7 } = await request.json();
 
         if (!moduleId || !Array.isArray(selectedAnswers) || selectedAnswers.length === 0 || !Array.isArray(question_ids)) {
             return NextResponse.json(
@@ -58,7 +59,7 @@ export async function POST(request) {
         const passPercentage = score / totalQuestions;
         const passed = passPercentage >= passingScore;
 
-        // Step 3: Transaction        // Get guide_id for the current user
+        // Get guide_id for the current user
         const [guideRows] = await connection.execute(
             "SELECT guide_id FROM parkguides WHERE user_id = ?",
             [userId]
@@ -70,8 +71,9 @@ export async function POST(request) {
         
         const guide_id = guideRows[0].guide_id;
 
-        await connection.beginTransaction();        try {
-            // Insert quiz attempt and get the attempt_id
+        await connection.beginTransaction();
+        try {
+            // Insert quiz attempt
             const [attemptResult] = await connection.execute(
                 `INSERT INTO quizattempts
                  (quiz_id, user_id, guide_id, module_id, score, passed, totalquestions, start_time, end_time, attempt_number)
@@ -83,7 +85,8 @@ export async function POST(request) {
             );
             
             const attemptId = attemptResult.insertId;
-              // Insert each quiz response
+
+            // Insert quiz responses
             for (let i = 0; i < selectedAnswers.length; i++) {
                 const selectedOptionId = selectedAnswers[i];
                 const questionId = question_ids[i];
@@ -97,23 +100,46 @@ export async function POST(request) {
                 );
             }
 
-            if (passed) {                const [existingCerts] = await connection.execute(
+            // If passed, update both GuideTrainingProgress and modulepurchases
+            if (passed) {
+                console.log(`User ${userId} passed the quiz for module ${moduleId} with score ${score}/${totalQuestions}`);
+                
+                // Update GuideTrainingProgress to completed
+                await connection.execute(
+                    `INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+                     VALUES (?, ?, 'completed', CURDATE())
+                     ON DUPLICATE KEY UPDATE status='completed', completion_date=CURDATE()`,
+                    [guide_id, moduleId]
+                );
+
+                // Update modulepurchases to completed
+                await connection.execute(
+                    `UPDATE modulepurchases 
+                     SET status = 'completed', completion_percentage = 100 
+                     WHERE user_id = ? AND module_id = ? AND status = 'active'`,
+                    [userId, moduleId]
+                );
+
+                // Check if certification already exists
+                const [existingCerts] = await connection.execute(
                     `SELECT cert_id FROM Certifications 
                      WHERE guide_id = ? AND module_id = ?`,
                     [guide_id, moduleId]
                 );
 
                 if (existingCerts.length === 0) {
+                    console.log(`Creating new certification for guide_id ${guide_id}, module ${moduleId}`);
                     const today = new Date();
                     const expiryDate = new Date(today);
-                    expiryDate.setFullYear(today.getFullYear() + 1);                    await connection.execute(
+                    expiryDate.setFullYear(today.getFullYear() + 1);
+                    
+                    await connection.execute(
                         `INSERT INTO Certifications 
                          (guide_id, module_id, issued_date, expiry_date) 
                          VALUES (?, ?, CURDATE(), ?)`,
                         [guide_id, moduleId, expiryDate.toISOString().split('T')[0]]
                     );
-
-                    console.log(`Created new certification for user ${userId}, module ${moduleId}`);
+                    console.log(`Successfully created certification for guide ${guide_id}, module ${moduleId}`);
                 }
             }
 
@@ -133,7 +159,8 @@ export async function POST(request) {
             await connection.rollback();
             throw error;
         }
-    } catch (error) {        console.error("Error recording quiz attempt:", error);
+    } catch (error) {
+        console.error("Error recording quiz attempt:", error);
         return NextResponse.json(
             { error: "Failed to record quiz attempt", details: error.message },
             { status: 500 }

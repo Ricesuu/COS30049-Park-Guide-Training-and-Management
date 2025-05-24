@@ -27,9 +27,10 @@ export async function GET(request, { params }) {
         }
 
         const userId = users[0].user_id;
-        // Check if the module is free (no purchase needed)
+
+        // Check if the module exists and get price info
         const [modules] = await connection.execute(
-            `SELECT is_premium FROM TrainingModules WHERE module_id = ?`,
+            `SELECT module_id, price FROM TrainingModules WHERE module_id = ?`,
             [moduleId]
         );
 
@@ -39,6 +40,7 @@ export async function GET(request, { params }) {
                 { status: 404 }
             );
         }
+
         // If module is free (price is 0), access is granted
         if (modules[0].price === 0 || modules[0].price === "0.00") {
             return NextResponse.json({
@@ -47,12 +49,14 @@ export async function GET(request, { params }) {
             });
         }
 
-        // For paid modules, check if user has purchased it
+        // For paid modules, check purchase status and completion status
         const [purchases] = await connection.execute(
-            `SELECT mp.status, pt.paymentStatus
-       FROM ModulePurchases mp
-       JOIN PaymentTransactions pt ON mp.payment_id = pt.payment_id
-       WHERE mp.user_id = ? AND mp.module_id = ? AND mp.is_active = TRUE`,
+            `SELECT mp.status, pt.paymentStatus, gtp.status as completion_status
+            FROM ModulePurchases mp
+            JOIN PaymentTransactions pt ON mp.payment_id = pt.payment_id
+            LEFT JOIN ParkGuides pg ON pg.user_id = mp.user_id
+            LEFT JOIN GuideTrainingProgress gtp ON gtp.guide_id = pg.guide_id AND gtp.module_id = mp.module_id
+            WHERE mp.user_id = ? AND mp.module_id = ? AND mp.is_active = TRUE`,
             [userId, moduleId]
         );
 
@@ -64,6 +68,14 @@ export async function GET(request, { params }) {
         }
 
         const purchase = purchases[0];
+
+        // Allow access if module is completed, regardless of payment status
+        if (purchase.completion_status === 'completed') {
+            return NextResponse.json({
+                hasAccess: true,
+                reason: "completed",
+            });
+        }
 
         // Check payment status
         if (purchase.paymentStatus !== "approved") {

@@ -135,32 +135,15 @@ export async function GET(request, { params }) {
           option_id: row.option_id,
           option_text: row.option_text
         });
-      }
-    }// Start attempt
-    const [guideRows] = await connection.execute(
-      "SELECT guide_id FROM parkguides WHERE user_id = ?",
-      [userId]
-    );
-    const guideId = guideRows.length ? guideRows[0].guide_id : null;
-
-    // Create attempt record (guide_id can be null)
-    const [insertRes] = await connection.execute(
-      `
-      INSERT INTO quizattempts
-        (quiz_id, user_id, guide_id, module_id, attempt_number)
-      VALUES (?, ?, ?, ?, ?)
-      `,
-      [quizId, userId, guideId, moduleId, lastAttempt + 1]
-    );
-    const attemptId = insertRes.insertId;    return NextResponse.json({
+      }    }
+    
+    return NextResponse.json({
       quiz: {
         id: quizInfo.quiz_id,
         title: quizInfo.title,
-        description: quizInfo.description,
-        attemptsAllowed: maxAttempts,
+        description: quizInfo.description,        attemptsAllowed: maxAttempts,
         attemptsUsed,
-        nextAttemptNumber: lastAttempt + 1,
-        attemptId
+        nextAttemptNumber: lastAttempt + 1
       },
       questions: processedQuestions
     });
