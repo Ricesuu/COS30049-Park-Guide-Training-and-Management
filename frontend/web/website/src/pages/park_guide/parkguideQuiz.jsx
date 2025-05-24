@@ -7,7 +7,8 @@ const ParkguideQuiz = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const moduleId = queryParams.get('moduleId');
+  const moduleId = location.state?.moduleId || queryParams.get('moduleId');
+  console.log('Received moduleId:', moduleId);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
@@ -17,7 +18,8 @@ const ParkguideQuiz = () => {
   const [questions, setQuestions] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [attemptId, setAttemptId] = useState(null);
+  const [answerTimes, setAnswerTimes] = useState({}); // Track time spent on each question
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -30,18 +32,20 @@ const ParkguideQuiz = () => {
 
         const token = await user.getIdToken();
 
-        // First get the module to find its quiz_id
+        // First get the module info
         const moduleResponse = await fetch(`/api/training-modules/${moduleId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-
+        
         if (!moduleResponse.ok) {
           throw new Error('Failed to fetch module data');
-        }        const moduleData = await moduleResponse.json();
-
-        // Fetch quiz data and questions through the module quiz endpoint
+        }
+        
+        const moduleData = await moduleResponse.json();
+        
+        // Fetch quiz data and questions
         const quizResponse = await fetch(`/api/training-modules/${moduleId}/quiz`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -49,16 +53,22 @@ const ParkguideQuiz = () => {
         });
 
         if (!quizResponse.ok) {
-          throw new Error('Failed to fetch quiz questions');
-        }        const data = await quizResponse.json();
-        if (data.error) {
-          throw new Error(data.error);
+          const errorData = await quizResponse.json();
+          throw new Error(errorData.error || 'Failed to fetch quiz questions');
         }
+        
+        const data = await quizResponse.json();
+        
+        if (!data.questions || !Array.isArray(data.questions)) {
+          throw new Error('Invalid quiz data received');
+        }
+        
+        console.log('Quiz data received:', data); // For debugging
+
         setQuizData({
-          ...data.quiz,
-          name: moduleData.module_name
+          quiz_id: data.quiz_id || moduleData.quiz_id,
+          name: moduleData.module_name,
         });
-        setAttemptId(data.quiz.attemptId);
         setQuestions(data.questions);
         setSelectedAnswers(new Array(data.questions.length).fill(''));
         setError(null);
@@ -78,7 +88,17 @@ const ParkguideQuiz = () => {
     }
   }, [moduleId]);
 
+  // Add timing tracking to useEffect
+  useEffect(() => {
+    setQuestionStartTime(Date.now()); // Reset timer when question changes
+  }, [currentQuestion]);
+
   const handleAnswer = (selectedOption) => {
+    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000); // Convert to seconds
+    const newAnswerTimes = { ...answerTimes };
+    newAnswerTimes[currentQuestion] = timeSpent;
+    setAnswerTimes(newAnswerTimes);
+
     const newSelectedAnswers = [...selectedAnswers];
     newSelectedAnswers[currentQuestion] = selectedOption;
     setSelectedAnswers(newSelectedAnswers);
@@ -103,32 +123,60 @@ const ParkguideQuiz = () => {
         throw new Error('User not authenticated');
       }
 
+      if (!moduleId) {
+        throw new Error('Module ID is missing');
+      }
+
+      if (!quizData || !quizData.quiz_id) {
+        throw new Error('Quiz ID is missing');
+      }
+
+      if (!selectedAnswers || selectedAnswers.length === 0) {
+        throw new Error('No answers selected');
+      }
+
+      if (!questions || questions.length === 0) {
+        throw new Error('No questions loaded');
+      }
+
       const token = await user.getIdToken();
 
-      // Send only moduleId and answers
-      const submitResponse = await fetch(`/api/quiz-completions`, {
+      // Calculate final answer time for the last question if not yet recorded
+      if (!answerTimes[currentQuestion]) {
+        answerTimes[currentQuestion] = Math.floor((Date.now() - questionStartTime) / 1000);
+      }
+
+      const requestData = {
+        module_id: parseInt(moduleId),
+        quiz_id: parseInt(quizData.quiz_id),
+        selectedAnswers: selectedAnswers,
+        question_ids: questions.map(q => q.question_id),
+        answerTimes: Object.values(answerTimes)
+      };
+
+      console.log('Submitting quiz data:', requestData); // For debugging
+
+      const submitResponse = await fetch(`/api/quizattempts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          moduleId: parseInt(moduleId),
-          answers: selectedAnswers.map((answer, index) => ({
-            questionId: questions[index].question_id,
-            selectedOptionId: answer,
-          })),
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (!submitResponse.ok) {
-        throw new Error('Failed to submit quiz');
+        const errorData = await submitResponse.json();
+        throw new Error(errorData.error || 'Failed to submit quiz');
       }
-
-      const result = await submitResponse.json();
-      setScore(result.score);
+        const responseData = await submitResponse.json();
+      const { success, message, score: finalScore } = responseData;
+      setScore(finalScore);
       setQuizSubmitted(true);
-      setAttemptId(result.attemptId);
+      
+      if (success) {
+        console.log(message); // Log success message
+      }
     } catch (err) {
       console.error('Error submitting quiz:', err);
       setError(err.message);
@@ -199,58 +247,59 @@ const ParkguideQuiz = () => {
               onClick={goToPreviousQuestion}
               disabled={currentQuestion === 0}
             >
-              Previous
+              Previous Question
             </button>
-            {currentQuestion === questions.length - 1 ? (
-              <button 
-                className="quiz-submit-button" 
+            <button
+              className="quiz-nav-button"
+              onClick={goToNextQuestion}
+              disabled={currentQuestion === questions.length - 1}
+            >
+              Next Question
+            </button>
+            {currentQuestion === questions.length - 1 && (
+              <button
+                className="submit-quiz-button"
                 onClick={submitQuiz}
                 disabled={selectedAnswers.includes('')}
               >
                 Submit Quiz
-              </button>
-            ) : (
-              <button 
-                className="quiz-nav-button" 
-                onClick={goToNextQuestion}
-              >
-                Next
               </button>
             )}
           </div>
         </div>
       ) : (
         <div className="quiz-results">
-          <h2 className="results-title">{quizData?.name} - Quiz Results</h2>
-          
-          <div className={`results-score ${isPassed ? 'passed' : 'failed'}`}>
-            <div className="score-circle">
-              <span className="score-number">{score}</span>
-              <span className="score-divider">/</span>
-              <span className="score-total">{questions.length}</span>
-            </div>
-            <div className="score-percentage">{scorePercentage}%</div>
-          </div>
-          
-          <div className="results-message">
+          <h2>Quiz Results</h2>
+          <div className="results-content">
+            <p className="score-display">Your Score: {scorePercentage}%</p>
+            <p className={`pass-status ${isPassed ? 'passed' : 'failed'}`}>
+              {isPassed ? 'Congratulations! You passed!' : 'Sorry, you did not pass.'}
+            </p>
+            <p className="passing-info">
+              Passing score: {passingPercentage}% ({passingScore} out of {questions.length} questions)
+            </p>
             {isPassed ? (
-              <>
-                <h3 className="success-message">Congratulations! You Passed!</h3>
-                <p>You have successfully completed this certification quiz with a score of {score} out of {questions.length} questions ({scorePercentage}%).</p>
-                <p>The minimum passing score was {passingScore} correct answers ({passingPercentage}%).</p>
-              </>
+              <button 
+                className="view-cert-button"
+                onClick={returnToCertifications}
+              >
+                View Certificate
+              </button>
             ) : (
-              <>
-                <h3 className="failure-message">Sorry, You Did Not Pass</h3>
-                <p>You completed this certification quiz with a score of {score} out of {questions.length} questions ({scorePercentage}%).</p>
-                <p>The minimum passing score is {passingScore} correct answers ({passingPercentage}%). Please review the material and try again.</p>
-              </>
+              <button
+                className="retry-button"
+                onClick={() => window.location.reload()}
+              >
+                Retry Quiz
+              </button>
             )}
+            <button 
+              className="back-to-training-button"
+              onClick={() => navigate('/park_guide/training')}
+            >
+              Back to Training
+            </button>
           </div>
-          
-          <button className="return-button" onClick={returnToCertifications}>
-            Return to Certifications
-          </button>
         </div>
       )}
     </div>

@@ -14,46 +14,90 @@ export async function POST(request) {
                 { status: 401 }
             );
         }
+          const userId = auth.user.id;
+        const { module_id, quiz_id, selectedAnswers, question_ids } = await request.json();
 
-        const userId = auth.user.id;
-        const { moduleId, score, totalQuestions, passingScore = 0.7 } = await request.json();
-
-        if (!moduleId || score === undefined || !totalQuestions) {
+        if (!module_id || !quiz_id || !selectedAnswers || !question_ids) {
             return NextResponse.json(
-                { error: "Missing required fields: moduleId, score, and totalQuestions are required" },
+                { error: "Missing required fields: module_id, quiz_id, selectedAnswers, and question_ids are required" },
                 { status: 400 }
             );
         }
 
-        // Calculate the pass percentage
-        const passPercentage = score / totalQuestions;
-        const passed = passPercentage >= passingScore;
-
         connection = await getConnection();
+        
+        // Get the correct answers for each question from the options table
+        const [optionsResults] = await connection.execute(
+            `SELECT question_id, options_id 
+             FROM options 
+             WHERE question_id IN (?) AND is_correct = 1`,
+            [question_ids]
+        );
+
+        // Create a map of question_id to correct option_id
+        const correctAnswers = new Map(
+            optionsResults.map(row => [row.question_id, row.options_id])
+        );
+
+        // Calculate score by comparing selected answers with correct answers
+        let score = 0;
+        let totalquestions = question_ids.length;
+        question_ids.forEach((questionId, index) => {
+            if (correctAnswers.get(questionId) === selectedAnswers[index]) {
+                score++;
+            }
+        });
+
+        // Calculate pass percentage
+        const passPercentage = score / totalquestions;
+        const passed = passPercentage >= 0.75; // 75% passing requirement
         
         // Start a transaction
         await connection.beginTransaction();
 
         try {
-            // Record the quiz completion
-            const [quizResult] = await connection.execute(
-                `INSERT INTO QuizCompletions (user_id, module_id, score, total_questions, passed, completion_date)
-                 VALUES (?, ?, ?, ?, ?, NOW())`,
-                [userId, moduleId, score, totalQuestions, passed ? 1 : 0]
+            // Insert quiz attempt
+            const [quizAttemptResult] = await connection.execute(
+                `INSERT INTO quizattempts (quiz_id, user_id, guide_id, module_id, score, passed, total_questions, start_time, end_time, attempt_number)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 
+                    (SELECT COALESCE(MAX(attempt_number), 0) + 1 
+                     FROM quizattempts AS qa 
+                     WHERE qa.user_id = ? AND qa.module_id = ?))`,
+                [quiz_id, userId, userId, module_id, score, passed ? 1 : 0, totalquestions, userId, module_id]
             );
+            
+            const attemptId = quizAttemptResult.insertId;
 
-            // If quiz passed, update module completion status to 100%
-            if (passed) {
+            // Insert quiz responses for each answer with proper tracking
+            for (let i = 0; i < question_ids.length; i++) {
+                const isCorrect = selectedAnswers[i] === correctAnswers.get(question_ids[i]);
                 await connection.execute(
-                    `UPDATE ModulePurchases 
-                     SET completion_percentage = 100
-                     WHERE user_id = ? AND module_id = ?`,
-                    [userId, moduleId]
-                );                // Check if a certification already exists
+                    `INSERT INTO quizresponses (
+                        attempt_id, 
+                        question_id, 
+                        selected_option_id, 
+                        is_correct, 
+                        answer_sequence,
+                        time_taken
+                    ) VALUES (?, ?, ?, ?, ?, ?)`,
+                    [
+                        attemptId,
+                        question_ids[i],
+                        selectedAnswers[i],
+                        isCorrect ? 1 : 0,
+                        i + 1, // answer_sequence is 1-based
+                        answerTimes[i] // Using the answer times we collected
+                    ]
+                );
+            }
+
+            // If quiz passed, check for certification
+            if (passed) {
+                // Check if a certification already exists
                 const [existingCerts] = await connection.execute(
                     `SELECT cert_id FROM Certifications 
                      WHERE guide_id = ? AND module_id = ?`,
-                    [userId, moduleId]
+                    [userId, module_id]
                 );
 
                 // Only create a new certificate if one doesn't exist
@@ -68,17 +112,16 @@ export async function POST(request) {
                         await connection.execute(
                             `INSERT INTO Certifications (guide_id, module_id, issued_date, expiry_date)
                              VALUES (?, ?, CURDATE(), ?)`,
-                            [userId, moduleId, expiryDate.toISOString().split('T')[0]]
+                            [userId, module_id, expiryDate.toISOString().split('T')[0]]
                         );
                         
-                        console.log(`Created new certification for user ${userId}, module ${moduleId}`);
+                        console.log(`Created new certification for user ${userId}, module ${module_id}`);
                     } catch (certError) {
                         console.error("Error creating certification:", certError);
                         // Continue with the transaction even if certificate creation fails
-                        // We don't want to roll back the quiz completion due to certificate issues
                     }
                 } else {
-                    console.log(`Certification already exists for user ${userId}, module ${moduleId}`);
+                    console.log(`Certification already exists for user ${userId}, module ${module_id}`);
                 }
             }
 
@@ -92,7 +135,7 @@ export async function POST(request) {
                     ? "Congratulations! You passed the quiz and earned a certificate." 
                     : "You did not pass the quiz. Please try again.",
                 score,
-                totalQuestions,
+                totalQuestions: totalquestions,
                 passPercentage: Math.round(passPercentage * 100)
             });
         } catch (error) {
@@ -107,7 +150,9 @@ export async function POST(request) {
             { status: 500 }
         );
     } finally {
-        if (connection) connection.release();
+        if (connection) {
+            connection.release();
+        }
     }
 }
 

@@ -252,47 +252,36 @@ const ModulePurchase = () => {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ moduleName: module.module_name || module.name })
+            }
           });
-          
+
           if (!enrollResponse.ok) {
             const errorData = await enrollResponse.json().catch(() => ({}));
-            throw new Error(errorData.error || `Failed to enroll in module: ${enrollResponse.status} ${enrollResponse.statusText}`);
+            throw new Error(errorData.error || `Enrollment failed: ${enrollResponse.status} ${enrollResponse.statusText}`);
           }
-        } catch (fetchError) {
-          console.error('Network error during enrollment:', fetchError);
-          throw new Error(`Network error: ${fetchError.message}`);
+          
+          // Show receipt for free module
+          setTransactionDetails({
+            transactionId: `FREE-${Date.now()}`,
+            date: new Date().toLocaleString(),
+            module: module.module_name || module.name,
+            price: '0.00',
+            status: 'Completed'
+          });
+        
+          // Show receipt for free modules
+          setShowReceipt(true);      
+        } catch (enrollError) {
+          console.error('Module enrollment error:', enrollError);
+          throw new Error(enrollError.message || 'Failed to enroll in free module');
         }
-        
-        let enrollData;
-        try {
-          enrollData = await enrollResponse.json();
-          console.log('Enrollment successful:', enrollData);
-        } catch (parseError) {
-          console.error('Error parsing enrollment response:', parseError);
-          throw new Error('Failed to process enrollment response');
-        }
-        
-        setPurchaseStatus('active');
-        
-        // Generate transaction details for the receipt
-        setTransactionDetails({
-          transactionId: `FREE-${Date.now()}`,
-          date: new Date().toLocaleString(),
-          module: module.module_name || module.name,
-          price: '0.00',
-          status: 'Completed'
-        });
-        
-        // Show receipt for free modules
-        setShowReceipt(true);      } else {
+      } else {
         try {
           // Create form data for submission
           const paymentFormData = new FormData();
           paymentFormData.append('moduleId', moduleId);
           paymentFormData.append('paymentPurpose', `Module Purchase: ${module.module_name || module.name}`);
-          paymentFormData.append('paymentMethod', 'credit_card');
+          paymentFormData.append('paymentMethod', 'credit'); // Fixed to use proper ENUM value
           paymentFormData.append('amountPaid', parseFloat(module.price));
 
           // Create a simple receipt image with essential details

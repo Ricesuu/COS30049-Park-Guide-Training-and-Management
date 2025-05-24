@@ -84,7 +84,6 @@ const ParkguideModule = () => {
       setLoading(false);
     }
   }, [moduleId, navigate]);
-
   const startQuiz = async () => {
     try {
       const user = auth.currentUser;
@@ -102,21 +101,20 @@ const ParkguideModule = () => {
       });
       
       if (!quizCheckResponse.ok) {
-        throw new Error('Quiz not available for this module');
-      }
-      
-      // Redirect to quiz page if available
-      navigate(`/park_guide/quiz?moduleId=${moduleId}`);
+        const errorData = await quizCheckResponse.json();
+        throw new Error(errorData.error || 'Quiz not available for this module');
+      }        // Redirect to quiz page if available      console.log('Navigating to quiz page with moduleId:', moduleId);
+      navigate('/park_guide/quiz', { state: { moduleId } });
     } catch (err) {
       console.error('Error starting quiz:', err);
       setError(err.message);
     }
   };
 
-  // Show quiz button only if module is completed and quiz not yet passed
-  const canTakeQuiz = module.completion_percentage >= 100;
-  const showQuizButton = canTakeQuiz && !quizCompleted;
-  const showCertificateButton = canTakeQuiz && quizCompleted;
+  // Remove completion percentage check
+  const showQuizButton = !quizCompleted;
+  const showCertificateButton = quizCompleted;
+  
   return (
     <>
       <div className="module-main-content">
@@ -174,30 +172,33 @@ const ParkguideModule = () => {
                   <div dangerouslySetInnerHTML={{ __html: module.course_content }} />
                 )}
               </div>
-              
-              <div className="module-navigation">
-                <button className="back-button" onClick={() => navigate('/park_guide/training')}>
-                  Back to Training Modules
-                </button>
-                
-                {showQuizButton && (
+
+              <button className="back-button" onClick={() => navigate('/park_guide/training')}>
+                Back to Training Modules
+              </button>
+
+              {/* Fixed Quiz/Certificate Button */}
+              {showQuizButton && (
+                <div className="quiz-button-container">
                   <button 
                     className="quiz-button" 
                     onClick={startQuiz}
                   >
-                    Take Certification Quiz
+                    Take Quiz
                   </button>
-                )}
-                
-                {showCertificateButton && (
+                </div>
+              )}
+              
+              {showCertificateButton && (
+                <div className="quiz-button-container">
                   <button 
                     className="certificate-button" 
                     onClick={() => navigate('/park_guide/certifications')}
                   >
                     View Certificate
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
