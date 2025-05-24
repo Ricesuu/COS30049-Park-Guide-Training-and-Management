@@ -106,7 +106,7 @@ const VisitorLandingPage = () => {
             WELCOME TO
           </h3>
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Park Guide Training and Management
+            Sarawak Forestry Corporation
           </h1>
           <p className="text-xl md:text-2xl mb-10 text-gray-200">
             Discover, Learn, and Connect with Nature
@@ -139,7 +139,8 @@ const VisitorLandingPage = () => {
               Key Features
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">
-              Everything you need to become an expert park guide
+              Discover everything you need to enhance your visit and connect
+              with nature.
             </p>
           </div>{" "}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -175,7 +176,7 @@ const VisitorLandingPage = () => {
               </h3>
               <p className="text-gray-600 text-center mb-5">
                 Explore the park with our interactive map and augmented reality
-                features to enhance your guide experience.
+                features to enhance your experience.
               </p>{" "}
               <div className="text-center">
                 <a
@@ -219,10 +220,10 @@ const VisitorLandingPage = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-              What Our Users Say
+              What Our Visitors Say
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">
-              Hear from park guides who have experienced our training program
+              Discover the experiences and stories shared by our visitors
             </p>
           </div>
 

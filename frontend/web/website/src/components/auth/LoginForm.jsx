@@ -26,14 +26,6 @@ export default function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4 px-6 md:px-0 md:mt-15">
       <div className="mb-1">
-        {" "}
-        <button
-          type="button"
-          onClick={() => navigate("/visitor")}
-          className="flex items-center text-green-600 hover:text-green-800 transition-colors mb-4 cursor-pointer"
-        >
-          <FaArrowLeft className="mr-2" /> Return to Home
-        </button>
         <h2 className="text-green-900 text-2xl font-medium mb-1">
           Welcome back!
         </h2>
@@ -89,6 +81,16 @@ export default function LoginForm() {
           Get Started
         </Link>
       </p>
+
+      <div className="flex justify-center mt-6">
+        <button
+          type="button"
+          onClick={() => navigate("/visitor")}
+          className="flex items-center text-green-600 hover:text-green-800 transition-colors cursor-pointer"
+        >
+          <FaArrowLeft className="mr-2" /> Return to Home
+        </button>
+      </div>
     </form>
   );
 }

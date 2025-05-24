@@ -65,10 +65,15 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
   return (
     <nav className="fixed top-0 left-0 right-0 bg-black/20 backdrop-blur-sm z-50">
       <div className="w-full px-8 flex justify-between items-center h-22">
-        {/* Left side of navbar */}
+        {" "}
+        {/* Left side of navbar */}{" "}
         <div className="flex items-center">
-          <div className="text-2xl md:text-3xl font-bold text-white mr-10">
-            SFC
+          <div className="mr-10 cursor-pointer" onClick={goToHome}>
+            <img
+              src="/images/SFC_LOGO_small.jpg"
+              alt="SFC Logo"
+              className="h-16 w-auto"
+            />
           </div>{" "}
           <ul className="hidden md:flex space-x-6">
             <li>
