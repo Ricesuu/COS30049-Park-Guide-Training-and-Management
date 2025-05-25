@@ -18,4 +18,4 @@ async def embed(request: Request):
     embeddings = model.encode(text, normalize_embeddings=True).tolist()
     return embeddings
 
-uvicorn.run(app, host="0.0.0.0", port=8000)
+# uvicorn.run(app, host="0.0.0.0", port=8000)
