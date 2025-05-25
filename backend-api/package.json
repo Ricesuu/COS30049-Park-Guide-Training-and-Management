@@ -2,12 +2,13 @@
   "name": "backend-api",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
+"scripts": {
+  "dev": "concurrently \"npm run fastapi\" \"next dev --turbopack\"",
+  "fastapi": "uvicorn embedded_server:app --reload --port 8000",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint"
+},
   "dependencies": {
     "@qdrant/js-client-rest": "^1.14.0",
     "backend-api": "file:",
