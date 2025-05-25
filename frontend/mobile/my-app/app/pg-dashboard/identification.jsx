@@ -7,11 +7,13 @@ import IdentificationContainer from "../../components/PGdashboard/Identification
 import ImageCapture from "../../components/PGdashboard/Identification/ImageCapture";
 import ResultDisplay from "../../components/PGdashboard/Identification/ResultDisplay";
 import CameraComponent from "../../components/PGdashboard/Identification/PlantCamera";
+import { API_URL } from '../../src/constants/constants'; 
 
 // Ignore specific warnings
 LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
 
-const API_URL = "http://192.168.239.1:3000/api/plantmodel";
+// const API_URL = "http://192.168.0.199:3000/api/plantmodel";
+const PLANT_MODEL_API = `${API_URL}/api/plantmodel`;
 
 const Identification = () => {
     const [image, setImage] = useState(null);
@@ -82,57 +84,50 @@ const Identification = () => {
     };
 
     const identifyOrchid = async () => {
-        if (!image) {
-            Alert.alert("No Image", "Please take or upload an image first.");
-            return;
+    if (!image) {
+        Alert.alert("No Image", "Please take or upload an image first.");
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+        const base64Image = await convertImageToBase64(image);
+
+        const response = await fetch(PLANT_MODEL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image, model: model }),
+        });
+
+        if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        setLoading(true);
+        const data = await response.json();
 
-        try {
-            const base64Image = await convertImageToBase64(image);
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    image: base64Image,
-                    model: model // Using the model state
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.predictions?.length > 0) {
-                const topResults = data.predictions.slice(0, 3).map((result) => ({
-                    name: result.info?.common_name || result.label,
-                    scientificName: result.label,
-                    confidence: result.probability,
-                    description: result.info?.description || "No description available",
-                    local_name: result.info?.local_name,
-                    habitat: result.info?.habitat,
-                    conservation_status: result.info?.conservation_status,
-                }));
-                setIdentificationResults(topResults);
-                setSelectedIndex(0);
-            } else {
-                Alert.alert("No Results", "Could not identify the plant.");
-            }
-
-        } catch (error) {
-            console.error("Error identifying orchid:", error);
-            Alert.alert("Error", "Failed to identify the orchid. Please try again.");
-        } finally {
-            setLoading(false);
+        if (data.predictions?.length > 0) {
+        const topResults = data.predictions.slice(0, 3).map((result) => ({
+            name: result.info?.common_name || result.label,
+            scientificName: result.label,
+            confidence: result.probability,
+            description: result.info?.description || "No description available",
+            local_name: result.info?.local_name,
+            habitat: result.info?.habitat,
+            conservation_status: result.info?.conservation_status,
+        }));
+        setIdentificationResults(topResults);
+        setSelectedIndex(0);
+        } else {
+        Alert.alert("No Results", "Could not identify the plant.");
         }
+    } catch (error) {
+        console.error("Error identifying orchid:", error);
+        Alert.alert("Error", "Failed to identify the orchid. Please try again.");
+    } finally {
+        setLoading(false);
+    }
     };
-
         const resetIdentification = () => {
             setImage(null);
             setIdentificationResults([]);
