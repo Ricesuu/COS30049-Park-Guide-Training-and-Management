@@ -1,0 +1,1524 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: May 25, 2025 at 03:30 AM
+-- Server version: 8.0.42
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `park_guide_management`
+--
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ApproveModulePayment` (IN `payment_id_param` INT)   BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Update payment status to approved
+        UPDATE paymenttransactions
+        SET paymentStatus = 'approved'
+        WHERE payment_id = payment_id_param;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment approved successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot approve payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetModuleQuizInfo` (IN `module_id_param` INT, IN `user_uid_param` VARCHAR(255))   BEGIN
+    DECLARE user_id_var INT;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Get all quizzes for this module
+    SELECT 
+        q.quiz_id,
+        q.title,
+        q.description,
+        q.pass_percentage,
+        q.attempts_allowed,
+        q.is_certification_quiz,
+        MAX(qa.score) AS highest_score,
+        CASE 
+            WHEN MAX(CASE WHEN qa.passed = 1 THEN 1 ELSE 0 END) = 1 THEN 'passed'
+            WHEN COUNT(qa.attempt_id) >= q.attempts_allowed THEN 'max_attempts_reached'
+            WHEN COUNT(qa.attempt_id) > 0 THEN 'in_progress'
+            ELSE 'not_attempted'
+        END AS attempt_status,
+        COUNT(qa.attempt_id) AS attempt_count
+    FROM 
+        quizzes q
+        LEFT JOIN quizattempts qa ON q.quiz_id = qa.quiz_id AND qa.user_id = user_id_var
+    WHERE 
+        q.module_id = module_id_param
+    GROUP BY 
+        q.quiz_id, q.title, q.description, q.pass_percentage, q.attempts_allowed, q.is_certification_quiz;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserModuleStatus` (IN `user_uid` VARCHAR(255))   BEGIN
+    -- Get user ID from UID
+    DECLARE user_id_var INT;
+    
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid;
+    
+    -- If user exists, get module information
+    IF user_id_var IS NOT NULL THEN
+        -- Get all modules, with purchase status
+        SELECT 
+            tm.module_id,
+            tm.module_name,
+            tm.description,
+            tm.price,
+            tm.is_premium,
+            CASE 
+                WHEN mp.purchase_id IS NOT NULL THEN 'purchased'
+                ELSE 'available'
+            END AS purchase_status,
+            IFNULL(mp.completion_percentage, 0) AS completion_percentage,
+            IFNULL(mp.status, 'not_purchased') AS module_status,
+            IFNULL(mp.purchase_date, NULL) AS purchase_date
+        FROM 
+            trainingmodules tm
+            LEFT JOIN (
+                SELECT mp.* 
+                FROM modulepurchases mp 
+                WHERE mp.user_id = user_id_var AND mp.is_active = 1
+            ) mp ON tm.module_id = mp.module_id
+        ORDER BY 
+            tm.is_premium ASC, 
+            tm.module_name ASC;
+    ELSE
+        -- If user doesn't exist, return empty result
+        SELECT NULL AS module_id;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `InitiateModulePurchase` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `payment_method_param` ENUM('debit','credit','e_wallet'), IN `amount_paid_param` DECIMAL(10,2), IN `receipt_image_blob` LONGBLOB)   BEGIN
+    DECLARE user_id_var INT;
+    DECLARE payment_id_var INT;
+    DECLARE already_purchased BOOLEAN DEFAULT FALSE;
+    
+    -- Transaction to ensure all operations succeed or fail together
+    START TRANSACTION;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has already purchased the module
+    SELECT COUNT(*) > 0 INTO already_purchased
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+    
+    IF user_id_var IS NOT NULL AND NOT already_purchased THEN
+        -- Create payment transaction record
+        INSERT INTO paymenttransactions (
+            user_id, 
+            uid, 
+            paymentPurpose, 
+            paymentMethod, 
+            amountPaid, 
+            receipt_image, 
+            paymentStatus,
+            module_id
+        ) VALUES (
+            user_id_var,
+            user_uid_param,
+            'module_purchase',
+            payment_method_param,
+            amount_paid_param,
+            receipt_image_blob,
+            'pending',
+            module_id_param
+        );
+        
+        -- Get the inserted payment ID
+        SET payment_id_var = LAST_INSERT_ID();
+        
+        -- Create module purchase record with pending status
+        INSERT INTO modulepurchases (
+            user_id,
+            module_id,
+            payment_id,
+            status,
+            is_active
+        ) VALUES (
+            user_id_var,
+            module_id_param,
+            payment_id_var,
+            'pending',
+            1
+        );
+        
+        -- Return the payment ID for reference
+        SELECT 
+            'success' AS result,
+            payment_id_var AS payment_id,
+            'Module purchase initiated, payment pending approval' AS message;
+        
+        COMMIT;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF already_purchased THEN
+            SELECT 'error' AS result, 'Module already purchased by this user' AS message;
+        END IF;
+        
+        ROLLBACK;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RejectModulePayment` (IN `payment_id_param` INT, IN `rejection_reason` VARCHAR(255))   BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Start transaction to ensure all operations succeed or fail together
+        START TRANSACTION;
+        
+        -- Update payment status to rejected
+        UPDATE paymenttransactions
+        SET 
+            paymentStatus = 'rejected'
+        WHERE payment_id = payment_id_param;
+        
+        -- Update module purchase status to revoked
+        UPDATE modulepurchases
+        SET 
+            status = 'revoked',
+            is_active = 0
+        WHERE payment_id = payment_id_param;
+        
+        COMMIT;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment rejected successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot reject payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateModuleCompletionPercentage` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `completion_percentage_param` DECIMAL(5,2))   BEGIN
+    DECLARE user_id_var INT;
+    DECLARE module_purchase_exists BOOLEAN DEFAULT FALSE;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has purchased the module
+    SELECT COUNT(*) > 0 INTO module_purchase_exists
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1 AND status = 'active';
+    
+    IF user_id_var IS NOT NULL AND module_purchase_exists THEN
+        -- Update completion percentage
+        UPDATE modulepurchases
+        SET completion_percentage = completion_percentage_param
+        WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Module completion percentage updated successfully' AS message;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF NOT module_purchase_exists THEN
+            SELECT 'error' AS result, 'Active module purchase not found for this user' AS message;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activealerts`
+--
+
+CREATE TABLE `activealerts` (
+  `alert_id` int NOT NULL,
+  `park_id` int NOT NULL,
+  `sensor_type` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `recorded_value` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `threshold_id` int NOT NULL,
+  `message` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `severity` enum('low','medium','high') COLLATE utf8mb4_general_ci NOT NULL,
+  `is_acknowledged` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `alertthresholds`
+--
+
+CREATE TABLE `alertthresholds` (
+  `threshold_id` int NOT NULL,
+  `sensor_type` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `park_id` int NOT NULL,
+  `min_threshold` float DEFAULT NULL,
+  `max_threshold` float DEFAULT NULL,
+  `trigger_message` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `severity` enum('low','medium','high') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'medium',
+  `is_enabled` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `alertthresholds`
+--
+
+INSERT INTO `alertthresholds` (`threshold_id`, `sensor_type`, `park_id`, `min_threshold`, `max_threshold`, `trigger_message`, `severity`, `is_enabled`, `created_at`, `updated_at`) VALUES
+(1, 'temperature', 1, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(2, 'temperature', 2, 20, 32, 'Temperature threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(3, 'humidity', 1, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(4, 'humidity', 2, 40, 80, 'Humidity threshold exceeded', 'medium', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(5, 'soil moisture', 1, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(6, 'soil moisture', 2, 30, 31, 'Soil moisture threshold exceeded', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(7, 'motion', 1, NULL, NULL, 'Unauthorized motion detected', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38'),
+(8, 'motion', 2, NULL, NULL, 'Unauthorized motion detected', 'high', 1, '2025-05-15 02:38:38', '2025-05-15 02:38:38');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `certifications`
+--
+
+CREATE TABLE `certifications` (
+  `cert_id` int NOT NULL,
+  `guide_id` int NOT NULL,
+  `module_id` int NOT NULL,
+  `issued_date` date NOT NULL,
+  `expiry_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `certifications`
+--
+
+INSERT INTO `certifications` (`cert_id`, `guide_id`, `module_id`, `issued_date`, `expiry_date`) VALUES
+(1, 1, 1, '2025-05-24', '2026-05-24');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `guidebook`
+--
+
+CREATE TABLE `guidebook` (
+  `guidebook_id` int NOT NULL,
+  `park_id` int NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text COLLATE utf8mb4_general_ci NOT NULL,
+  `multimedia_links` text COLLATE utf8mb4_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `guidebook`
+--
+
+INSERT INTO `guidebook` (`guidebook_id`, `park_id`, `title`, `content`, `multimedia_links`) VALUES
+(1, 1, 'Exploring Bako National Park: A Visitor\'s Guide', 'Discover the diverse ecosystems, flora, and fauna of Bako National Park. Includes tips for hiking, wildlife spotting, and safety precautions.', 'bako_guide_video_links, bako_maps_links'),
+(2, 2, 'Semenggoh Wildlife Centre: Orangutan Conservation and Visitor Tips', 'Learn about the history, mission, and highlights of Semenggoh Wildlife Centre, with tips for observing wildlife responsibly and engaging in conservation efforts.', 'semenggoh_video_links, semenggoh_facts_links');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `guidetrainingprogress`
+--
+
+CREATE TABLE `guidetrainingprogress` (
+  `progress_id` int NOT NULL,
+  `guide_id` int NOT NULL,
+  `module_id` int NOT NULL,
+  `status` enum('in progress','Completed') COLLATE utf8mb4_general_ci DEFAULT 'in progress',
+  `completion_date` date DEFAULT NULL,
+  `start_date` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `guidetrainingprogress`
+--
+
+INSERT INTO `guidetrainingprogress` (`progress_id`, `guide_id`, `module_id`, `status`, `completion_date`, `start_date`) VALUES
+(1, 1, 1, 'Completed', NULL, '2025-05-23'),
+(2, 1, 2, 'in progress', NULL, '2025-05-23'),
+(3, 1, 3, 'in progress', NULL, '2025-05-24');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `iotmonitoring`
+--
+
+CREATE TABLE `iotmonitoring` (
+  `sensor_id` int NOT NULL,
+  `park_id` int NOT NULL,
+  `sensor_type` enum('temperature','humidity','soil moisture','motion') COLLATE utf8mb4_general_ci NOT NULL,
+  `recorded_value` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `recorded_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `iotmonitoring`
+--
+
+INSERT INTO `iotmonitoring` (`sensor_id`, `park_id`, `sensor_type`, `recorded_value`, `recorded_at`) VALUES
+(1, 1, 'temperature', '24.5', '2025-05-14 16:38:38'),
+(2, 1, 'temperature', '25.2', '2025-05-14 17:38:38'),
+(3, 1, 'temperature', '26.8', '2025-05-14 18:38:38'),
+(4, 1, 'temperature', '28.3', '2025-05-14 19:38:38'),
+(5, 1, 'temperature', '29.5', '2025-05-14 20:38:38'),
+(6, 1, 'temperature', '30.1', '2025-05-14 21:38:38'),
+(7, 1, 'temperature', '30.2', '2025-05-14 22:38:38'),
+(8, 1, 'temperature', '29.8', '2025-05-14 23:38:38'),
+(9, 1, 'temperature', '28.5', '2025-05-15 00:38:38'),
+(10, 1, 'temperature', '27.7', '2025-05-15 01:38:38'),
+(11, 1, 'humidity', '75%', '2025-05-14 16:38:38'),
+(12, 1, 'humidity', '72%', '2025-05-14 17:38:38'),
+(13, 1, 'humidity', '68%', '2025-05-14 18:38:38'),
+(14, 1, 'humidity', '65%', '2025-05-14 19:38:38'),
+(15, 1, 'humidity', '62%', '2025-05-14 20:38:38'),
+(16, 1, 'humidity', '60%', '2025-05-14 21:38:38'),
+(17, 1, 'humidity', '61%', '2025-05-14 22:38:38'),
+(18, 1, 'humidity', '64%', '2025-05-14 23:38:38'),
+(19, 1, 'humidity', '68%', '2025-05-15 00:38:38'),
+(20, 1, 'humidity', '71%', '2025-05-15 01:38:38');
+
+-- --------------------------------------------------------
+
+--
+-- Views
+--
+
+-- View for module progress by guide
+CREATE OR REPLACE VIEW ModuleProgressByGuide AS
+SELECT 
+    pg.guide_id,
+    u.first_name,
+    u.last_name,
+    tm.module_name,
+    gtp.status as training_status,
+    gtp.completion_date,
+    CASE 
+        WHEN c.cert_id IS NOT NULL AND c.expiry_date > CURDATE() THEN 'Valid'
+        WHEN c.cert_id IS NOT NULL AND c.expiry_date <= CURDATE() THEN 'Expired'
+        ELSE 'Not Certified'
+    END as certification_status
+FROM 
+    parkguides pg
+    JOIN users u ON pg.user_id = u.user_id
+    JOIN guidetrainingprogress gtp ON pg.guide_id = gtp.guide_id
+    JOIN trainingmodules tm ON gtp.module_id = tm.module_id
+    LEFT JOIN certifications c ON pg.guide_id = c.guide_id AND tm.module_id = c.module_id;
+
+-- View for active guide certifications
+CREATE OR REPLACE VIEW ActiveGuideCertifications AS
+SELECT 
+    pg.guide_id,
+    u.first_name,
+    u.last_name,
+    tm.module_name,
+    c.issued_date,
+    c.expiry_date,
+    CASE 
+        WHEN c.expiry_date > CURDATE() THEN 'Valid'
+        ELSE 'Expired'
+    END as status
+FROM 
+    parkguides pg
+    JOIN users u ON pg.user_id = u.user_id
+    JOIN certifications c ON pg.guide_id = c.guide_id
+    JOIN trainingmodules tm ON c.module_id = tm.module_id
+WHERE 
+    c.expiry_date >= CURDATE();
+
+-- View for park monitoring status
+CREATE OR REPLACE VIEW ParkMonitoringStatus AS
+SELECT 
+    p.park_id,
+    p.park_name,
+    im.sensor_type,
+    im.recorded_value,
+    im.recorded_at,
+    CASE 
+        WHEN aa.alert_id IS NOT NULL THEN 'Alert'
+        ELSE 'Normal'
+    END as status,
+    aa.severity,
+    aa.message
+FROM 
+    parks p
+    LEFT JOIN iotmonitoring im ON p.park_id = im.park_id
+    LEFT JOIN activealerts aa ON p.park_id = aa.park_id AND im.sensor_type = aa.sensor_type;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `modulepurchases`
+--
+
+CREATE TABLE `modulepurchases` (
+  `purchase_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `module_id` int NOT NULL,
+  `payment_id` int NOT NULL,
+  `purchase_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_active` tinyint(1) DEFAULT '1',
+  `status` enum('pending','active','revoked') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `modulepurchases`
+--
+
+INSERT INTO `modulepurchases` (`purchase_id`, `user_id`, `module_id`, `payment_id`, `purchase_date`, `is_active`, `status`) VALUES
+(1, 2, 1, 2, '2025-05-22 18:35:18', 1, 'active'),
+(2, 2, 2, 3, '2025-05-23 12:02:08', 1, 'active'),
+(3, 2, 3, 4, '2025-05-24 15:36:38', 1, 'active');
+
+--
+-- Triggers `modulepurchases`
+--
+DELIMITER $$
+CREATE TRIGGER `after_module_purchase_creation` AFTER INSERT ON `modulepurchases` FOR EACH ROW BEGIN
+  DECLARE guide_id INT;
+  
+  -- Find guide_id for the user who purchased the module
+  SELECT pg.guide_id INTO guide_id
+  FROM ParkGuides pg
+  WHERE pg.user_id = NEW.user_id
+  LIMIT 1;
+  
+  -- If guide_id found, insert a record into GuideTrainingProgress
+  IF guide_id IS NOT NULL THEN
+    INSERT IGNORE INTO GuideTrainingProgress
+      (guide_id, module_id, status, start_date)
+    VALUES
+      (guide_id, NEW.module_id, 'in progress', CURRENT_DATE());
+  END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `multilicensetrainingexemptions`
+--
+
+CREATE TABLE `multilicensetrainingexemptions` (
+  `exemption_id` int NOT NULL,
+  `guide_id` int NOT NULL,
+  `training_id` int NOT NULL,
+  `exempted_training_id` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `options`
+--
+
+CREATE TABLE `options` (
+  `options_id` int NOT NULL,
+  `question_id` int NOT NULL,
+  `text` varchar(255) NOT NULL,
+  `is_correct` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `options`
+--
+
+INSERT INTO `options` (`options_id`, `question_id`, `text`, `is_correct`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Back away slowly while facing the bear', 1, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(2, 1, 'Run away as fast as you can', 0, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(3, 1, 'Climb a tree immediately', 0, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(4, 1, 'Approach the bear and make loud noises', 0, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(5, 2, 'True', 0, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(6, 2, 'False', 1, '2025-05-22 18:25:25', '2025-05-22 18:25:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `parkguides`
+--
+
+CREATE TABLE `parkguides` (
+  `guide_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `parks`
+--
+
+CREATE TABLE `parks` (
+  `park_id` int NOT NULL,
+  `park_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `location` text COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `wildlife` text COLLATE utf8mb4_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parks`
+--
+
+INSERT INTO `parks` (`park_id`, `park_name`, `location`, `description`, `wildlife`) VALUES
+(1, 'Bako National Park', 'Sarawak, Malaysia', 'Bako National Park is known for its diverse ecosystems, ranging from mangroves to rainforest, and its stunning coastline.', 'Proboscis monkeys, bearded pigs, otters, and various bird species'),
+(2, 'Semenggoh Wildlife Centre', 'Kuching, Sarawak, Malaysia', 'Semenggoh Wildlife Centre is a sanctuary for rehabilitated orangutans, providing visitors with a chance to observe these magnificent creatures in their natural habitat.', 'Orangutans, gibbons, crocodiles, and local birdlife');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `paymenttransactions`
+--
+
+CREATE TABLE `paymenttransactions` (
+  `payment_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `uid` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `paymentPurpose` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `paymentMethod` enum('debit','credit','e_wallet') COLLATE utf8mb4_general_ci NOT NULL,
+  `amountPaid` decimal(10,2) NOT NULL,
+  `receipt_image` longblob NOT NULL,
+  `paymentStatus` enum('pending','approved','rejected') COLLATE utf8mb4_general_ci DEFAULT 'pending',
+  `transaction_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `module_id` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `paymenttransactions`
+--
+
+INSERT INTO `paymenttransactions` (`payment_id`, `user_id`, `uid`, `paymentPurpose`, `paymentMethod`, `amountPaid`, `receipt_image`, `paymentStatus`, `transaction_date`, `module_id`) VALUES
+(1, 2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'registration_and_enrollment', 'debit', 250.00, 0xffd8ffe102014578696600004d4d002a0000000800070100000400000001000005a0011000020000001400000062010100040000000100000780010f0002000000070000007687690004000000010000009101120004000000010000000001320002000000140000007d0000000073646b5f6770686f6e6536345f7838365f363400476f6f676c6500323032353a30353a30382030313a34393a333100000f90000002000000050000014b920200050000000100000150882700030000000100640000929200020000000430353800900300020000001400000158929100020000000430353800a4030003000000010000000090040002000000140000016c9201000a0000000100000180920a00050000000100000188829a00050000000100000190920900030000000100000000929000020000000430353800920800030000000100000000829d000500000001000001980000000030323230000000009e00000064323032353a30353a30382030313a34393a333100323032353a30353a30382030313a34393a3331000000228a000003e80000111c000003e80000001500002710000043940000271000030110000200000014000001ca010f000200000007000001de0132000200000014000001e50000000073646b5f6770686f6e6536345f7838365f363400476f6f676c6500323032353a30353a30382030313a34393a333100ffe000104a46494600010100000100010000ffe201d84943435f50524f46494c45000101000001c800000000043000006d6e74725247422058595a2007e00001000100000000000061637370000000000000000000000000000000000000000000000000000000010000f6d6000100000000d32d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657363000000f0000000247258595a00000114000000146758595a00000128000000146258595a0000013c00000014777470740000015000000014725452430000016400000028675452430000016400000028625452430000016400000028637072740000018c0000003c6d6c756300000000000000010000000c656e5553000000080000001c007300520047004258595a200000000000006fa2000038f50000039058595a2000000000000062990000b785000018da58595a2000000000000024a000000f840000b6cf58595a20000000000000f6d6000100000000d32d706172610000000000040000000266660000f2a700000d59000013d000000a5b00000000000000006d6c756300000000000000010000000c656e5553000000200000001c0047006f006f0067006c006500200049006e0063002e00200032003000310036ffdb0043000a07070807060a0808080b0a0a0b0e18100e0d0d0e1d15161118231f2524221f2221262b372f26293429212230413134393b3e3e3e252e4449433c48373d3e3bffdb0043010a0b0b0e0d0e1c10101c3b2822283b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3bffc0001108078005a003012200021101031101ffc4001c0001000203010101000000000000000000000106040507030802ffc4003410010000010906050402030101000000000001020304166491a3d1e10512141552533254719293314155d261a20611513344ffc4001a010101010101010100000000000000000000010504030206ffc400221101000201050101010101010000000000000131510211121314036141522104ffda000c03010002110311003f00ea40325cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000803cf7e26fc5cfe9d29bbd079efc4df89e9d29c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e83cf7e26fc4f4e9393d079efc4df89e9d2727a0f3df89bf13d3a4e4f41e7bf137e27a749c9e803a5f4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009343c63f508fd4644dbcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ec0361e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009343c63f508fd4644dbcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ec0361e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009343c63f508fd4644dbcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ec0361e8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009343c63f508fd4644dbcc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ec0361e80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002bf5a6c589a2c0a0037f5a6c589a15a6c589a340037f5a6c589a15a6c589a340037f5a6c589a15a6c589a340037f5a6c589a15a6c589a34024d0ded65b1e2688acb63c4d1a318d33ff005e1bcb79596c789a1596c789a34626e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2de565b1e268565b1e268d186e6f2bf80db7b8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b738020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80dc740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b738020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80dc740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b738020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80dc740000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f6e8fa7f995da400e8faff9938c801d1f5ff32719003a3ebfe64e3200747d7fcc9c6400e8faff009938c801d1f5ff0032719003a3ebfe64e3200747d7fcc9c657f01acf70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000049a0018b36e7004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001f5164003f5514e98a00500000000000000000000017f019c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003ea2c8007eaa29d31400a0000000000000000000002fe033900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000012680062cdb9c010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007d459000fd5453a6280140000000000000000000005fc06720000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fa8b2001faa8a74c50028000000000000000000000bf80ce40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000049a0018b36e7004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001f516402843f5514e98a5f4508517d142017d142017d142017d142017d142017d142017d14201df006720000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fa8b214201faa8a74c50028000000000000000000000ef8033900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000012680062cdb9c010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007d4590a100fd5453a62801400000000000000000000077c019c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003ea2c850807eaa29d31400a0000000000000000000003be00ce40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000049a0018b36e7004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001f516aa100fd5453a22801400000000000000000000077c019c80000000000000000000000000000000000000000000000000000000000000002a1cf769f99c39392dea00361cf769f99c39391cf769f99c393935e0361cf769f99c39391cf769f99c393935e0361cf769f99c39391cf769f99c393935e0361cf769f99c39391cf769f99c393935e0b0d873dda7e670e4e473dda7e670e4e4d78f7da1d5c630d873dda7e670e4e473dda7e670e4e4d786d0718c361cf769f99c39391cf769f99c393935e1b41c630d873dda7e670e4e473dda7e670e4e4d786d0718c361cf769f99c393935e06d0718c001b41c630006d0718c001b41c630006d1838c6001f1d3f3c270d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a700074fcf1070d38003a7e7883869c001d3f3c41c34e000e9f9e20e1a7000757cf070d3850807aef2bc630006f2bc630006f2718c001bc9c630006f2718c001bc9c630006f2718c001bc9c630006f2718c3be00e6718000000000000000000000000000000000000000000000000000000000000000a02fea00000000000001045803a21db14000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1000000000000000000000000000ef8039dc4000000000000000000000000000000000000000000000000000000000000000280bfa80000000000000411600e8876c5000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000284000000000000000000000000003be00e7710000000000000000000000000000000000000000000000000000000000000000a02fea00000000000001045803a21db14000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a1000000000000000000000000000ef8039dc4000000000000000000000000000000000000000000000000000000000000000280bfa8000000000000041160d1565b1e268565b1e268e8876c537a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a037a345596c789a1596c789a02be2773f9373f90409dcfe4dcfe4102773f9373f90409dcfe4dcfe4102773f9373f90409dcfe4dcfe4102773f9373f90409dcfe4dcfe4102773f9373f9077b01cee20000000000000000000000000000000000000000000000000000000000000001405fd40000000000000208b51807443b628000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001de0073b880000000000000000000000000000000000000000000000000000000000000005017f500000000000000822d4601d10ed8a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077801cee20000000000000000000000000000000000000000000000000000000000000001405fd40000000000000208b51807443b628000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001de0073b880000000000000000000000000000000000000000000000000000000000000005017f50000000000000022d4601d10ed8a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077801cee20000000000000000000000000000000000001afe7bb33ccff4959360a002dfcf766799fe92b239eeccf33fd2564a800b7f3dd99e67fa4ac8e7bb33ccff0049592a002dfcf766799fe92b239eeccf33fd2564a800b7f3dd99e67fa4ac8e7bb33ccff49592a024d0b7f3dd99e67fa4ac8e7bb33ccff49592a033e7ff0056b79f395bf9eeccf33fd256473dd99e67fa4ac95013d5ad39cadfcf766799fe92b239eeccf33fd2564a807ab59ce56fe7bb33ccff0049591cf766799fe92b25403d5ace72b7f3dd99e67fa4ac95003d5ace72007ab59ce400f56b39c801ead67390058ffd5af758d73ba8c036629a1140028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e7710000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000fa8b58b51807e8629a71400aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039dc4000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000003ea2d62d4601fa18a69c5002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e7710000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000fa8b58b51807e8629a71400aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039dc4000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000003ea2d62d4601fa18a69c5002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e7710000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000fa8b58b51807e8629a71400aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039dc4000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000003ea2d62d4601fa18a69c5002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e7710000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000fa8b58b51807e8629a71400aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039dc4000000000000000000000000000000000000280bfa80000000000000934003166dce008000000000000000000003ea2d62d4601fa18a69c5002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e7710000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000b16b0a309dd81bb06cc7fe9d3b53ae3ff469409dd81bb05f4e9c2fa74a04eec0dd81e9d383d3a50277606ec0f4e9c1e9d2813bb037607a74e0f4e9409dd81bb03d3a707a74a04eec0dd81e9d383d3a50277606ec0f4e9c1e9d2813bb0374f4e9c27a74a007af643cfdbf3c4801d909edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e2400ec83dbf3c4801d907b7e789003b20f6fcf12007641edf9e25de0079a8000000000000000000000000000000000000a02fea000000000000024d000c59b73802000000000000000000000a29003ad000000000000000000000001525f901d914e2900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077801f6d70000000000000000000000000000000000001405fd4000000000000049a0018b36e70040000000000000000000014520075a000000000000000000000002a4bf203b229c52000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003edae000000000000000000000000000000000000280bfa80000000000000934003166dce0080000000000000000000028a400eb4000000000000000000000005497e40764538a4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001de007db5c0000000000000000000000000000000000005017f5000000000000012680062cdb9c01000000000000000000000514801d6800000000000000000000000a92fc80ec8a7148000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00fb6b8000000000000000000000000000000000000a02fea000000000000024d000c59b738020000000000000000000000d5d5ea1f727af86455ea1f727af864da0fbe7ab235757a87dc9ebe19157a87dc9ebe193681cf5646aeaf50fb93d7c322af50fb93d7c326d039eac8d5d5ea1f727af86455ea1f727af864da073d591ababd43ee4f5f0c9a9e0a6ff00eca5a95c39eac8f0e0e6ff00eca3839bff00b29ee2f3d591e1c1cdff00d9470737ff00653dc39eac8f0e0e6ffeca3839bffb29ee1cf5647870737ff651c1cd7fd94f708d7ab2934c7e066baa5de70335d52ef640d58a70cb1f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd90031f819aea9779c0cd754bbd9003b100fb6b8000000000000000000000000000000000000a02fea000000000000024d000c59b7380200000000000000000000000000000000002b8b1ab8a000000000002c593400d78a704d8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003b100fb6b8000000000000000000000000000000000000a02fea000000000000024d000c59b7380200000000000000000000000000000000002b8b1ab8a000000000002c593400d78a704d8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003b100fb6b8000000000000000000000000000000000000a02fea000000000000024d000c59b7380200000000000000000000000000000000002b8b1ab8a000000000002c593400d78a704d8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003b10c2e6b47e89cba199cd68fd139743339e9cb5b78668c2e6b47e89cba199cd68fd139743339e9c9bc33461735a3f44e5d0cce6b47e89cba199cf4e4de19a30b9ad1fa272e866735a3f44e5d0cce7a726f0cd185cd68fd139743339ad1fa272e86673d39378668c2e6b47e89cba199cd68fd139743339e9c9bc33461735a3f44e5d0cce6b47e89cba199cf4e4de19a30b9ad1fa272e866735a3f44e5d0cce7a726f0cd185cd68fd139743339ad1fa272e86673d39378668c2e6b47e89cba199cd68fd139743339e9c9bc33461735a3f44e5d0cce6b47e89cba199cf4e4de19a30b9ad1fa272e866735a3f44e5d0cce7a726f0cd185cd68fd139743339ad1fa272e86673d3937866a80b9735a3f44e5d0cdcef9f513b73d743339e9c9bc36435bcfa89db9eba199cfa89db9eba199cf4e4de1b21ade7d44edcf5d0cce7d44edcf5d0cce7a726f0d90d6f3ea276e7ae86673ea276e7ae86673d393786c86b79f513b73d743339f513b73d7433275e9dacde1b21ade7f44edcf5d0cce7f44edcf5d0cd973f2d7bd3c766c86b79fd13b73d743339fd13b73d74334ead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b21ade7f44edcf5d0cce7f44edcf5d0ccead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b21ade7f44edcf5d0cce7f44edcf5d0ccead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b21ade7f44edcf5d0cce7f44edcf5d0ccead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b21ade7f44edcf5d0cce7f44edcf5d0ccead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b21ade7f44edcf5d0cce7f44edcf5d0ccead78366c86b79fd13b73d743339fd13b73d74333ab5e0d9b2571b1e7f44edcf5d0cdae5ead7836003ab5e0d800ead7836003ab5e0d80163e5af0931ff00001a514e09b005000000000000000000000001f7c3561e9d5af00070d583ab5e2400e1ab0756bc4801c3560ead78900386ac1d5af120070d583ab5e2400e1ab0756bc4801c3560ead78900386ac1d5af000f879800000000000000000000000003d3ab5e1e9d5af000756bc1d5af1200756bc1d5af1200756bc1d5af1200756bc1d5af1200756bc1d5af1200756bc1d5af1200756bc1d5af1200756bc1d5af000f379800000000000000000000000003ef86ac3d3ab5e000e1ab0756bc4801c3560ead78900386ac1d5af120070d583ab5e2400e1ab0756bc4801c3560ead78900386ac1d5af120070d583ab5e257f0194eb0000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000cf6033c001000000500112401e2cd9b0000000000000000000000058b58b006a4537e28015400000000000000000001269268019736c09b00440000000000000000000058b58b006f4537e28015400000000000000000001269268018336c09b00440000000000000000000058b58b006a4537e2801540000000000000000000017f01f97668000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f4005000000000000000000000000000000000067b019e00000000000089200f166cd800000000000000000000002c5ac58035229bf1400aa0000000000000000000093493400cb9b604d8022000000000000000000002c5ac58037a29bf1400aa0000000000000000000093493400c19b604d8022000000000000000000002c5ac58035229bf1400aa000000000000000000000bf80fcbb3400000000000000000000000000000000000073274d73258001400000010942c5800d58a7a002800000000000000000000000000000000033d80cf0000000000004490078b366c0000000000000000000000162d62c01a914df8a00550000000000000000000049a49a0065cdb026c01100000000000000000000162d62c01bd14df8a00550000000000000000000049a49a0060cdb026c01100000000000000000000162d62c01a914df8a00550000000000000000000005fc07e5d9a0000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000019ec067800000000000224803c59b3600000000000000000000000b16b1600d48a6fc5002a8000000000000000000024d24d0032e6d8136008800000000000000000000b16b1600de8a6fc5002a8000000000000000000024d24d003066d8136008800000000000000000000b16b1600d48a6fc5002a8000000000000000000002fe03f2ecd0000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000cf6033c00000000000112401e2cd9b0000000001e1c7d0bce4c7c90cdeee7d18c7fdc5e9a34727afcf446add7ae6142f3931f243339850bce4c7c90cd451e9d50f5e88caf5cc285e7263e4866730a179c98f9219a8a1d50744657ae6142f3931f243339850bce4c7c90cd450ea83a232bd730a179c98f9219a398507ce4c7c90cd46447e9123e5047c637b5e39aecef3f46f964e6734d9bf90a2fcd2737388fd6287735a29d239a6cdfc8517e69399cd366fe428bf349cdcdc15d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd36747ffbe8df2c9cdcdd30f143d4949a751019536c09b00440000001e7c44c77e6fdd07a2ba0df71131df9bf740e2263bf37ee8342037dc44c77e6fdd038898efcdfba0d080df71131df9bf740e2263bf37ee8342037dc44c77e6fdd038898efcdfba0d08b16b16df71131df9bf740e2263bf37ee834237a29bf14df71131df9bf740e2263bf37ee83422ab7dc44c77e6fdd038898efcdfba0d080df71131df9bf740e2263bf37ee8342037dc44c77e6fdd038898efcdfba0d080df71131df9bf740e2263bf37ee8342037dc44c77e6fdd038898efcdfba0d080df71131df9bf740e2263bf37ee8342037dc44c77e6fdd038898efcdfba0d08934934b100c19b604d8022000000000000000000002c5ac5b179a6ce87ff007d1be59399cd366fe428bf349cdce23e28faa1ab14df8a748e69b37f2145f9a4e6734d9bf90a2fcd27373705748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701d239a6cdfc8517e69399cd366fe428bf349cdcdc0748e69b37f2145f9a4e6734d9bf90a2fcd27373701f4880fcbb3400000000000000000000000000000000000073274d73258001400000010942c5800d58a7a002800000000000000000000000000000000033d80cf0000000000004490078b366c00000000073e8ba0b9f45eff1feba3e1fd400f6748000002511fa45288fd2210c0fba13f743a5df000280000000000000000009878a1ea84c3c50f51269d440654db026c01100000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000162d62dcba3e28faa131f147d50d56fc5000a000000000000000000000fa4407e5d9a0000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000019ec067800000000000224803c59b3600000000039f45d05cfa2f7f8ff005d1f0fea007b3a4000001288fd229447e9108607dd09fba1d2ef800140000000000000000004c3c50f54261e287a8934ea2032a6d813600880000002bab12ba000000000000b16b1600de8a6fc5002a8000000000000000000024d24d2c403066d8136008800000000000000000000b16b16e5d1f147d5098f8a3ea86ab7e280050000000000000000000007d2203f2ecd0000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000cf6033c00000000000112401e2cd9b0000000001cfa2e82e7d17bfc7fae8f87f5003d9d20000009447e914a23f4884303ee84fdd0e977c000a000000000000000000261e287aa130f143d449a751019536c09b004400000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000058b58b72e8f8a3ea84c7c51f54355bf140028000000000000000000003e9101f97668000000000000000000000000000000000000e64e9ae64b00028000000212858001a9131b3d001778000de000378000de000378000de000378000de0005000000000067b019e00000000000089200f166cd8000000000e7d174173e8bdfe3fd747c3fa801ece90000004a23f48a511fa442181f7427ee874bbe0005000000000000000000130f143d509878a1ea24d3a880ca9b604d80220000000aeac4ae8000000000002c5ac58037a29bf1400aa00000000000000000000934934b100c19b604d8022000000000000000000002c5ac5b9747c51f54263e28faa1aadf8a0014000000000000000000001f4880fcbb3400000000000000000000000000000000000073274d7325800140000000004091779102437910243791024379102437910243791024379102437910250b133b800d48a7a002800000033d80cf0000000000004490078b366c00000000073e8ba0b9f45eff1feba3e1fd400f6748000002511fa45288fd2210c0fba13f743a5df000280000000000000000009878a1ea84c3c50f51269d440654db026c01100000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000162d62dcba3e28faa131f147d50d56fc5000a000000000000000000000fa4407e5d9a0000000000000000000000000000000000003993a6b992c000a000000000000000000000000000000000084a162c006ac53d001400000019ec067800000000000224803c59b3600000000039f45d05cfa2f7f8ff005d1f0fea007b3a4000001288fd229447e9108607dd09fba1d2ef800140000000000000000004c3c50f54261e287a8934ea2032a6d813600880000002bab12ba000000000000b16b1600de8a6fc5002a8000000000000000000024d24d2c403066d8136008800000000000000000000b16b16e5d1f147d5098f8a3ea86ab7e280050000000000000000000007d2203f2ecd0000000000000000000000000000000000001cc9d35cc96000500000000000000000000000000000000004250b160035629e800a0000000cf6033c00000000000112401e2cd9b0000000001cfa2e82e7d17bfc7fae8f87f5003d9d20000009447e914a23f4884303ee84fdd0e977c000a000000000000000000261e287aa130f143d449a751019536c09b004400000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000058b58b72e8f8a3ea84c7c51f54355bf140028000000000000000000003e9101f97668000000000000000000000000000000000000e64e9ae64b00028000000000000000000000000000000000212858b001ab14f4005000000067b019e00000000000089200f166cd8000000000e7d174173e8bdfe3fd747c3fa801ece90000004a23f48a511fa442181f7427ee874bbe0005000000000000000000130f143d509878a1ea24d3a880ca9b604d80220000000aeac4ae8000000000002c5ac58037a29bf1400aa00000000000000000000934934b100c19b604d8022000000000000000000002c5ac5b9747c51f54263e28faa1aadf8a0014000000000000000000001f4880fcbb3400000000000000000000000000000000000073274d68aa86cfef527dd27f55814f170aa1b3fbd49f749fd4aa1b3fbd49f749fd57714f170aa1b3fbd49f749fd4aa1b3fbd49f749fd4dc53c5c2a86cfef527dd27f52a86cfef527dd27f53714f170aa1b3fbd49f749fd4aa1b3fbd49f749fd4dc53c5c2a86cfef527dd27f52a86cfef527dd27f53714f170aa1b3fbd49f749fd4aa1b3fbd49f749fd4dc53c5c2a86cfef527dd27f52a86cfef527dd27f53714f170aa1b3fbd49f749fd4aa1b3fbd49f749fd4dc53c5c2a86cfef527dd27f553c00000000004250b160035629e800a0000000cf6033c00000000000112401e2cd9b0000000001cfa2e82e7d17bfc7fae8f87f5003d9d20000009447e914a23f4884303ee84fdd0e977c000a000000000000000000261e287aa130f143d449a751019536c09b004400000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000058b58b72e8f8a3ea84c7c51f54355bf140028000000000000000000003e9101f97668000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f4005000000067b019e00000000000089200f166cd8000000000e7d174173e8bdfe3fd747c3fa801ece90000004a23f48a511fa442181f7427ee874bbe0005000000000000000000130f143d509878a1ea24d3a880ca9b604d80220000000aeac4ae8000000000002c5ac58037a29bf1400aa00000000000000000000934934b100c19b604d8022000000000000000000002c5ac5b9747c51f54263e28faa1aadf8a0014000000000000000000001f4880fcbb3400000000000000000000000000000000000000000000000000000000000000073274d73258001400000010942c5800d58a7a002800000033d80cf0000000000004490078b366c00000000073e8ba0b9f45eff1feba3e1fd400f6748000002511fa45288fd2210c0fba13f743a5df000280000000000000000009878a1ea84c3c50f51269d440654db026c01100000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000162d62dcba3e28faa131f147d50d56fc5000a000000000000000000000fa4407e5d9a0000000000000000000000000000000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000019ec067800000000000224803c59b3600000000039f45d05cfa2f7f8ff005d1f0fea007b3a4000001288fd229447e9108607dd09fba1d2ef800140000000000000000004c3c50f54261e287a8934ea2032a6d813600880000002bab12ba000000000000b16b1600de8a6fc5002a8000000000000000000024d24d2c403066d8136008800000000000000000000b16b16e5d1f147d5098f8a3ea86ab7e280050000000000000000000007d2203f2ecd0000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000cf6033c00000000000112401e2cd9b0000000001cfa2e82e7d17bfc7fae9f87f5003d9d00000009447e914a23f4884303ee84fdd0e977c000a000000000000000000261e287aa130f143d449a751019536c09b004400000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000058b58b72e8f8a3ea84c7c51f54355bf140028000000000000000000003e9101f97668000000000000000000000000000000000000000000000000000000000000000a7d50da1dea37ba57eab800a7d50da1dea37ba57ea550da1dea37ba57eab80bb8a7d50da1dea37ba57ea550da1dea37ba57eab806e29f5436877a8dee95fa95436877a8dee95faae01b8a7d50da1dea37ba57ea550da1dea37ba57eab806e29d54368f7a8dee95fa954368f7a8dee95faae23d7bf5e577953aa86d1ef51bdd2bf52a86d1ef51bdd2bf55c43bf5e4de54eaa1b47bd46f74afd4aa1b47bd46f74afd5710efd7937953aa86d1ef51bdd2bf52a86d1ef51bdd2bf55c43bf5e4de54eaa1b47bd46f74afd582bfa8077ebc9bc801dfaf26f20077ebc9bc801dfaf26f200b1f7d79266760075c533e6c00000000055eac533fdff00eb31ee9592d03eb4ea9d34fbd3ae74d2af5629bde98f74ac8ab14def4c7ba564b40fbedd4fbeed4abd58a6f7a63dd2b22ac537bd31ee9592d01dba8eed4abd58a6f7a63dd2b22ac537bd31ee9592d01dba8eed4abd58a6f7a63dd2b223fe2f4d8c3ff698be564b4076ea3bb529f1ff000ea6f9898be56454da6f9898be564b80faefd6fbf57d14fa9d4df31317cac8a9d4df31317cac9700efd6beafaa9f53a9be6262f959153a9be6262f9592e01dfacf57d54fa9d4df31317cac8a9d4df31317cac9700efd67abeaa7d4ea6f9898be56454ea6f9898be564b8077eb3d5f553ea7537cc4c5f2b22a7537cc4c5f2b25c03bf59eafaa9f53a9be6262f959153a9be6262f9592e01dfacf57d54fa9d4df31317cac8a9d4df31317cac9700efd67abeaa7d4da6f9898be56443fc3a9bfee11e2262f9592e01dfad3d5f400783980000000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c011000000000000000000000294f8ff87537fdff00be2262f95915369be6262f9592e03dfbf5ba7d5f453ea7537cc4c5f2b22a7537cc4c5f2b25c03bf5afabeaa7d4ea6f9898be56454ea6f9898be564b8077eb3d5f553ea7537cc4c5f2b22a7537cc4c5f2b25c03bf59eafaa9f53a9be6262f959153a9be6262f9592e01dfacf57d54fa9d4df31317cac8a9d4df31317cac9700efd67abeaa7d4ea6f9898be56454ea6f9898be564b8077eb3d5f553ea7537cc4c5f2b22a7537cc4c5f2b25c03bf59eafaa9f53a9be6262f959153a9be6262f9592e01dfacf57d57f018cf50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000022c9a0068c53826c01400000000000000000000000000000000000000000000000000000000000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000000000000000000000000000000005fc066bbc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000008b26801a314e09b00500000000000000000000000000000000000000000000000000000000000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000000000000000000000000000000017f019aef0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000022c9a0068c53826c01400000000000000000000000000000000000000000000000000000000000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000000000000000000000000000000005fc066bbc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000008b26801a314e09b00500000000000000000000000000000000000000000000000000000000000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000000000000000000000000000000017f019aef0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000022c9a0068c53826c01400000000000000000000000000000000000000000000000000000000000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000000000000000000000000000000005fc066bbc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000008b26801a314e09b00500000000000000000000000000000000000000000000000000000000000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000000000000000000000000000000017f019aef0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000022c9a0068c53826c01400000000000000000000000000000000000000000000000000000000000015d5895d00000000000058b58b006f4537e2801540000000000000000000126926962018336c09b00440000000000000000000000000000000000000000000000005fc066bbc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000008b26801a314e09b00500000000000000000000000000000000000000000000000000000000000005756257400000000000162d62c01bd14df8a00550000000000000000000049a49a588060cdb026c01100000000000000000000000000000000000000000000000017f019aef0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fdcc9620670c10d8670c10d8670c10d8670c142c47fd19e30069c68ff8f2e8fd678c00e079ff0059e30038279ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd67abad98703cffad60d98703cff00ad60d98703cffad60d98703cff00ad60d98b1a7feac7c3fedb583663be3ff56dfc77c7d768a6b06cc3d5f8bddf8d60d987abf0eefc6b06cc3d5f8777e3583661eafc3bbf1ac1b30f57e1ddf8d60d987abf0eefc6b06cc3d5f8777e35836613ff00ab78a49faef0cf18038274ff00d704fc3f59e3004e079ff59e30038279ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd678c00e079ff0059e300381e7fd678c00e079ff59e300381e7fd74e0194f60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a700c6798000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f40050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d380633cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000073274d73258001400000010942c5800d58a7a0028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e9c0319e60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000074e018cf30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a700c6798000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f40050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d380633cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000073274d73258001400000010942c5800d58a7a0028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e9c0319e60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000074e018cf30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a700c6798000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f40050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d380633cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000073274d73258001400000010942c5800d58a7a0028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e9c0319e60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000074e018cf30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a700c6798000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f40050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001d380633cc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000073274d73258001400000010942c5800d58a7a0028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e9c0319e60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003993a6b992c000a000000084a162c006ac53d001400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000074e018cf30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc9d35cc96000500000004250b160035629e800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a700c6798000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e64e9ae64b00028000000212858b001ab14f40050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001fffd9, 'approved', '2025-05-15 07:34:55', NULL);
+INSERT INTO `paymenttransactions` (`payment_id`, `user_id`, `uid`, `paymentPurpose`, `paymentMethod`, `amountPaid`, `receipt_image`, `paymentStatus`, `transaction_date`, `module_id`) VALUES
+(2, 2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'module_purchase_1', 'debit', 100.00, 0xffd8ffe102014578696600004d4d002a0000000800070100000400000001000005a0011000020000001400000062010100040000000100000780010f0002000000070000007687690004000000010000009101120004000000010000000001320002000000140000007d0000000073646b5f6770686f6e6536345f7838365f363400476f6f676c6500323032353a30353a30372031353a34393a343000000f90000002000000050000014b920200050000000100000150882700030000000100640000929200020000000433343800900300020000001400000158929100020000000433343800a4030003000000010000000090040002000000140000016c9201000a0000000100000180920a00050000000100000188829a00050000000100000190920900030000000100000000929000020000000433343800920800030000000100000000829d000500000001000001980000000030323230000000009e00000064323032353a30353a30372031353a34393a343000323032353a30353a30372031353a34393a34300000002267000003e80000111c000003e80000001600002710000043940000271000030110000200000014000001ca010f000200000007000001de0132000200000014000001e50000000073646b5f6770686f6e6536345f7838365f363400476f6f676c6500323032353a30353a30372031353a34393a343000ffe000104a46494600010100000100010000ffe201d84943435f50524f46494c45000101000001c800000000043000006d6e74725247422058595a2007e00001000100000000000061637370000000000000000000000000000000000000000000000000000000010000f6d6000100000000d32d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657363000000f0000000247258595a00000114000000146758595a00000128000000146258595a0000013c00000014777470740000015000000014725452430000016400000028675452430000016400000028625452430000016400000028637072740000018c0000003c6d6c756300000000000000010000000c656e5553000000080000001c007300520047004258595a200000000000006fa2000038f50000039058595a2000000000000062990000b785000018da58595a2000000000000024a000000f840000b6cf58595a20000000000000f6d6000100000000d32d706172610000000000040000000266660000f2a700000d59000013d000000a5b00000000000000006d6c756300000000000000010000000c656e5553000000200000001c0047006f006f0067006c006500200049006e0063002e00200032003000310036ffdb0043000a07070807060a0808080b0a0a0b0e18100e0d0d0e1d15161118231f2524221f2221262b372f26293429212230413134393b3e3e3e252e4449433c48373d3e3bffdb0043010a0b0b0e0d0e1c10101c3b2822283b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3bffc0001108078005a003012200021101031101ffc4001c0001000203010101000000000000000000000406030507010208ffc400391001000001080804060301010002030000000301020405155291d11416535464a1a2a3139293e11231325571d241516111062533243435ffc4001a010101010003010000000000000000000000010502030406ffc4002111010001040301010101010000000000000001021131510313141261410421ffda000c03010002110311003f00ea40325e70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000102ddab379e89d90278816ed59bcf44ec8b76acde7a276409e205bb566f3d13b22ddab379e89d90278816ed59bcf44ec8b76acde7a276409e205bb566f3d13b22ddab379e89d90278816ed59bcf44ec8b76acde7a2764e1d946d2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d91d946cbc278816ed59bcf44ec8b76acde7a27647651b2f09e205bb566f3d13b22ddab379e89d93b7e2ad2a78816ed59bcf44ec8b76acde7a27647c55a13c40b76acde7a27645bb566f3d13b23e2ad09e205bb566f3d13b22ddab379e89d91f15684f102ddab379e89d916ed59bcf44ec8f8ab4278816ed59bcf44ec8b76acde7a27647c55a13c40b76acde7a27645bb566f3d13b23e2ad09e205bb566f3d13b22ddab379e89d91f15684f102ddab379e89d916ed59bcf44ec8f8ab42780e20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a12faa1000000000000138001893979801000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000728cc000faa8c3d000e40000000000000000000002fa033540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005097d5080000000000009c000c49cbcc00800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000394660007d5461e8007200000000000000000000017d019aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000284bea840000000000004e000624e5e6004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ca330003eaa30f400390000000000000000000000be80cd50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001425f5420000000000002700031272f3002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e5198001f55187a001c80000000000000000000005f4066a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a12faa1000000000000138001893979801000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000728cc00a00faa8c3d0bf8a00e42fe28002fe28002fe28002fe28002fe28002fe28002fe28003be00cd50000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001425f5420000000000002700031272f3002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e519814001f55187a001c800000000000000000000077c019aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000284bea840000000000004e000624e5e6004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001ca33028003eaa30f400390000000000000000000000ef8033540000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005097d5080000000000009c000c49cbcc0080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000039466050007d5461e800720000000000000000000001df0066a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a12faa1000000000000138001893979801000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000728cc0a000faa8c3d000e40000000000000000000003be00cd5000000000000000000000000000000000000000000000000000000000000000151b76b3de7a26e4b728409f6ed67bcf44dc8b76b3de7a26e480027dbb59ef3d13722ddacf79e89b920009f6ed67bcf44dc8b76b3de7a26e480027dbb59ef3d13722ddacf79e89b9200a427dbb59ef3d13722ddacf79e89b9200eeb43d514c693eddacf79e89b916ed67bcf44dc9002d0bf31a4fb76b3de7a26e45bb59ef3d1372400b41f31a4fb76b3de7a26e45bb59ef3d1372400b41f31a4fb76b3de7a26e48005a0f98d001683e634005a0f98d001683e634005a0f98d003874f1e9c7e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d3c7a83e29d001d5c7a3e29d28003baf2bf31a002f27cc6800bc9f31a002f27cc6800bc9f31a002f27cc6800bc9f31a002f27cc6800bc9f31a77c01e57940000000000000000000000000000000000000000000000000000000000000005097d50800000000000023200f43d9180000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000077c01e778c0000000000000000000000000000000000000000000000000000000000000005097d50800000000000023200f43d9180000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000077c01e778c0000000000000000000000000000000000000000000000000000000000000005097d50800000000000023200f43d9180000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000077c01e778c0000000000000000000000000000000000000000000000000000000000000005097d5080000000000002320d16b3707dcf6359b83ee7b3d0f6461bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf606f468b59b83ee7b1acdc1f73d81bd1a2d66e0fb9ec6b3707dcf605747d7c1fe9f07fa0f91f5f07fa7c1fe83e47d7c1fe9f07fa0f91f5f07fa7c1fe83e47d7c1fe9f07fa0f91f5f07fa7c1fe83e47d7c1fe9f07fa0f91f5f07fa7c1fe83e47d7c1fe9f07fa0ef403cef18000000000000000000000000000000000000000000000000000000000000000a12faa100000000000004654401e87b230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef18000000000000000000000000000000000000000000000000000000000000000a12faa100000000000004654401e87b230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef18000000000000000000000000000000000000000000000000000000000000000a12faa100000000000004654401e87b230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef18000000000000000000000000000000000000000000000000000000000000000a12faa1000000000000290a200ef7b230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef180000000000000000000000000000000000000000000000000123cf8a4fecf8a6ff6c72fce51e09ff4d5770bcb27c537fb3e29bfdb187a6b2f2c9f14dfecf8a6ff006c61e9acbcb27c537fb3e29bfdb187a6b2f2c9f14dfed435de552127fd55c24d530009eaadc7ee400f5567dc801eaacfb90058ff00557758ae6ea200d88c342300028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00f3bc6000000000000000000000000000000000000000000000000004e06297e612fcc63ce5d400000000028ebc28ee32e350038b88000000039465632a200fa18c34e3000aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef18000000000000000000000000000000000000000000000000013818a5f984bf318f39750000000000a3af0a3b8cb8d400e2e200000000e51958ca8803e8630d38c002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00f3bc6000000000000000000000000000000000000000000000000004e06297e612fcc63ce5d400000000028ebc28ee32e350038b88000000039465632a200fa18c34e3000aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef180000000000000000000000000000000000000c16850b7c81ea480ce305a142df207a9216850b7c81ea480ce305a142df207a9216850b7c81ea480ce305a142df207a9216850b7c81ea480ce305a142df207a9216850b7c81ea484e07d4bf31825a750ff00efff00b507d491e69d43dea07a9231e72ea4811f4ea26f507d490d3a89bd41f524412047d3a89bd41f52434ea26f507d49012047d3a89bd41f52434ea26f507d49019ff852170d3a87bd41f52453d25c6401c5c400000001ca32b1951007d0c61a718005500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077801e778c0000000000000000000000000000000000005097d5080000000000009c000c49cbcc0080000000000000000000039465632a200fa18c34e3000aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef003cef18000000000000000000000000000000000000a12faa1000000000000138001893979801000000000000000000000728cac654401f431869c600154000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001de0079de30000000000000000000000000000000000001425f5420000000000002700031272f3002000000000000000000000e51958ca8803e8630d38c002a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00f3bc6000000000000000000000000000000000000284bea840000000000004e000624e5e6004000000000000000000001ca32b1951007d0c61a718005500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077801e778c0000000000000000000000000000000000005097d5080000000000009c000c49cbcc008000000000000000000002c6561441f5f0c87c323663fd34db0f5c7fa297c8faf8643e1917d34e97d14be47d7c321f0c87a69d1e8a5f23ebe190f8643d34e8f452f91f5f0c87c321e9a747a297c8faf8643e190f4d3a3d14be47d7c321f0c87a69d1e8a5f23ebe190f8643d34e8f452f91f5f0c87c27a69d1e9a5f203b7b21d3ede3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52007641eee3d4801d907bb8f52ef003adc80000000000000000000000000000000000005097d5080000000000009c000c49cbcc0080000000000000000000028a380f5a0000000000000000000000009387c00f6c61e19c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e6d90000000000000000000000000000000000001425f5420000000000002700031272f3002000000000000000000000a28e03d680000000000000000000000024e1f003db1878672000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039b640000000000000000000000000000000000005097d5080000000000009c000c49cbcc0080000000000000000000028a380f5a0000000000000000000000009387c00f6c61e19c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003bc00e6d90000000000000000000000000000000000001425f5420000000000002700031272f3002000000000000000000000a28e03d680000000000000000000000024e1f003db1878672000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef0039b640000000000000000000000000000000000005097d5080000000000009c000c49cbcc008000000000000000000000355abd43da46f34991abb43da46f349936a39fdd5b1aad5da1ed2379a4c8d5da1ed2379a4c9b50fbab6355abb43da46f34991abb43da46f349936a1f756c6ab57687b48de6932357687b48de69326d43eead8d56aed0f691bcd264d4e850ffb9d8ad6ae1f756c47d0a1ff0073b134287fdcec5203eead88fa143fee7626850ffb9d8a407dd5b11f4287fdcec4d0a1ff0073b1480fbab623e850bfb9d89a142fee762902c5755f293846d0615e9f89a0c2bd3f1491ab18782728da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e2920236830af4fc4d0615e9f8a4808da0c2bd3f1341857a7e29203b000e6d90000000000000000000000000000000000001425f5420000000000002700031272f300200000000000000000000000000000000002b8b1ab800000000001284ab1927000d88c33e72000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ec0039b640000000000000000000000000000000000005097d5080000000000009c000c49cbcc0080000000000000000000000000000000000ae2c6ae000000000004a12ac649c0036230cf9c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003b000e6d90000000000000000000000000000000000001425f5420000000000002700031272f300200000000000000000000000000000000002b8b1ab800000000001284ab1927000d88c33e72000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ec021da902e44c24ccb5205c8984999f74edb1784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c10ed481722612665a902e44c24ccfba765e13043b5205c89849996a40b91309333ee9d9784c50971b5205c898499b9ddbf44d9c6c24cd7ee9d9786cc6b2dfa26ce3612665bf44d9c6c24ccfba765e1b31acb7e89b38d849996fd13671b09333ee9d9786cc6b2dfa26ce3612665bf44d9c6c24ccfba765e1b31acb7e89b38d849996fd13671b093349ae9b64bc3663596fd13671b09332dfa26ce361266cb9e2aef87459b31acb7e89b38d849996fd13671b09334eaaf459b31acb7e89b38d849996fd13671b09333aabd166cc6b2dfa26ce3612665bf44d9c6c24cceaaf459b31acb7e89b38d849996fd13671b09333aabd166cc6b2dfa26ce3612665bf44d9c6c24cceaaf459b31acb7e89b38d849996fd13671b09333aabd166cc6b2dfa26ce3612665bf44d9c6c24cceaaf459b31acb7e89b38d849996fd13671b09333aabd166cc6b2dfa26ce3612665bf44d9c6c24cceaaf459b31acb7e89b38d849996fd13671b09333aabd166cc6b2dfa26ce3612665bf44d9c6c24cceaaf459b31acb7e89b38d849996fd13671b09333aabd166cd5c6c2dfa26ce361266d79d55e8b002f557a2c007557a2c007557a2c0047157a498ff00800d38c33e7200a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002fe0331a00000000000000000000000000000000000003983a7b98394000a000000002c64006ac61d8000000000000000000000000000000000000360d7b6000000000000024803a59b20020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002fe0331a00000000000000000000000000000000000003983a7b983952002800000000b19001ab18760028000000000000000000000000000000000360d7b6000000000000089200e966c8008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000d835ed8000000000000224803a59b20020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002fe0331a00000000000000000000000000000000000003983a7b983952002800000000b19001ab18760028000000000000000000000000000000000360d7b6000000000000089200e966c8008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000d835ed8000000000000224803a59b20020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002fe0331a00000000000000000000000000000000000003983a7b983952002800000000b19001ab18760028000000000000000000000000000000000360d7b6000000000000089200e966c8008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000d835ed8000000000000224803a59b20020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002fe0331a00000000000000000000000000000000000003983a7b983952002800000000b19001ab18760028000000000000000000000000000000000360d7b6000000000000089200e966c8008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000e60e9ee60e54800a000000002c64006a44c59d800b78000bc0005e0002f000178000bc0005e0002f00028000000000360d7b6000000000000089200e966c800800000000000000000000000b695b4801692d2005a4b4801692d2005a4b4801692d2005a4b4801692d2005a4b48022000000000000000000000000002da56d2005a4b4801692d2005a4b4801692d2005a4b4801692d2005a4b4801692d2008800000000000000000000000000b695b4801692d2005a4b4801692d2005a4b4801692d2005a4b4801692d2005a4b4afe032def0000000000000000000000000000000000001cc1d3dcc1ca90014000000000005bc8005e4002f200179000bc8005e4002f200179000899b800d58c3b00140000001b06bdb00000000000004490074b364004000000146b4a9dbe47f56766bcb9ecaeee28cbd3c11948b4a9fbe47f527665a54fdf23fa93b3461df67a2d0936953f7c8fea4eccb4a9fbe47f527668c162d0936953f7c8fea4eccb4a9fbe47f527668c162d0956953f7c8fea4b9bc96b2a7ffc97ff00cd8fea4ecd1897e997f05a0b430cb5ad63ff007ffe8527d69d996ad65f70a57ad3b345fe5e3d2f7c4425dab58fdc295eb4eccb56b1fb852bd69d9a202da12ed5ac7ee14af5a7665ab58fdc295eb4ecd100b425dab58fdc295eb4eccb56b1fb852bd69d9a201684bb56b1fb852bd69d996ad63f70a57ad3b34402d0976ad63f70a57ad3b32d5ac7ee14af5a7668805a12ed5ac7ee14af5a7665ab58fdc295eb4ecd100b425dab58fdc295eb4eccb56b1fb852bd69d9a201684bb56b2fb8527d69d9bd92b5ac7fec9ffc8527e7b69d9a1bd93e727e44988b3a980ca9cb02720088000000341a4d236f13cf2b7ead832e9348dbc4f3ca69348dbc4f3cac4032e9348dbc4f3ca69348dbc4f3cac4032e9348dbc4f3ca69348dbc4f3cac4032e9348dbc4f3ca69348dbc4f3cac42c65632cba4d236f13cf29a4d236f13cf2b10de888b37e222ccba4d236f13cf29a4d236f13cf2b105a16d0cba4d236f13cf29a4d236f13cf2b105a0b432e9348dbc4f3ca69348dbc4f3cac41682d0cba4d236f13cf29a4d236f13cf2b105a0b432e9348dbc4f3ca69348dbc4f3cac41682d0cba4d236f13cf29a4d236f13cf2b105a0b432e9348dbc4f3ca69348dbc4f3cac41682d0cba4d236f13cf29a4d236f13cf2b10931164988b2c8030a72c09c8022000000000000000000002c65632e6d2d6b58ff00d97ff90a4fcf6d3b32d5acbee14af5a7668b2fce5fcbc6ab7e222c976ad63f70a57ad3b32d5ac7ee14af5a766880b684bb56b1fb852bd69d996ad63f70a57ad3b34402d0976ad63f70a57ad3b32d5ac7ee14af5a7668805a12ed5ac7ee14af5a7665ab58fdc295eb4ecd100b425dab58fdc295eb4eccb56b1fb852bd69d9a201684bb56b1fb852bd69d996ad63f70a57ad3b34402d0976ad63f70a57ad3b32d5ac7ee14af5a7668805a12ed5ac7ee14af5a7665ab58fdc295eb4ecd100b43f4980f96670000000000000000000000000000000000000e60e9ee60e54800a000000000000000000000000000000000002c64006ac61d800a0000000d835ed8000000000000224803a59b20020000000e78e86e78efe2febd3c1fd00773d200000012fd32fe025fa65fc10435ffcbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000001cc1d3dcc1ca900140000000000000000000000000000000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf8208cb5ff00cbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000001cc1d3dcc1ca00050000000000000000000000000000000000016320035630ec00500000006c1af6c000000000000112401d2cd9001000000073c74373c77f17f5e9e0fe803b9e9000000097e997f012fd32fe08232d7ff2f1eff2f1e97be00050000000000000000001ec9f393f2f1ec9f393f224e1d4c0654e5f3f39004400000015b5915b00000000000058cac6401bd187d0460015400000000000000000001270938590060ce5f3f3900440000000000000000000058cac65cb25faa5fcbc7b2fd52fe5e355f41180014000000000000000000001fa4c07cb33400000000000000000000000000000000000073074f687542aedb527cd37f55814e171d50abb6d49f34dfd4d50abb6d49f34dfd56e29c2e3aa1576da93e69bfa9aa1576da93e69bfa9714e171d50abb6d49f34dfd4d50abb6d49f34dfd4b8a70b8ea855db6a4f9a6fea6a855db6a4f9a6fea5c5385c7542aedb527cd37f53542aedb527cd37f52e29c2e3aa1576da93e69bfa9aa1576da93e69bfa9714e171d50abb6d49f34dfd4d50abb6d49f34dfd4b8a70b8ea855db6a4f9a6fea6a855db6a4f9a6fea5c5385c7542aedb527cd37f553940000000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf8208cb5ffcbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000000000000000000000000000000001cc1d3dcc1ca900140000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf8208cb5ff00cbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000000000000000000000000000000001cc1d3dcc1ca900140000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf8208cb5ffcbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000000000000000000000000000000001cc1d3dcc1ca900140000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf8208cb5ff00cbc7bfcbc7a5ef800140000000000000000007b27ce4fcbc7b27ce4fc89387530195397cfce4011000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce4011000000000000000000001632b1972c97ea97f2f1ecbf54bf978d57d04600050000000000000000000007e9301f2ccd0000000000000000000000000000000000000000000000000000000000000001cc1d3dcc1ca900140000000058c800d58c3b00140000001b06bdb00000000000004490074b3640040000001cf1d0dcf1dfc5fd7a783fa00ee7a400000025fa65fc04bf4cbf82086bff00978f7f978f4bdf00028000000000000000000f64f9c9f978f64f9c9f91270ea6032a72f9f9c80220000000adac8ad8000000000002c6563200de8c3e823000aa0000000000000000000093849c2c8030672f9f9c8022000000000000000000002c65632e592fd52fe5e3d97ea97f2f1aafa08c000a000000000000000000000fd2603e599a00000000000000000000000000000000000000000000000000000000000000029daa158eda8de69dfaae22dc53b542b1db51bcd3bf53542b1db51bcd3bf55c42e29daa158eda8de69dfa9aa158eda8de69dfaae21714ed50ac76d46f34efd4d50ac76d46f34efd5710b8a76a8563b6a379a77eaf3542b0db51bcd3bf55c82e29ba9f58ede8de69dfa9a9f58ede8de69dfaae43b7bf936b7953753eb1dbd1bcd3bf5353eb1dbd1bcd3bf55c85efe4d97953753eb1dbd1bcd3bf5353eb1dbd1bcd3bf55c83bf9365e54dd4fac76f46f34efd4d4fac76f46f34efd5720efe4d97953753eb1dbd1bcd3bf5425fd403bf9365e400efe4d979003bf9365e400efe4d97900239f9364ccd801ec8c33a720000000002afaaf4dffbff00db03cd2e4b40e54d534e1ce9ae69c2adaaf4ddb40c65c8d57a76da0632e4b48e5d9539f754ab6abd3b6d031972355e9db6818cb92d21d951dd52adaaf4edb40c65c8d57a76da0632e4b4876547754ab6abd3b6d03197225ffcbd3a593ffba079a5c9690eda8eea94e97ff1b4ddbc0c65c8d4da6ef10319725c473efadd9eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e46a6d3778818cb92e21df59eae4da9da9b4dde20632e449ff8da6c92ff00df1e0632e4b8877d67ab93600e8796400000000056d6456c000000000001632b19006f461f411800550000000000000000000049c24e1640183397cfce401100000000000000000000030a74bff8da6ffdff00be3c0c65c8d4da6ef10319725c477f7d6f57ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936a76a6d3778818cb91a9b4dde20632e4b8877d67ab936bf80c5770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000011927000d28c33e7200a0000000000000000000000000000000000000000000000000000000000000adac8ad8000000000002c6563200de8c3e823000aa0000000000000000000093849c2c8030672f9f9c80220000000000000000000000000000000000000000000000002fe0331a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa800000000000004649c0034a30cf9c80280000000000000000000000000000000000000000000000000000000000002b6b22b6000000000000b1958c8037a30fa08c002a8000000000000000000024e1270b200c19cbe7e720088000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000011927000d28c33e7200a0000000000000000000000000000000000000000000000000000000000000adac8ad8000000000002c6563200de8c3e823000aa0000000000000000000093849c2c8030672f9f9c80220000000000000000000000000000000000000000000000002fe0331a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa800000000000004649c0034a30cf9c80280000000000000000000000000000000000000000000000000000000000002b6b22b6000000000000b1958c8037a30fa08c002a8000000000000000000024e1270b200c19cbe7e720088000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000011927000d28c33e7200a0000000000000000000000000000000000000000000000000000000000000adac8ad8000000000002c6563200de8c3e823000aa0000000000000000000093849c2c8030672f9f9c80220000000000000000000000000000000000000000000000002fe0331a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa800000000000004649c0034a30cf9c80280000000000000000000000000000000000000000000000000000000000002b6b22b6000000000000b1958c8037a30fa08c002a8000000000000000000024e1270b200c19cbe7e720088000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea000000000000011927000d28c33e7200a0000000000000000000000000000000000000000000000000000000000000adac8ad8000000000002c6563200de8c3e823000aa0000000000000000000093849c2c8030672f9f9c80220000000000000000000000000000000000000000000000002fe0331a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280bfa800000000000004649c0034a30cf9c80280000000000000000000000000000000000000000000000000000000000002b6b22b6000000000000b1958c8037a30fa08c002a8000000000000000000024e1270b200c19cbe7e720088000000000000000000000000000000000000000000000000bf80cc680000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a02fea00000000000002c64006ac53ff001d5e7fd003e13cff00a007c1e7fd003e0f3fe801f079ff00400f83cffa007c1e7fd003e0f3fe801f079ff400f83cff00a007c1e7fd003e0f3fe801f079ff00400f83cffa007c1e7fd003e0f3fe801f079ff400f83cff00a007c1e7fd003e0f3fe801f079ff00400f83cffa2b6b22b67c1e7fd003e0f3fe801f079ff400f83cff00a00b14ff00d58ff3da7200f7c7faadfc7be396d18003d5f8bddf8007abf0eefc003d5f8777e001eafc3bbf000f57e1ddf8007abf0eefc003d5f8777e0013feabc612796f0b200f04d3ff005e09ff003de72009f09e7fd003e0f3fe801f079ff400f83cff00a007c1e7fd003e0f3fe801f079ff00400f83cffa007c1e7fd003e0f3fe801f079ff400f83cff00a007c1e7fd003e0f3fe801f079ff00400f83cffa007c1e7fd5fc064bb80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000016320036230ec005000000000000000000000000000000000000000000000000000000000000056d6456c0000000000000000000000000000000000000001640000000000000000000000000000000000000000000000000000017f018aeb0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000058c800d88c3b001400000000000000000000000000000000000000000000000000000000000015b5915b0000000000000000000000000000000000000000590000000000000000000000000000000000000000000000000000005fc062bac0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005017f5000000000000016320036230ec005000000000000000000000000000000000000000000000000000000000000056d6456c0000000000000000000000000000000000000001640000000000000000000000000000000000000000000000000000017f018aeb0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001405fd4000000000000058c800d88c3b001400000000000000000000000000000000000000000000000000000000000015b5915b0000000000000000000000000000000000000000590000000000000000000000000000000000000000000000000000005fc062bac000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000734f1e2dee4e96e60e503278f16f723c78b7b9318a3278f16f723c78b7b93180c9e3c5bdc8f1e2dee4c603278f16f723c78b7b931846464f1e2dfe478f16ff002631ad18763278f16ff23c78b7f9318a3278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff246d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03168d06e7394d1a0dce72b280c5a341b9ce534683739caca03278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff23c78b7f93180c9e3c5bfc8f1e2dfe4c603278f16ff0023c78b7f93180c9e3c5bfc8f1e2dfe4c603a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003a780c5758000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e60e9ee60e54800a000000002c64006ac61d800a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003fffd9, 'approved', '2025-05-22 18:35:18', 1);
+INSERT INTO `paymenttransactions` (`payment_id`, `user_id`, `uid`, `paymentPurpose`, `paymentMethod`, `amountPaid`, `receipt_image`, `paymentStatus`, `transaction_date`, `module_id`) VALUES
+(3, 2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'Module Purchase: Visitor Engagement Techniques', 'credit', 100.00, 0xffd8ffe000104a46494600010100000100010000ffe201d84943435f50524f46494c45000101000001c800000000043000006d6e74725247422058595a2007e00001000100000000000061637370000000000000000000000000000000000000000000000000000000010000f6d6000100000000d32d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000964657363000000f0000000247258595a00000114000000146758595a00000128000000146258595a0000013c00000014777470740000015000000014725452430000016400000028675452430000016400000028625452430000016400000028637072740000018c0000003c6d6c756300000000000000010000000c656e5553000000080000001c007300520047004258595a200000000000006fa2000038f50000039058595a2000000000000062990000b785000018da58595a2000000000000024a000000f840000b6cf58595a20000000000000f6d6000100000000d32d706172610000000000040000000266660000f2a700000d59000013d000000a5b00000000000000006d6c756300000000000000010000000c656e5553000000200000001c0047006f006f0067006c006500200049006e0063002e00200032003000310036ffdb004300030202020202030202020303030304060404040404080606050609080a0a090809090a0c0f0c0a0b0e0b09090d110d0e0f101011100a0c12131210130f101010ffdb00430103030304030408040408100b090b1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010ffc0001108012c01f403012200021101031101ffc4001d000100030101010101010000000000000000060708050409030201ffc4004110000006020202010303020305020f000000010203040506071112081321142231153241162317335124344252610971182536373843545676777881b2b3b5ffc40014010100000000000000000000000000000000ffc40014110100000000000000000000000000000000ffda000c03010002110311003f00faa600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b5dedb62e75250e3d371dc4e16436792e4b5f8d448b36d575cc21d946a24bae3c861f5125269f9226ccfe472eb3706c2a4d8d8debddbdae71fa13cc512d149614194bb6ecae5466bdce30fa5f85116d19b44a521484b893e8a251a0faf60b78043eb7726a1b8cba46bfa8dab87ceca2229d448a48d7915d9eca9a23374971d2b371268223edca7e38f9e074939f608bc7e0e5a8cd68554768eb2c41b32b264e24a75e709b690d3ddba2d4b59921249333528c88b9301de01066b7be8f7eedac699dcb83396efb6ebcd57a72286725686fbfb149689cec649f539d8c8b82f5af9fda7c75b17d91aef38c7e46598567b8e64147114e22459d5da312e234a42494b25bcda8d0934a4c8cf93f823e4c048c04471edbfa9b2ec76cb2fc4f6862375454a4b3b2b4aebb8d262422423babdcf36b3437c23ee3ec65c17cfe07e15fbbb4cdbbb771e9f6de1960f6351dc9774d45be88eaeb586fe16e484a5c33652932e0d4be08bf90135015ce82de388f90bae21ec7c3a4c438d25f911dd8ad4e6a4b9116dbaa4a50f1b66648714dfadc341fe09c4fc9970a382e1dbd37d6c9a8bfc9700d1f844baba7bbb7a461163b025449b2d7024b91d4af526a5c6d06b535ca48dd322ec5ca8bf2034000aeb11df3ae724d3f55bb2e720838a63962c256fbf7d35986882f7b0da5b0f3ab51364b4bc4a6ff00770665f067c90922362ebe730c3d8ede758f2b12260e57ebc9b360ebbd247d4dcfa9edeae846465dbb71c8090808ad7ed7d5b6d86c8d8d55b2b159989c3259c8be8f731dcae67a1f0bef252b3693d4cc88f957c7f23caeed4c3ed3053d8182e67865e542a4371dab35e44d3558b51be96949fac692ea49646a34a52447d97d51ca79e48268021b3f7469daac863e2369b630d877b2e61d7c7ac917d15b96eca23491b08654b25a9ce5682e845dbef4fc7c90e054f911af6e77edcf8f50ae6b159052d3c7b3753fa9b06e3aeb8a73b464304a359b8db6da5c591f0694bad9f1c1f202d1014becef2568f05dcd8668baa5e2b2b25cadb725bc8b9c9d158989192e3684a5094b2f38ec974dc57a5934a09cf539fdc2ea27d55b5f56dee5f335ed26cac56c329ae270e651c5b98eed846e8644bf6474acdc47535248f94971c973f9012a0119a9d9fad2fb267b0aa3d878cd8e4319b75e7aa625bc77a6b6db4e9b4e294c2566b24a5c23428ccb82511a4f83f811bd7fb8dccbf69ec2d4b758baa92db077a1bd1d7f57ef45ad64b6cd4c4c472da0d1f7a1d6d48fb892a47ef573f016500a771df204f2ada592e0b57474b1a9b1ac862e30ab9b3bf28cbb2b15435c9931e1462655ee7592f511a0dc4f6253a7c97ab854da9f6deaac872d9980506cdc4ecf28aef67d65243ba8cf4f8feb324b9ec8e859b88ea6644ae525c1997202580293b5f2a75ee3797ebdc1322c8b104dbe7f367466555f93b1222c66d83750dabd8b4b6a716eba84b2941208bdbec41294682ed6135b635648cd9cd68c6cac55ccbdae7be3e8b98c7649e11ec3e6312fda5f6192bf6fedf9fc0095008cc7d9dad66659fd051361632fe4dfddff00c4addb4754ff00ed172e7fb392fd9f697eefb7e3f9e041b3adc3b0eb372c2d33ae75d63b7b3a4634bc95e9977943f54d36d265147f524998128d6ae4c8f93ea5c73ffdc2df010ba2cbb2ba9a59571baebb0bc35b6e4b31e3bb0729727c673daa4a104b7a4c389d16a7149425044aec6a2223e4f81ecc3b696b2d891a74dd7fb1b18c9e3d5a89139ea6b78f351154646644ea9a5a8907c119f0ae3f07fe802500219886e9d39b066a2b302db386e4b3164ea931ea2fa2cc7144d74370c92d2d467d3dadf6ff004ee9e78ec5cff741b8f51657944bc1f16da9885c64700dd2954f5f791644d63d4aeaefb1842cdc474519255c91707f07c009800854fddba62ab2691855a6ddc2a1e43116d3722a645fc46e6b2a75484b695b0a7096935a9d6892465f26e208b9ec5cfb2db6a6b0a0cba0e017bb1f17aeca2cc90706925dc47667ca2599920da8ea5938bec695117549f2647c7e004a404332bdd5a73049abacce36d6198ecc6dc434b8f6b7d1623895ad3dd0934bae24c8d49325117e4cbe4be07be8f656b9c9f23b2c3b1acff1bb6bfa52e6caaa0dab0fcc845c927fbcca146b6fe4c8bee22f93201240117c7f6a6b0cb324b1c3716d8f8bdcdfd39acac6aabee23c8990cd0be8bf732859adbeab3249f622e0fe0fe478e2eecd333b258985c2db985c8c827a9c444a96afe22e648536b5a164db04e7759a54d3a932223e0db591fca4f809a00abb537911af7726659e619885cd64a9582da26b5ef459b1217293e96d6a9096db519a5a271c5b3d8f9e56d2cbe0c8c8a3fbb774ee5d472a0cb83a970bbaa3b9c82bb1dad92ee6f2a24b5bf31c4b4dade60aa9c436825a8fb7575c3ea5c91199f520bc405729dc1558544831bc81c935cebebdb67d6dd6c02cc92fb73109e85cb4e4b8f116b5f65911a52d991729fb8fb70521cdf66eb7d651234fd91b071ac522cd70d98cfde5b3101b79c22e4d0853cb4929445f3c17cf0024a02a6c87c92d77876c8770dcd724c731ea3fe9b897f1f23b4bd622c490a9121d690c20dcea83334b46b251387d88fe13f1c8985e6d6d5d8c54c2bfc9764e2d53596314e7439b3ae23b0c498c4483379b716b24adb2271bfb88ccbef4fcfc900948088ff8938cdad5e399061f95623715191d8a21469ffafb6962511939c9435b6971329ee5b32268949e492b3ec5d783fe25ee6d3f03249986cedad8746bfaf368a6553d7b1513239bab6d0dfb1935f74775bcd253c91726e208b93517213101c4939c6150eb2e2ee5e5f48c5763ce38cdc4b72c1a4b35ce369252d32166aeac9a52a49992cc8c894467f91cfcb36c6acc09fac8b9d6cbc571c7aeb9fd35bb6b98d0d53783491fa49d5a4dcf95a0bede7f717fa90095808b673b53586b16e23db2b63e2f89b73d4b4c455e5c4780520d3c7626cde5a7b99762e78e78e4bfd449587d992cb72633c875a7524b6dc4289495a4cb923232f83232fe407e800000000000000000000000000000000000000033c79a50255a633aceba0ddcda791276863cdb53e121953f1946b73871b27db71a3517e4bba149ff005231286f482692f0b676599ee6fb2eff001cac9add13170b811d30d4f3664f7a1aae891506eba94a5bf6384b524be1069e55cdbe003e66d26734f351e38b0dee0c764942cd28925816275096e2e226b43e879364fc85c89e52d4ebde9e5d75827144e72ca8fb28ad7c3714b64f92b5be302e1482c475c64761b463b8b2fed2e1ca4f35f18be38e1b9b2a71927f828c8ff41b6c42b06d57538564791664f5e5b6419164eb65336d6d7e9fdc98ac128a3c46d31d969b432dfb1c34974ec66b5296a599f2031963184e236fe2d6b48f698e57cb6a56f4fab9087984a92f3cabf94d296b23fdc66d9120f9fca488bf043d9e41516496f94f9275f8a44eecaa66013aed94c05cc43b5adf0a9aa76334a4392504c3666e348512dc6d06923f91bd800600cf2c58d810f6ae7f4db7f0ccf115fa6ef2aec276078baa15492169ef163cb96ab4944b928eaf29b6128ec842dc359a094825db76149538eeecf19ebf1eab8d5ec3589dfd7b6d45689b228c9af8ca4b3f6ffc04a4a55d7f1c911fe486a40019fbc11b8a99de34e334b0ad2248b0a0767575b4469f4adeaf96998f294c48411f669d24a926685912889447c7c8a575d6bbde97da1363dee94de194d2dca739cb57131d662541c294945bc8f6b0dbeec15c965d7524a24ba6f2890e292aebc170375800c1b9064789bd8f78e7b0b54dee3f84eb1c58ed22499596d63d670b1bbb53286994592132a3ada90970e5b5f50ebc494baef27c9b8933f141623c4bcaddbb7194c0c975aaf6f377b7f73558e9d6e34875150e309b460973261b915334d937251a90d13c852f9e13ec1bfc00631f22b2dd7f9da313d89a6f23c3ddc6e8f3f833f38cad344bb4a4271b82ea21c998ec77184cd430eaa31296890698e7eb53869247021f957190627b9762d7ec4a1cca15dd8e191a4dae2b8eaaba8264e62c9a25b91de5584bfaa7d2d2996de5a3aa13d1b4765292a246fe0018225e65a46156795faf3216ab5ccdb2bc9e7c3854ef24bebf2179701844166123f7c85b6fa8be1b233694a25aba928947696a77e4627e594ac733db98cc64769a9f178aca6549493b672e33d38e59b1db837cd067d966923e094467c722f7c0b5950ebbb1cbace965cf7ddccef9dc86794a710a4b7256cb4d1a5aea849937d59499128d47c99fcfe08a5c03366e78f6d2fcabc0e2d0386dd9bdae3326e12d2aea697cd75e4d991ff1f771f22a1c5aeb01c874c683d3badd4c31b4f12c8e8dfb1a461a22b7c75e8ce7175267b3c1391d0b41ca42dd75249795211c1acdc499ef100144f8835b5f0b0fcea5c486d32fd86cacb1f94e21244a79c4d9bcd92947fc9921084ffdc9211cf2a6e5ed0d99635e55565749951aba0cac4b268d158375c9512491b9015d5293519a2721a411ff0005255ff51a64006432d7561ad313f1c68b273f6e4561b09775923e8ec66fdaccacb37e5a8bf9ff0031c52488bf094a48bf0235aa327a1c0b35d75aa75d6cdc176de3cce4b323c0c72c68be9f33c258532f7b1f7164aecd932af6a1d5498ac3a64f743714a5124f70800c1580dad763c9f1aaf2ead6255402c9f3b8053a6be96184cb90e4b44764dc599249c7164694279e5465c11198f1545a6252fc63c4f425438cb5bd6bf2d80fc9a24208ef215e22cd2fcbb679ae09c264d9f6bc72945eb5b4b22eea25111fd020014578cb5b023653bc2ca3c369b9537654d290f2525ddd24438848251fe4c888cf82fe393ff5315b6f597a862799548bdc9b2bfa2eacf5abc51a67f5bcac63dcff00ea65fdbfa88f263a9cfb7b1facd465f1cf1f1c96be0018ff00743fa1728f1c2eb1ad5bb2a1ec1a87b2cc5dbb64399c48ca8d04f5c4341b4e3b264c85b685a12afedf6249fdc7c7266623be55e3b7763b833fa7c36add78e5ea9a87ad20c08e6b727d747bf2392c934823374fe93ea109411199a56a427f7707b8871335c59acdb16b1c59dbdbba52b064db4d852cf5c29d155c91a5c65e47ca5446447c191a4ff0a4a9266930c7d946c4d4d9d79554d97e9366b7367aab5264cd4b7b1c77b373090a8aa8d5e990c1ff009c9eca2f5a4fd8d13e83e13d922b6c6734a7b1ccfc648b57bbb18be287771e2c5c5f0fa66e3d4e268729a43488f29d717226a652dd3e9d643e8f6136e1fa0948528b70e11a663e2d973b9fe459fe539be4675c75116c2ffe850a85094e138e32cb50634764bbad285296a42967eb4176e0b816199724647cfcff00a180f9c793e41ae98f1af5be9cc95daf91b7a9364533f6d4e6d92ad20da1de2552ac2423e16db4f21d57125444874a435d547dd23d5952ecebe06f9d61b0b6760f477999651612118d5861922cb28be8cf9a5356ed5ad36b19328c909690cfada34b2e3464b511a1465ad2278e308eceb1792edbd8794d0d2db95e5763d793e24888cca43aa758354828c99cfa595a894da5f92e111a11d895d4b8b7c062e5e295ef659e5435914445958235bd1d7ca932d94fb9e4953483592c894a22ecb4f63225197245f27c118e66478d584087e38536af80cd75dbbab7258b505112864d3217491d6da495f045cbc6957cfc76fb8fe7e46e400180f4db91b262d0583576d5c2a65be0b3d97d78c63183488d7f8ffa6338d58356ae3d6cb388d294a534f2dc8e46ebab6cd2851a887ed229aa6b3c3e8b695f5d1e3cd737722c1521b6c92e9c9feb1367dddbf3dfd444df6e79ebf6fe3e06f60019e3c71b5ab8dbb7c83c564d9456ae979ab36a9ad5bc94ca54255540426493467dcda3591a49ce3a9991973c8f67989ff925af7ff9a18a7ffd040bec00623d89733f04f2276fcbd83b475b6155f9653d7314e79c62efd9feb54ed45343f0e0b88b18a859a642deef152971d529e42b8325a47fba3e7e39a133ba49dbef243c7eb5fd57474f8c5e668d33529226a4495cc80a375e750c4824ae21a98390b5a92849fddd0cd3b6c00663d6b5facef7ca38f7b83e335f1e89bd4d1114884d3aa0a1888f59c8ec4d4771b429a4384949fec22527832e48c8ceabf1baaab2ca578c09b080c484d447ced7012e20945154dc926db36c8fe13d506694f1f82f82e06f000185691a28f7bfa7c14a18663f93d3531da4a786daed09d59f5497c111ad4a51f1f93519fe4cc43b2ac875652f8d9856a1cb4eb51b6e976553c9b5a779293b68f68bbd6d522c9c41f6712cbcd38669926648712fb69259f74a4fe8d8886d2d6343b6f186714c925d84688c5ad75ba5705c421c37a1ca6e4b49335a145d4d6d24945c726933e0c8fe48318ee9d8f8761fa7fcaed6391dcb5072ebabab3975744e7fbfd84493022fae5311cbfb8ec7224b86b7924684134e1a8c8927c74320b99f826e8d972f60ed1d6d8557e598d53b14e79c62efd9feb54ed41243f0e0b88b18a859a642deef152971d529e42b8325a46ed0018559a9a4d3d4bae32291e46556bacca2eba6e96442da58e1355b7b5683716cc55a572926cc8696e249c6d898eb894937ec6d4465cea7f1eaf25649a430abc998342c39c974f1d7fa1c18e6c4686924f094b2d1a526db469225210a4929295248cb92316180000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ad77b6d8b9d49438f4dc77138590d9e4b92d7e35122cdb55d73087651a892eb8f2187d44949a7e489b33f91ceabdc39b5167945816e7d7d4d8cbb96fb59c7ece8f2272de0c996d214e390de53d0e238cbc6d254b6c890b42c90e1764a9249544fcd2bba6c6f19d677f915bc2abacafda18f4897366c8430c47692b70d4b71c599250922f933332221e3cdf60e0de406ced598d69bcae93346f15c94b2bbeb3a396d5843aa8ac4590db6dbb21a51b6dbcf3af25286cd5dcd29715c7549980b8d5b8f5123362d68bda988272f3709a2c7cef229591acd1ec24fd377f6f3d3eee3af3d7e7f0233ae3c92d67b3336d8785516454fefd773131a6b856d1dc379b2610e3d20909519a196d6b3654b51f04b6d647d4cb8185337d8359275952312769d1513d1763c09cfeb0a0a9254fa67cb232724cdbb912dc9134965c97f790515b35ba9497b12e208581b79bb3b12f26b09a5971bf567b3ac6efac6a5c8ea96fbf8e371ab3eb24aa0b6b43f2a29210e12d2d997724ad04ae4f801b5f16dafab739a3b0c9b0ad958ae414f526a29f6157731e5c689d51dd5ed75b5a90df08fb8fb19705f3f8123833a159c28f655b31897125b487e3c861c271b79b511292b4293c929264646465f064632a69ebfabcb7c807f6931bab05cc6052610fc2b8b6c2b1b3afa5618fa86dd61a9d35cb494837da243eb43448236db5b8a59a0948256a4fad816b49fa8d7b89b285322fb985c3792a292d2d1ca4da59289264a232eaa25117c91f3fc80ab3536d8db7b55317298fab714adc2664f9b1d8b0772f92bb3722b0fbaca24142fd349a3f61b64b24fd4fc25647d8ccb83fdf27dd59446babac6b01d5b3329b1afbc858fc65a662a3c2fa976294a7de98fa5973e923b2d29b2373ab8a5b8b24123932e73355b7e2fd43bab9bf14f16abc436156648cb97954cb3d321aca5694bfd5d9bdeaa71ef5a51ca7fda56a4a9df47ad4a3e862d191beb1cf1dfc7aa8d8d952e09e45b32da459d4c19f62cc0664cdb17572194bf25d326e3b0d30a689c7147c252df05d94694a826f07c84c8d9a7cf2bf21d4962acef035454bb8ee3d2976ad5914c4f30dc8b27d0d28da59f24e29c65b367d6e1a88d29252bb3aeb6e64f7b9fddeaad938456e3593d4d5c5bd6caaaf4eda0ca80fad6d92c9e5c78ee21c4bad3895214c9171d4d2b5919f5ad750e79ac75d6bfcd76cb7b3eaf706553e6c5b8cf67e0f2e3599432512596d2cc769d35370a2b2951a5266a70d0d3abe16b33215f59e6d8d40d8d9d643e35656de55499562470af2f116ce5e466f259331a8d511da9ceb8e1a149294f295110e7ada47451348ec46a0bc60ef2d9b99354e5ac34a3569faac499687617578ed6d4b7091296cc6eb29b86f9b925f4209e2652df0842b9539f29ede58be4fab22c430c9386601225e679adacea38f8f594ff00a4660cc806e1589ca96db4f75659365644e36d386e1a9a224976334c63786fbc5347358b78d585e7f88e1f934da66908bac9ad23c5838ed4b444cfd5a89f5a3ea641f534b31d27cad646a59a5b4a8cf808569ed3ef689cf708cdabee356e34abda0b2cb9ab4666c46254e424feb26cc6ccdb493929b5a5c70cd284b8f248fa919100b3a1790598da5149aca8d3b2a6ec2aec9bfa5aca85ab352ababdf368a414c7ec4a399a212a3290e25d38fdd4a5a5bf5773322fc24792b698fe1db3e6e6daedbaecbb574444c994d06dd5321d8a1f68dc86a8b30d86d6a4ba646d9f7612b42d2a2e8a2eaa5546c790f8669d56d8df899f5d3ebb676650aa70539560d408772f45ae6632e4fd5bc64d37089d6dee6419f5e8d1a91dcd4825742a21f8f96fa37625ce7f9ad56f695914d8371b2558459b7312c912db4b286d98af93adc18a86b924763716db4ea8c9c5294901a3b01b8dbd6ae3cbd95816278ec73650b8c74d94c9b5754e1fee438876be2937c17f24a5f27f1c17e44c5c710cb6a75c3e10849a947fe845f9194b5049d395fe414fbdf1a66e250b5741c35e5e64fe32a65ac7d16697db5c45f66788c52511ca49ba693ee96cdbf67c741a764592a763aedc630f46b054884a935ce34e25c6641a9becd292a23e149572932323e0c8ff0020290c2fca2bcc9e461792586b18f0300d8d6af5463574cdf7d44f53bfdd38ee4b8271d0961b792c38646dbef29066825a53ca8d339d93bae970da78aac5588b96dfdae40de275b5712c10842ad9446a53325e492fe9d2d3695b8e99a14b4210664851f093c8fad1fc3b9d2f330ec8ff0053dda8c89a732fc42439dca9d2f938574e1d3f06c52fa8d4a34c865a8ea70fa91b8efd42bd9a03c8bc928e2ced73b423d9c69f8febbcf0cb299509d4be9a869c83262b8ec8e867eb4b2e49694ef6e3d683352b8223301d68de406551ea332aabad4535ed8387bf09856334360ab1667a269914392c4b532d28a328fb93aeb8ca3d3e978cd2a2491aba7876e4c8d79e596b4db985d5625770e90b248d26b6f95695926b92e7ade59c8763465b4e34be3ba16d127aad0a4ad5f71269b4ef3d6b8467bb97cb37b218f67afd9a8c7f17adb282eb6b62e6c985ca52da86f1a89a7524b96d346ef626d2b277b2889b59948fc6dcaf5ee5d95e45b7728ddfaf724d8d77548399518ee4d0e7c5c5e8d859ad111b369666b24adceefc9511256e1971d5094100b0b31dd3688caa8303d3f8c54e697b7b4eee4897a55e1d7d5b3549525097ce5b51e49ad4eb8e212d250d1928896a3524925dbf2a0db7b1762e0d51986add778e4990e3d2e0df56e4b943f56ed4cf8ce9b2fc72547832d2f75750ea4d5f6119252a2e495f10dcb361611adbc92aadab99e53575783e6781a2aebb26932db6ea8e6312d7252caa51abd69375878d6d72a225934b24f63f815f353b24c3fc2fd8192d348915361b372ab57f1c75f42a3bcd33796c51e1bc6957dc8529a7d0e9725c91293c9724602f8f1df70657baf17b5cb320c0ebb1d811ade4d6d549afbb72ca3dbb2c28db5cb656e458cb264dc4ad283347de483517da6933e2c1dd3b8b2fd859ee19adf5361b3a16076cc54489d779b4aae7653ae43664f6432cd5c824a489f24fcb9cf293f816b61789536058852e138ec44c5aba180c5743653f24869a412125cff3f05f919ab5760794659bd3c839545ba332c3196b3182d2e2d1c5a775a795fa3423f628e74090b25707c7daa4a7822f8e79330f764fe73d2e1f8c61193deeba9edb77b9159e3592c76ac1b71cc7a45793852dc234a7aca690a6cd5d88db336befe08fec161f909e4455e86838b2cf1d7b209f95dec2a98f159924ca5961e92cb2e4b7166957d8d9bed1704466a53884fc119a934fedbd1d84e3393686d3550dcb72a2d6d72a8f3a44d7ce44a98f4ca6967264bce2bf7bae38ead6a3e08b93e089244445515a5de5fb334fb99de79124353709cab0ed70cfbd1d7dd3215ec4fd4e5a3f9eaf3c4c27e7ff006701f46c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000792da07eab5732afeb2444fac8ee47fa88c692759ee934f741a88c8945cf25c9197245c91fe07f34b510a829a050d6a148895b19a891d2a57264db6824a48cff9f8221ed00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cdc9721a9c471db4caafa5b716b69e1bd3a5bee289296d96906b5a8ccff1c124c567e3af901fe39e2d6f6d7787bb875cd0cb431635326694836197a3372a33dec3437f6b8c3c85191a4baa8969e4faf2616f008047f20b424c95260c4ddd803f261c13b492cb792c252d9844d9387216927394b44da92bee7f6f5323e783e47621ed0d676185b9b2206c4c624e22ca16e397ecdbc75d721085755a8e492fd4449511a4ccd5f065c18093808bd4ed3d637d8b7f5cd1ec6c5ec71bf7146fd6225bc77a0fb8d64d937ef4acdbec6b5253d7b73d9445f931eeb7cd70da095260dee5b4b5b26157396f259973da656cc06cfaae52d2a511a5949fc1b87f691fe4c0768042abf77699b776ee3d3edbc32c1ec6a3b92ee9a8b7d11d5d6b0dfc2dc9094b866ca5265c1a97c117f2383a4bc8dd6dbbf02a4ce68f22a78857d3a4d74580bb68eec8fa968dc513064957f9e6c209e368b93242b9f9497630b4c0573bab6d3fab2ba862d2e3cddee4996dba2928ebdf9870e3b920da71e5adf904db86d36865975666485a8fa92529333f8e0e9edf169936b0979cee6c599c1174b5d16cec6c15216ba69115e8c9905262ca7108ec824a8d2e2145d9b5a4d066b2eab585c8028fd6fe58615b0b5eec5daaba2b8a5c675f58cc8ae3b3e338d4b991a3c46a41c928ce210e35dc9dfb1b57dc69ea67d4d5d53eac377b65d2729a1c7b6aeb38986b398d53d6b8f498f7c7606bf4a09d7624c41c767e9a4a595139d10a7906487489cfb0bb05cc0285c4fc99bdbe7710caadf593553aeb60581d6e3d7c7746ecef6b9dbe9173209c74a63b527a2bd6a44875446b6896949acfacff006eecf3d654f54aafa05dedfe4b6cc50d155948fa744a9af12945ed7baafd2ca1b6dc71c7090b34a1b5192167c24c276028e7bc993c5b1ace5ed9b832ea72ac11d84dc8a3a7b1fd49164539448af54290b6983712fba66d7f71a6cd0e216465c1129521c076be5d679e4ad5fb4f03adc5724fd2537b5c5577aab6853e17b09a7babcb8d1d69799714825b66d9970eb6a4ad5c99242d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000019e3cc5916b99d1e2de37e2f651a1dced7b5384fbd222ae4b71ea2223ea673ae34871b35a0d286d934f7476f7f04a2fc942eca0ec0d23e4440bfd85946376957b7b1f918ab8aa0c7e4544762d2032b7e0a9d6de9d2bb2d6c1ca68949347ec6d3c1fc196bb0018335661588c9d33e132646395eea58b84cd6c96c24c92faea66c85b9c7fcc6f210e73ff3a52afc910f15c375d51b7729c9f2885ce038c6fd45a648b535de1c125e38c9479b25049324b4898e34b53aa224a1469714a4f1d8be80000c1bb5e7576648df7b5b569aaeb02761e22fc9b1a66bea215a58c09e6ece951dc6f94c8f4c54b2871c6f92236ba99f2d9f1fe6f9d9582ecfd83b46e35e64d0323aa8de3edec73b4ac78a44271efa8eca6db908e5b71682527b925466835112b833e06f300196ec292a71ddd9e33d7e3d571abd86b13bfaf6da8ad136451935f194967edff809494abafe39223fc90eaf8439a61d1fc73c2b1791965335731664fa47eb973da4ca6ac512643ab86a68d5dd2fa5a2359b465dc925d8cb8f91a3c00531e52cad46c61950c6eaa1b4771f7ae59f55f4279c8a8c6e6250b5479cf4c65d6dd848ee44d7bd0ae094ea52be12a315b780f92e55658ccdc6e3e753f37c028e8e85149793bd0e38d4f7229aa757b7259421325b60fd45d95d96852d4da96a34705abd494ad2685a494951706465c9190fc20408355063d65642621c388d2598f1d86c9b69a6d25c25084a488929222222222e0888063e6714bbce353f97b89e3709c9b6b67975cb30e3365cadf7bf4b86696d25ff00328cba97fd4c874ee335c3fc9bd8fa9a3ea8c8635b3b8b575c5c642db27d954bf535ae436a2cc2fcc7926f3c65e870897c32e99911246b60018731dca68360ea0d0de3cd35820b62e279063ffd458eabfdfa95ba5525531e96cfee61a3f4a49b71444970de6ba1abb118b8fc8bc928e2ced73b423d9c69f8febbcf0cb299509d4be9a869c83262b8ec8e867eb4b2e49694ef6e3d683352b822331a0000619d90d96d2bddb1be3591af2bc56a5dc21b8f2a9d1f548b53a6b25cdb0384a6f929296da7493cb7d894e21682e4d262d7c532bc4777f9554db1b55e515d9363587e0f3ebac6dab1e4c8865367ca8ae33152f20cd26f25b8cb5b8df3d904a6fb111ac868f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010fda7b3a8f5362a5935cc29f62e48991ab2bab2bd085cbb19d21c26d98cca56a4a3ba947f9529294a494a5192526622d55b4b6c556598fe3bb4b4cc5ab87943ab8b0acb18bd7af5b85252da9ce93d2a851951d0a4a5444ea3dad9293c2948234a95cef28ea6ebf45c233ea9a8b2b66700ccabf22b2815cd2de92ec04a1d61f5b6ca08d4f29b4c8f6fad246a5136a24919f047fa27ca4d7b966498c627a46cea766d85dcd49599d05b36fb3435c48353932638d92d2c9919250869ce8a716aea9e3aa8c826cadc7a8919b16b45ed4c413979b84d163e77914ac8d668f6127e9bbfb79e9f771d79ebf3f81ea4ecfd68bcb0b0246c3c65593a8dc22a52b78e73ccdb492dc2fa7efecfb5264a3fb7e08c8cfe07ce4cdf60d649d6548c49da74544f45d8f0273fac282a4953e99f2c8c9c9336ee44b7244d259725fde41456cd6ea525ec4b88217b5de297377aefcbf6307a97e46456f933d194884833973586ea201aa3a3a9928d46dade4a088ff007387c7c980ba98f27b5c5f6d6c43596bdc8f1bcc539215a266cfa6bf625155390d94ba4dbadb5df9539d8cb8529065d4cf857e0acacaf30c4b04a47f26ce329a8c7a9e31a12fd85ace6a24668d4a24a494ebaa4a53ca8c88b93f9332219361ec3d0fb03caaf1fd5a76ca92d1da9c6efa2bae54f4526ba27d137e982ff42fecb893259fa1664b470ae525dbe651e5cb990d26cfd3b9cbb94e398ce274136d0e65e64d50e58d45659bcc21b84f494372637a8cc8e43687d6e9210b7088fe569017cab696b2463107365ec5c6138eda19941b73b78e50a519256a3f53fdfd6be12db87f699fc2147fc18fef1ad99ae333c72566387ec0c6ef68209b852ad6b6d98950d836d3d9ceef36b3427aa4c94ae4cb823e4c62b818f55e476b499049c82a730a2ca77ad558372eb31d3aea19b299ad749e93010b9b2ce436a79a49adeec9429e6dc34928bee3f66eaaa79fd83bfda66a5f998fc5bcd79759457c48ea77eaaada52573d6a651f2e97a5a2370b851a9b68c8c8c8be02fd47957825fe736389ebdbec3323ac8386cbca5591b795b2556d3ac3e4d2a3487da6dd4b2822512d6ef2a3427ff566271916eed3f8436da73edb184637214d47716dd8e43163917b92b537c1baa419a564db8683e0bb136a322f83e31b6eccef536c4da1b7b20d55754d7ad978fb731e7dbd3badbf1643897bfb6d93cdf28716da0c89444a334929293e0cb816d601414763bc3674fb0a8892a47f8538b41f63cca567f4cea2c0dd6be4bf62cd08ec9fc1f52e79e080681cbf67eb5d7d570ef33ed878ce355d62b26a1ccb8b68f0d890b34f624b6b75694accd246ae08cfe0b91d4c7f25c732cae2b8c56feb6e601baeb052abe5b7219371b59a1c477419a7b256952545cf2464647f2430bf8cd96e31af22eb3ceb79e4559558bda699aaa8c72d2f1d4a22264a1e7153e1a5d73ec4bceb5f4864d73d9d433f69289b322babfecfb8d5d17c6b809a4a87aaead791e44baf84f326cb91e37ead2bd4da9b57dcda9292249a55f2465c180b5d9dbf8356638de459ce7783d1c7764cf61b908c959761aca2bae25ce1f752d11ad09419ba8ebfda512d266a24f63ea54eccd717d41032ba3d818dd8d25acb4c0816512d587a2cb92a59b6965a752b3438e1ac8d24849999a88cb8e4640d5f53596f69a051690189698bb27614b652f20944879b7ec94db8447ff1255c191ff064465f242d8f1e6e68b19d83bea359dac0aa86fed06e3436df7d0c36b9722ae02bd6d928c88dc75c528fa97dcb528cfe4cc05f7916454388d0cfca328b7895551551d72e6cd96e936cc76505ca96b51fc111110a9f53f93d45b6f0bcfb3fa3c27274566156b2aba3c5fd39e559db2198ad3e4e3508d09750a77dbc36d28bb197433ea6a34a6e919b745e40bc51df23f266e82d6ed557b16c65fe9d52ca1d9b2ba56c251b6c216a4a56e1f1c2526a2e4fe004b30dde99abd9c56603b5f5646c52cb21c7a46474c8acbd55ba96d475365263496ce330b66423decf09413ada8d4a227394f07e0a8f20f6146b1c367ec7d26ac5317cfac8aa6a24aaed4fdb4292e9295111655ea8ada629ba94191936fbe6dacd295917dca4d7959b1355e43e4562db474766ede42c58d35948d8b2976ced947a3a7447f74743bee5acaa9cfa92f88cdfa7bf578d6da8dbec8f1ebdde7a87c9bdb38ee7f90ee5c22ba8b1eb15ff0040618792422b5b3b05a54c959cd8fecf6216695ad31e2f1dd24b35b85dd4484059d90f91799e2f62bbfbcd38f57ebd6f2963143b89b6ab8d6cb75e7d319b98dd63919295c45495a5295948f629b3f6a5b527823bd863cf22f696b8d8158f318c4fb783bbf0cc81b8b8ae173e72feadeb26e4a7d52ce9d2eae3ca8cb654a7532d4dabd6ca94b4b8d290668d80d1ba6d20de24939d4bb927f1db8f9e007f6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002019ceabb5cb3226326a0dc99f61729109501f628e542762496cd7dd2b5469f1a4b287527c913ad210e191f5529444922ef6bfc131dd6787d6e0f8ac779aadab6cd0d9bef29e75c52946b71d71c57cadc5ad4a5a947f9528c4840000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000056bbdb6c5cea4a1c7a6e3b89c2c86cf25c96bf1a89166daaeb9843b28d44975c790c3ea24a4d3f244d99fc8f0631b773b6f66b1aaf69ebda4c7eced2924de54cca4c91cb686fb519d6db90dbca7a1c57197126fb2a2e1b5a54952bee234f0616c80a1b2af287fa56be54bfe99a6bafa4d6f61b03ea29b22faa8323e95694fd33123e9d3ec42fb724ff52fc7f9662c3adda148b29d3322bac5a9e042855929c5397c83911d530bec4ca69684258252baa5a57757b4ccf824997061360118c37686b4d8bf5ffe1f6c3c6727fd2d64dcefd1ade3cdfa559f3c25df52d5d0cfaab82571f83ff41e2c5f75e9acded134785edbc32fec54b71a4c3abbe8b29f35b69ece2490db86ae529f932e3e0be4c04d0078696f29724ac66eb1db885695f23b7a65c29087d973aa8d2aeab419a4f8524c8f83f83232fe054ed794583daf9055de3ee2d164dcce718b25da5b324a4c1af93110d295109d34f47df22791dd08572d729edf27d405cc028dcfb7eec7c2dacbb2f63473b2302c15e345ada4eb95c1b396c3494ae54aaf807154892c3685199297219370db709046449357473cdcfb0eaac27275b69efea5a9a5a14641636b6d6ee52c679b5929688f056a8aea2548f5b6a52d2b5b2db7d9b253846a3ea17080e0e179a51e7983d26c1a571d6ea2fab23db465494936b430f344e27b972649324a8b9f9322e0fe4ff223d1fc82d0932549831377600fc98704ed24b2de4b094b6611364e1c85a49ce52d136a4afb9fdbd4c8f9e0f9013f010d6768e257b558fe4183e6186ded3dfda157313d190b44c483e1cec888b692e264be4a6cc89925279e167d8baf07fd2b71ea2466c5ad17b53104e5e6e13458f9de452b2359a3d849fa6efede7a7ddc75e7afcfe004c0051f81f94d8f663e46e77e37d863d229ee313269cad9ae3e6e3374dfa19764137f6249b719fa867b37d96669592b922e48a67aa769ff0089d233563f42fd37fa3f2b9b8c73f55eefaafa74b6af7fec4f4edecfd9f771c7ee3e404f40000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000066cf3b1cc71ac0f5f3b97de7e8d489d954076161faab959f4ac7777bb9f56dadb5b1c17cfb12b49a7f246422984275bbfe4952dc78e7b3e667350e6276b0f357cf349794c584c9290b805f5525f9071de53deeead25c4f64138ae87c1a86be001f36ebff00f31957ff00d2eddfff00b5a12bdb70215ad2ee8acb18cdc989329b59b0fb2e279438dae492549517f24646647ff78df200314f9518d64763b6f35c7f5bd73a56965a41d6be92b9beaecc61ab6412984a505cad5e853eda125f3fdc324f1c8f7b39c693d8de5f68b9fa7e6d35c394d8bdf4599369c90a66144fa5689882ea91f0dba83528fe9d5c2db251f29492be758e598e3197635678c49b4b6ad6ece32e31cca99ce42991fb1704e32fb664a6d693e0c8cbf92f9232e48e1786692631bcbd8cf727d8f976757b02b9caaac95909c047e9f19d5214f25a6e0c58c835386d35d9c712b5f0da4894446a2309e52de52e4958cdd63b710ad2be476f4cb85210fb2e7551a55d5683349f0a4991f07f06465fc0a4b657fe989a53ff0087b2dfff000822fb0018e7727901a877567b75a02fb75e1385e018dcb4c4cda5dae470e0cebe9083252aa6236eb895a2391f05224197ddf2cb7f3dd69b07796cdf1cade05a69edd191ccc5e9645337655d2d778ed4c2c8a2b8d2d2a660bd19f49ce3491925714c8fb7b1bfedad2a499e8500152e91959dccf19f1c93b32bd707245e387f591dc86888e3644851344e3084a52d39ea26fb212949255d88929e3a9666d5985623274cf84c9918e57ba962e1335b25b09324beba99b216e71ff31bc8439cff00ce94abf244379800c2ad210c6e4be6186c90d27c91af709b411127baf1e4296645f8e54a33333fe4ccccc5519bec1ac93aca91893b4e8a89e8bb1e04e7f58505492a7d33e591939266ddc896e489a4b2e4bfbc828ad9add4a4bd8971043ea0800c5aad4b6db4337dff00618458b7559f61fb12bafb11b259992199edd1c22365de3f2c3ed9ad9713f8eae73f94909878099949d8387ecdcca7d0cba4996bb26dde975b288bdb0e47ae3a5d655c1997295928b9e7f81a8800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040b6e6d3ff000ae3e26ffe85faa7f546575b8c71f55e8fa7fab5293eff00d8aefd7afecf8e79fdc4389037abb966e195acb5c62ade41518d12d198e4ebb1fa7854f2b823441678697f572b83ece364a425a4f1dd7d8c9020de73d1ccc9b07d798ec0c867d13f65b2f1f8a9b2af3494a89dd6ea4dc654a2324b84467d54647c1f07c1f0391a8dcffc16b337bc5ec9de24e2393bb2ec35b5e48517690ebaa3724d44a7782ef2d2e2d4e36b599a9e42f8e4d683230d18de7584bb595174d66346baec85e6a3d44b4d8326cd8bae119b6dc75f6eaf29449334920cccf83e3f03c3fe2c6acfeb7ff0cbfc4ac57fac3ff77ff598dfa97f97ecff0075efedff002feffdbfb7e7f1f2311633b270eb0d47e2feaaafbb65ecc719cea9a0df53367de5d2bf18a4b2e266b65caa299b85d524e924d7ff00091f07c5a5e3a677a4b1cd6b41a876b49a346c98f93c976cb179f0d32ae5cbc5cf71e4cf4c24a14f288fb21f4ca4a3a25be1cf612126a20b63567935ad362a62d459e558ce3f964eb3b38113197efe3aec642224d91189d6d95747564b28cb5f0483e3ee2e55d4cc4ad5b4314aa3ba7b2fcbf0ea789596a756dbc790b6ae1651d2f9b7249c4b651e47435afd3d967eb4a57db8519271dc8a6a9acf0fa2da57d7478f35cddc8b05486db24ba727fac4d9f776fcf7f51137db9e7afdbf8f81d2bea9acbbd91635d6f0189b157e49d6b8a65f412d0a5228185a0cc8fe0f8525265ff52201aff1ad99ae333c72566387ec0c6ef68209b852ad6b6d98950d836d3d9ceef36b3427aa4c94ae4cb823e4c79f0edbda9f62c8fa5d7db4312c9dff0052dff5d35dc69abf5a544952f8696a3ea4a5248cff00046a22fe4642dc3553ded9fbd510202dea08790ebbbbca614760dc29154d70a9cb5b2923374bd4d254e170666db47cf245c099e139e6a1cc3ce3bcd81af2f292c2aa26aceb7591c090daebde5b73d265fed493f5386d34444b5119f42e12a32ebc106b55ad2da14e2d4494a48d4667fc110a0ea7c88da5936185b8311d151eeb5f3aa5c88a7132371dc926404386854862ad10d4cad47d54b433f584b5208be12b3f595e6cd9c49b56ddc553a8b18afc729319711c438992da93d906dab9eaa25119707cf07c97cf1f230964ad78f91f1eb1cd3c6fdd795e9cda28fd46d99d690af89b913af9c6f828b33177d4f216e1ad24924476924a2512d2a59745106c8cc7716a6d72dd7b9b1f6662d881dab6a76137905bc7ad71f4a7af6ea990b4199a7b27b171f066447c0fdf24dababf0c5c36f30d918b512ac10db90d365711e29c84ad5d50a6fd8b2ee4a519111973c9fc10c87b1f3d9913666671338d838e6a4ba9589513760d37565619165c4715f5ae154fd638e45369321d5b1ea6623eead7db934a94830f0dd9acb7c8342db38c22549aed1afb4c3ae2795b0e14f8ed3892e7f6a8baa907ff007197e006b556e3d448cd8b5a2f6a6209cbcdc268b1f3bc8a5646b347b093f4ddfdbcf4fbb8ebcf5f9fc0f79ec4d7e9aa6af8f3ac78ab1fb1fd21a9a766c7a1c9ded367e952e76ea6f7b48dbf591f6ee469e39f81f37f37d8359275952312769d1513d1763c09cfeb0a0a9254fa67cb232724cdbb912dc9134965c97f790515b35ba9497b12e2084f76d60f7f7b9eecbf1fe9d89686718993f7453a9b351a0e43b150711a2573d48ff52fac73a1971c239fe7901b96df606078fc7b9977d9b5056b18e21a72e5d9964cb28ad43a5cb4a906b511324b2f949af8e7f8e440b3ef24b05c7f53c9db5af6de873fac8d6d5f50a5535db2eb1ed933188ea237da27524a413e4b34f1c9f045f1cf233127324daeb2c4fc84b88745408da5b33fa89bc8f316243f5b8d426623d1eae449658911d07d90cb44d93ce9349724928ccd5d456992dc1e438f7915168f6e48cc6c255a6ba719cb1fab88cb160ffd6b6c9cd8ccc6436cbd1d2eb6684288d5d89ae0dc5f1dcc3e97c7caf179791cbc3e264954f5f57c76e5cbab6e636a991d870cc9b75c648fba10a32322519111f07c0adf2cdcd9b16c3b9d77aa75943cae56295ac5964126c6f8ea9964e4765478918ca33fef92b436b5f55fa9b497af970bb7db0df11ccf00b1ce34366af332361515a2ef2cae564a27f2b852cf962dd5d94a3edf071d68251a5a530494925068488d6e1cc293566f9caae226e04eb89b91633095611afe8113a364be93710d1d1ad329a5aac9a4a8da5346dbe47ed8e7e9597ee0b3d7bdf29ccabb139da2f5739953594532ef8e75e4f7a96ba130934a4a3b9251164f3314b51a498247c136e294b49127b78a3f93ade4983e017380e0eed9e4fb1a549855949616051188aec4270e72e54b69b7c90cb3ea59776db73ba94d9253c2b94d6baaeef05d3be3aebad0fe4a58dce0c8b7c6d535dbab0ba5d1c5290a906f2eb9762c3ecb8ccc24b846a6b94774a5c22ec44b4945f5d5cc9d775da5b67e711d74bae71cb6ca31aacb59b10a1375f4329448a59533ed4934d3888eda09e5a5247ed654b3e566a30bb27792f770f05b397fe1bb1fd7f4f96c2c2a5e30bba5146faf94f324cba89a98ea52a3a987d1209cfa725752511a12a4991496ff006c665ad35bdee7fb8706a680ed6ad96a056e2f7cf5bb960ebcb4b4cb24a7e1c4e8e2de710822e149fbb93517e06767e3689cc2767fb8f71e26bcab55655b22a9da7b75a0d74ec1c2ad4442b397fdc4a1caf3904eb24e292e3266695a8ba192cb8b6b4b5536936ade78f154cd96a1a2bac46feb60e32c7b2bdf9f02725fb73aa6da2f5ad1e86d935147e50a790b22235f701a9b01daf9759e792b57ed3c0eb715c93f494ded7155deaada14f85ec269eeaf2e3475a5e65c52096d9b665c3ada92b572649b40670c532bc4777f9554db1b55e515d9363587e0f3ebac6dab1e4c8865367ca8ae33152f20cd26f25b8cb5b8df3d904a6fb111ac868f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011ecf30f2cef1a918e965190e3aebae34f3367433ce24c8ce36b25a548570a428b94f0a6dc42db5a4cd2b4288cc845f16d23131f9f906456db072cc9b27c8ab534eedfdaae1225c4848ee6db31db891998cd9256eb8e76f49a94a51773512524564800f152d442a0a681435a8522256c66a2474a95c9936da0929233fe7e0887b400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007ffd9, 'approved', '2025-05-23 12:02:08', 2),
+(4, 2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'Free Module: Flora and Fauna Identification', 'debit', 0.00, '', 'approved', '2025-05-24 15:36:38', 3);
+
+--
+-- Triggers `paymenttransactions`
+--
+DELIMITER $$
+CREATE TRIGGER `after_payment_approval` AFTER UPDATE ON `paymenttransactions` FOR EACH ROW BEGIN
+  IF NEW.paymentStatus = 'approved' AND OLD.paymentStatus = 'pending' AND NEW.module_id IS NOT NULL THEN
+    -- Update module purchase status
+    UPDATE ModulePurchases
+    SET status = 'active'
+    WHERE payment_id = NEW.payment_id;
+    
+    -- Update existing training progress record instead of creating a new one
+    UPDATE GuideTrainingProgress gtp
+    JOIN ModulePurchases mp ON mp.payment_id = NEW.payment_id
+    JOIN Users u ON mp.user_id = u.user_id
+    JOIN ParkGuides pg ON u.user_id = pg.user_id
+    SET gtp.status = 'in progress'
+    WHERE gtp.guide_id = pg.guide_id 
+    AND gtp.module_id = NEW.module_id;
+  END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `pendingmodulepayments`
+-- (See below for the actual view)
+--
+CREATE TABLE `pendingmodulepayments` (
+`payment_id` int
+,`user_id` int
+,`user_name` varchar(511)
+,`email` varchar(255)
+,`module_id` int
+,`module_name` varchar(255)
+,`amountPaid` decimal(10,2)
+,`paymentMethod` enum('debit','credit','e_wallet')
+,`transaction_date` timestamp
+);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `plantinfo`
+--
+
+CREATE TABLE `plantinfo` (
+  `plant_id` int NOT NULL,
+  `common_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `scientific_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `family` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text COLLATE utf8mb4_general_ci NOT NULL,
+  `image_url` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `plantinfo`
+--
+
+INSERT INTO `plantinfo` (`plant_id`, `common_name`, `scientific_name`, `family`, `description`, `image_url`, `created_at`, `updated_at`) VALUES
+(1, 'Spider Lily', 'Hymenocallis littoralis', 'Amaryllidaceae', 'The Spider Lily is a stunning tropical plant known for its elegant, spider-like white flowers with long, delicate petals. Native to tropical regions, it thrives in warm, humid environments and produces fragrant blooms throughout the growing season. The plant plays an important role in local ecosystems and is valued for both its ornamental beauty and cultural significance.', 'https://en.whu.edu.cn/__local/E/BB/0A/C72D750AC39F58D1F4DD1D85605_070A1AAE_7F0E.jpg', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(2, 'Night Queen of Flowers', 'Epiphyllum oxypetalum', 'Cactaceae', 'The Night Queen of Flowers, also known as the Queen of the Night, is a spectacular nocturnal blooming cactus. This epiphytic cactus produces large, white, highly fragrant flowers that bloom only at night and wilt by dawn. Each flower can reach up to 30 cm in length, making it one of the most impressive night-blooming plants in our collection. Its rare blooming pattern and ethereal beauty make it a highly sought-after specimen in botanical gardens.', 'https://www.southsideblooms.com/wp-content/uploads/2022/05/NightQueenofFlowers.jpg', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(3, 'Rafflesia', 'Rafflesia arnoldii', 'Rafflesiaceae', 'Known as the corpse flower, the Rafflesia is the largest individual flower in the world and is native to the rainforests of Borneo. This parasitic plant produces massive blooms that can reach up to 3 feet in diameter. The flower is famous for its distinctive appearance and its strong odor, which attracts pollinators. Despite its size and significance, the Rafflesia has no stems, leaves, or roots, making it one of the most unique specimens in our botanical collection.', 'https://cdn.shortpixel.ai/spai2/q_glossy+w_1082+to_auto+ret_img/www.fauna-flora.org/wp-content/uploads/2023/06/our-green-planet-resplendent-rafflesia-reigns-supreme-scaled.jpg', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(4, 'Cattleya Orchid', 'Cattleya labiata', 'Orchidaceae', 'The Cattleya Orchid, often referred to as the \"Queen of Orchids,\" is renowned for its large, showy blooms and intense fragrance. Native to tropical Americas, these epiphytic orchids produce spectacular flowers in shades of purple, pink, and white, often with frilled lips and intricate patterns. Each bloom can last several weeks, and the plants typically flower once or twice a year. In our collection, these orchids demonstrate the incredible diversity of the orchid family and serve as stunning examples of tropical flora adaptation.', 'https://www.better-gro.com/uploads/1/0/3/0/103066208/shutterstock-199188980-e1428327243456_orig.jpg', '2025-05-22 18:25:25', '2025-05-22 18:25:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `questions`
+--
+
+CREATE TABLE `questions` (
+  `question_id` int NOT NULL,
+  `quiz_id` int NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `text` text NOT NULL,
+  `explanation` text,
+  `points` int DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `questions`
+--
+
+INSERT INTO `questions` (`question_id`, `quiz_id`, `type`, `text`, `explanation`, `points`, `created_at`, `updated_at`) VALUES
+(1, 1, 'multiple-choice', 'What should you do if you encounter a bear in the park?', 'Backing away slowly while facing the bear is the safest approach. Running may trigger the bear\'s chase instinct.', 1, '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(2, 1, 'true-false', 'It is safe to feed the wildlife in the park.', 'Feeding wildlife is dangerous for both animals and humans. It can cause animals to lose their natural fear of humans and become aggressive.', 2, '2025-05-22 18:25:25', '2025-05-22 18:25:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `quizattempts`
+--
+
+CREATE TABLE `quizattempts` (
+  `attempt_id` int NOT NULL,
+  `quiz_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `guide_id` int NOT NULL,
+  `module_id` int NOT NULL,
+  `start_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `end_time` timestamp NULL DEFAULT NULL,
+  `score` int DEFAULT NULL,
+  `totalquestions` int DEFAULT NULL,
+  `passed` tinyint(1) DEFAULT NULL,
+  `attempt_number` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `quizattempts`
+--
+
+INSERT INTO `quizattempts` (`attempt_id`, `quiz_id`, `user_id`, `guide_id`, `module_id`, `start_time`, `end_time`, `score`, `totalquestions`, `passed`, `attempt_number`) VALUES
+(1, 1, 2, 1, 1, '2025-05-22 19:24:04', NULL, NULL, 0, NULL, 1),
+(2, 1, 2, 1, 1, '2025-05-22 19:24:04', NULL, NULL, 0, NULL, 2),
+(3, 1, 2, 1, 1, '2025-05-22 19:24:19', NULL, NULL, 0, NULL, 3),
+(4, 1, 2, 1, 1, '2025-05-22 19:24:19', NULL, NULL, 0, NULL, 4),
+(5, 1, 2, 1, 1, '2025-05-24 00:50:11', NULL, NULL, 0, NULL, 5),
+(6, 1, 2, 1, 1, '2025-05-24 00:50:38', NULL, NULL, 0, NULL, 6),
+(7, 1, 2, 1, 1, '2025-05-24 00:56:02', NULL, NULL, 0, NULL, 7),
+(8, 1, 2, 1, 1, '2025-05-24 00:56:02', NULL, NULL, 0, NULL, 8),
+(9, 1, 2, 1, 1, '2025-05-24 00:56:02', NULL, NULL, 0, NULL, 9),
+(10, 1, 2, 1, 1, '2025-05-24 00:59:41', NULL, NULL, 0, NULL, 10),
+(11, 1, 2, 1, 1, '2025-05-24 01:02:28', NULL, NULL, 0, NULL, 11),
+(12, 1, 2, 1, 1, '2025-05-24 01:40:30', NULL, NULL, 0, NULL, 12),
+(13, 1, 2, 1, 1, '2025-05-24 01:40:30', NULL, NULL, 0, NULL, 13),
+(14, 1, 2, 1, 1, '2025-05-24 01:40:30', NULL, NULL, 0, NULL, 14),
+(15, 1, 2, 1, 1, '2025-05-24 01:42:37', NULL, NULL, 0, NULL, 15),
+(16, 1, 2, 1, 1, '2025-05-24 01:42:37', NULL, NULL, 0, NULL, 16),
+(17, 1, 2, 1, 1, '2025-05-24 01:42:37', NULL, NULL, 0, NULL, 17),
+(18, 1, 2, 1, 1, '2025-05-24 01:45:11', NULL, NULL, 0, NULL, 18),
+(19, 1, 2, 1, 1, '2025-05-24 01:45:12', NULL, NULL, 0, NULL, 19),
+(20, 1, 2, 1, 1, '2025-05-24 01:45:12', NULL, NULL, 0, NULL, 20),
+(21, 1, 2, 1, 1, '2025-05-24 01:45:43', NULL, NULL, 0, NULL, 21),
+(22, 1, 2, 1, 1, '2025-05-24 01:45:43', NULL, NULL, 0, NULL, 22),
+(23, 1, 2, 1, 1, '2025-05-24 01:45:43', NULL, NULL, 0, NULL, 23),
+(24, 1, 2, 1, 1, '2025-05-24 01:49:50', NULL, NULL, 0, NULL, 24),
+(25, 1, 2, 1, 1, '2025-05-24 01:49:50', NULL, NULL, 0, NULL, 25),
+(26, 1, 2, 1, 1, '2025-05-24 01:49:50', NULL, NULL, 0, NULL, 26),
+(27, 1, 2, 1, 1, '2025-05-24 01:53:50', NULL, NULL, 0, NULL, 27),
+(28, 1, 2, 1, 1, '2025-05-24 01:53:50', NULL, NULL, 0, NULL, 28),
+(29, 1, 2, 1, 1, '2025-05-24 01:53:50', NULL, NULL, 0, NULL, 29),
+(30, 1, 2, 1, 1, '2025-05-24 01:59:25', NULL, NULL, NULL, NULL, 30),
+(31, 1, 2, 1, 1, '2025-05-24 01:59:25', NULL, NULL, NULL, NULL, 31),
+(32, 1, 2, 1, 1, '2025-05-24 01:59:25', NULL, NULL, NULL, NULL, 32),
+(33, 1, 2, 1, 1, '2025-05-24 02:09:22', NULL, NULL, NULL, NULL, 33),
+(34, 1, 2, 1, 1, '2025-05-24 02:09:22', NULL, NULL, NULL, NULL, 34),
+(35, 1, 2, 1, 1, '2025-05-24 02:09:22', NULL, NULL, NULL, NULL, 35),
+(36, 1, 2, 1, 1, '2025-05-24 02:23:34', NULL, NULL, NULL, NULL, 36),
+(37, 1, 2, 1, 1, '2025-05-24 02:23:35', NULL, NULL, NULL, NULL, 37),
+(38, 1, 2, 1, 1, '2025-05-24 02:23:35', NULL, NULL, NULL, NULL, 38),
+(39, 1, 2, 1, 1, '2025-05-24 02:32:42', NULL, NULL, NULL, NULL, 39),
+(40, 1, 2, 1, 1, '2025-05-24 02:47:18', NULL, NULL, NULL, NULL, 40),
+(41, 1, 2, 1, 1, '2025-05-24 02:47:18', NULL, NULL, NULL, NULL, 41),
+(42, 1, 2, 1, 1, '2025-05-24 02:47:18', NULL, NULL, NULL, NULL, 42),
+(43, 1, 2, 1, 1, '2025-05-24 02:56:35', NULL, NULL, NULL, NULL, 43),
+(44, 1, 2, 1, 1, '2025-05-24 02:56:36', NULL, NULL, NULL, NULL, 44),
+(45, 1, 2, 1, 1, '2025-05-24 02:56:36', NULL, NULL, NULL, NULL, 45),
+(46, 1, 2, 1, 1, '2025-05-24 03:26:51', NULL, NULL, NULL, NULL, 46),
+(47, 1, 2, 1, 1, '2025-05-24 03:26:51', NULL, NULL, NULL, NULL, 47),
+(48, 1, 2, 1, 1, '2025-05-24 03:26:51', NULL, NULL, NULL, NULL, 48),
+(49, 1, 2, 1, 1, '2025-05-24 03:28:01', NULL, NULL, NULL, NULL, 49),
+(50, 1, 2, 1, 1, '2025-05-24 03:28:01', NULL, NULL, NULL, NULL, 50),
+(51, 1, 2, 1, 1, '2025-05-24 03:28:01', NULL, NULL, NULL, NULL, 51),
+(53, 1, 2, 1, 1, '2025-05-24 03:35:07', NULL, NULL, NULL, NULL, 52),
+(54, 1, 2, 1, 1, '2025-05-24 03:35:07', NULL, NULL, NULL, NULL, 53),
+(55, 1, 2, 1, 1, '2025-05-24 03:35:07', NULL, NULL, NULL, NULL, 54),
+(57, 1, 2, 1, 1, '2025-05-24 03:37:28', NULL, NULL, NULL, NULL, 55),
+(58, 1, 2, 1, 1, '2025-05-24 03:37:28', NULL, NULL, NULL, NULL, 56),
+(59, 1, 2, 1, 1, '2025-05-24 03:37:28', NULL, NULL, NULL, NULL, 57),
+(60, 1, 2, 1, 1, '2025-05-24 03:37:31', '2025-05-24 03:37:31', 0, 2, 0, 58),
+(61, 1, 2, 1, 1, '2025-05-24 03:37:38', NULL, NULL, NULL, NULL, 59),
+(62, 1, 2, 1, 1, '2025-05-24 03:37:38', NULL, NULL, NULL, NULL, 60),
+(63, 1, 2, 1, 1, '2025-05-24 03:37:38', NULL, NULL, NULL, NULL, 61),
+(64, 1, 2, 1, 1, '2025-05-24 03:37:43', '2025-05-24 03:37:43', 0, 2, 0, 62),
+(65, 1, 2, 1, 1, '2025-05-24 03:41:56', NULL, NULL, NULL, NULL, 63),
+(66, 1, 2, 1, 1, '2025-05-24 03:41:56', NULL, NULL, NULL, NULL, 64),
+(67, 1, 2, 1, 1, '2025-05-24 03:41:56', NULL, NULL, NULL, NULL, 65),
+(68, 1, 2, 1, 1, '2025-05-24 03:41:59', '2025-05-24 03:41:59', 0, 2, 0, 66),
+(69, 1, 2, 1, 1, '2025-05-24 03:49:07', NULL, NULL, NULL, NULL, 67),
+(70, 1, 2, 1, 1, '2025-05-24 03:49:07', NULL, NULL, NULL, NULL, 68),
+(71, 1, 2, 1, 1, '2025-05-24 03:49:07', NULL, NULL, NULL, NULL, 69),
+(72, 1, 2, 1, 1, '2025-05-24 03:49:11', '2025-05-24 03:49:11', 0, 2, 0, 70),
+(73, 1, 2, 1, 1, '2025-05-24 03:52:59', NULL, NULL, NULL, NULL, 71),
+(74, 1, 2, 1, 1, '2025-05-24 03:52:59', NULL, NULL, NULL, NULL, 72),
+(75, 1, 2, 1, 1, '2025-05-24 03:52:59', NULL, NULL, NULL, NULL, 73),
+(76, 1, 2, 1, 1, '2025-05-24 03:53:02', '2025-05-24 03:53:02', 0, 2, 0, 74),
+(77, 1, 2, 1, 1, '2025-05-24 06:53:53', NULL, NULL, NULL, NULL, 75),
+(78, 1, 2, 1, 1, '2025-05-24 06:53:53', NULL, NULL, NULL, NULL, 76),
+(79, 1, 2, 1, 1, '2025-05-24 06:53:54', NULL, NULL, NULL, NULL, 77),
+(80, 1, 2, 1, 1, '2025-05-24 06:53:56', '2025-05-24 06:53:56', 0, 2, 0, 78),
+(81, 1, 2, 1, 1, '2025-05-24 07:03:10', NULL, NULL, NULL, NULL, 79),
+(82, 1, 2, 1, 1, '2025-05-24 07:03:10', NULL, NULL, NULL, NULL, 80),
+(83, 1, 2, 1, 1, '2025-05-24 07:03:10', NULL, NULL, NULL, NULL, 81),
+(84, 1, 2, 1, 1, '2025-05-24 07:03:14', '2025-05-24 07:03:14', 0, 2, 0, 82),
+(85, 1, 2, 1, 1, '2025-05-24 07:13:40', NULL, NULL, NULL, NULL, 83),
+(86, 1, 2, 1, 1, '2025-05-24 07:13:40', NULL, NULL, NULL, NULL, 84),
+(87, 1, 2, 1, 1, '2025-05-24 07:13:41', NULL, NULL, NULL, NULL, 85),
+(88, 1, 2, 1, 1, '2025-05-24 07:13:44', '2025-05-24 07:13:44', 0, 2, 0, 86),
+(89, 1, 2, 1, 1, '2025-05-24 10:15:05', NULL, NULL, NULL, NULL, 87),
+(90, 1, 2, 1, 1, '2025-05-24 10:15:05', NULL, NULL, NULL, NULL, 88),
+(91, 1, 2, 1, 1, '2025-05-24 10:15:05', NULL, NULL, NULL, NULL, 89),
+(92, 1, 2, 1, 1, '2025-05-24 10:15:08', '2025-05-24 10:15:08', 0, 2, 0, 90),
+(93, 1, 2, 1, 1, '2025-05-24 10:15:30', NULL, NULL, NULL, NULL, 91),
+(94, 1, 2, 1, 1, '2025-05-24 10:15:30', NULL, NULL, NULL, NULL, 92),
+(95, 1, 2, 1, 1, '2025-05-24 10:15:31', NULL, NULL, NULL, NULL, 93),
+(96, 1, 2, 1, 1, '2025-05-24 10:15:34', '2025-05-24 10:15:34', 0, 2, 0, 94),
+(97, 1, 2, 1, 1, '2025-05-24 10:24:57', NULL, NULL, NULL, NULL, 95),
+(98, 1, 2, 1, 1, '2025-05-24 10:24:57', NULL, NULL, NULL, NULL, 96),
+(99, 1, 2, 1, 1, '2025-05-24 10:24:57', NULL, NULL, NULL, NULL, 97),
+(100, 1, 2, 1, 1, '2025-05-24 10:25:25', NULL, NULL, NULL, NULL, 98),
+(101, 1, 2, 1, 1, '2025-05-24 10:25:25', NULL, NULL, NULL, NULL, 99),
+(102, 1, 2, 1, 1, '2025-05-24 10:25:25', NULL, NULL, NULL, NULL, 100),
+(103, 1, 2, 1, 1, '2025-05-24 10:30:59', NULL, NULL, NULL, NULL, 101),
+(104, 1, 2, 1, 1, '2025-05-24 10:30:59', NULL, NULL, NULL, NULL, 102),
+(105, 1, 2, 1, 1, '2025-05-24 10:30:59', NULL, NULL, NULL, NULL, 103),
+(106, 1, 2, 1, 1, '2025-05-24 10:42:33', NULL, NULL, NULL, NULL, 104),
+(107, 1, 2, 1, 1, '2025-05-24 10:42:33', NULL, NULL, NULL, NULL, 105),
+(108, 1, 2, 1, 1, '2025-05-24 10:42:33', NULL, NULL, NULL, NULL, 106),
+(109, 1, 2, 1, 1, '2025-05-24 10:43:18', NULL, NULL, NULL, NULL, 107),
+(110, 1, 2, 1, 1, '2025-05-24 10:43:18', NULL, NULL, NULL, NULL, 108),
+(111, 1, 2, 1, 1, '2025-05-24 10:43:18', NULL, NULL, NULL, NULL, 109),
+(112, 1, 2, 1, 1, '2025-05-24 10:43:21', '2025-05-24 10:43:21', 0, 2, 0, 110),
+(113, 1, 2, 1, 1, '2025-05-24 10:48:59', NULL, NULL, NULL, NULL, 111),
+(114, 1, 2, 1, 1, '2025-05-24 10:48:59', NULL, NULL, NULL, NULL, 112),
+(115, 1, 2, 1, 1, '2025-05-24 10:48:59', NULL, NULL, NULL, NULL, 113),
+(116, 1, 2, 1, 1, '2025-05-24 10:49:03', '2025-05-24 10:49:03', 0, 2, 0, 114),
+(117, 1, 2, 1, 1, '2025-05-24 10:50:47', NULL, NULL, NULL, NULL, 115),
+(118, 1, 2, 1, 1, '2025-05-24 10:50:47', NULL, NULL, NULL, NULL, 116),
+(119, 1, 2, 1, 1, '2025-05-24 10:50:47', NULL, NULL, NULL, NULL, 117),
+(120, 1, 2, 1, 1, '2025-05-24 10:50:50', '2025-05-24 10:50:50', 0, 2, 0, 118),
+(121, 1, 2, 1, 1, '2025-05-24 10:51:11', NULL, NULL, NULL, NULL, 119),
+(122, 1, 2, 1, 1, '2025-05-24 10:51:11', NULL, NULL, NULL, NULL, 120),
+(123, 1, 2, 1, 1, '2025-05-24 10:51:11', NULL, NULL, NULL, NULL, 121),
+(124, 1, 2, 1, 1, '2025-05-24 10:51:15', '2025-05-24 10:51:15', 0, 2, 0, 122),
+(125, 1, 2, 1, 1, '2025-05-24 10:51:31', NULL, NULL, NULL, NULL, 123),
+(126, 1, 2, 1, 1, '2025-05-24 10:51:31', NULL, NULL, NULL, NULL, 124),
+(127, 1, 2, 1, 1, '2025-05-24 10:51:31', NULL, NULL, NULL, NULL, 125),
+(128, 1, 2, 1, 1, '2025-05-24 10:51:36', '2025-05-24 10:51:36', 0, 2, 0, 126),
+(129, 1, 2, 1, 1, '2025-05-24 10:57:32', NULL, NULL, NULL, NULL, 127),
+(130, 1, 2, 1, 1, '2025-05-24 10:57:33', NULL, NULL, NULL, NULL, 128),
+(131, 1, 2, 1, 1, '2025-05-24 10:57:33', NULL, NULL, NULL, NULL, 129),
+(132, 1, 2, 1, 1, '2025-05-24 11:15:40', NULL, NULL, NULL, NULL, 130),
+(133, 1, 2, 1, 1, '2025-05-24 11:15:40', NULL, NULL, NULL, NULL, 131),
+(134, 1, 2, 1, 1, '2025-05-24 11:15:40', NULL, NULL, NULL, NULL, 132),
+(135, 1, 2, 1, 1, '2025-05-24 11:24:44', NULL, NULL, NULL, NULL, 133),
+(136, 1, 2, 1, 1, '2025-05-24 11:24:45', NULL, NULL, NULL, NULL, 134),
+(137, 1, 2, 1, 1, '2025-05-24 11:24:45', NULL, NULL, NULL, NULL, 135),
+(138, 1, 2, 1, 1, '2025-05-24 11:25:17', NULL, NULL, NULL, NULL, 136),
+(139, 1, 2, 1, 1, '2025-05-24 11:25:17', NULL, NULL, NULL, NULL, 137),
+(140, 1, 2, 1, 1, '2025-05-24 11:25:17', NULL, NULL, NULL, NULL, 138),
+(141, 1, 2, 1, 1, '2025-05-24 11:29:56', NULL, NULL, NULL, NULL, 139),
+(142, 1, 2, 1, 1, '2025-05-24 11:29:56', NULL, NULL, NULL, NULL, 140),
+(143, 1, 2, 1, 1, '2025-05-24 11:29:56', NULL, NULL, NULL, NULL, 141),
+(144, 1, 2, 1, 1, '2025-05-24 11:32:52', NULL, NULL, NULL, NULL, 142),
+(145, 1, 2, 1, 1, '2025-05-24 11:32:52', NULL, NULL, NULL, NULL, 143),
+(146, 1, 2, 1, 1, '2025-05-24 11:32:52', NULL, NULL, NULL, NULL, 144),
+(148, 1, 2, 1, 1, '2025-05-24 11:33:52', NULL, NULL, NULL, NULL, 145),
+(149, 1, 2, 1, 1, '2025-05-24 11:33:52', NULL, NULL, NULL, NULL, 146),
+(150, 1, 2, 1, 1, '2025-05-24 11:33:52', NULL, NULL, NULL, NULL, 147),
+(151, 1, 2, 1, 1, '2025-05-24 11:33:55', '2025-05-24 11:33:55', 2, 2, 1, 148),
+(152, 1, 2, 1, 1, '2025-05-24 11:34:37', NULL, NULL, NULL, NULL, 149),
+(153, 1, 2, 1, 1, '2025-05-24 11:34:38', NULL, NULL, NULL, NULL, 150),
+(154, 1, 2, 1, 1, '2025-05-24 11:34:38', NULL, NULL, NULL, NULL, 151),
+(155, 1, 2, 1, 1, '2025-05-24 11:34:42', '2025-05-24 11:34:42', 2, 2, 1, 152),
+(156, 1, 2, 1, 1, '2025-05-24 11:39:07', NULL, NULL, NULL, NULL, 153),
+(157, 1, 2, 1, 1, '2025-05-24 11:39:07', NULL, NULL, NULL, NULL, 154),
+(158, 1, 2, 1, 1, '2025-05-24 11:39:07', NULL, NULL, NULL, NULL, 155),
+(159, 1, 2, 1, 1, '2025-05-24 11:39:10', '2025-05-24 11:39:10', 2, 2, 1, 156),
+(160, 1, 2, 1, 1, '2025-05-24 11:44:16', '2025-05-24 11:44:16', 2, 2, 1, 157),
+(161, 1, 2, 1, 1, '2025-05-24 11:56:17', '2025-05-24 11:56:17', 2, 2, 1, 158);
+
+--
+-- Triggers `quizattempts`
+--
+DELIMITER $$
+CREATE TRIGGER `after_quiz_completion` AFTER UPDATE ON `quizattempts` FOR EACH ROW BEGIN
+  DECLARE module_id_val INT;
+  
+  IF NEW.passed = TRUE AND (OLD.passed IS NULL OR OLD.passed = FALSE) THEN
+    -- Get the module_id for this quiz
+    SELECT module_id INTO module_id_val FROM Quizzes WHERE quiz_id = NEW.quiz_id;
+    
+    -- Update module progress
+    UPDATE GuideTrainingProgress 
+    SET status = 'Completed', completion_date = CURDATE()
+    WHERE guide_id = NEW.guide_id AND module_id = module_id_val;
+    
+    -- If progress record doesn't exist, create it
+    IF ROW_COUNT() = 0 THEN
+      INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
+      VALUES (NEW.guide_id, module_id_val, 'Completed', CURDATE());
+    END IF;
+    
+    -- Also update completion percentage in ModulePurchases
+    UPDATE ModulePurchases mp
+    JOIN Users u ON u.user_id = mp.user_id
+    JOIN ParkGuides pg ON pg.user_id = u.user_id
+    SET mp.completion_percentage = 100.00
+    WHERE pg.guide_id = NEW.guide_id AND mp.module_id = module_id_val;
+  END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `quizresponses`
+--
+
+CREATE TABLE `quizresponses` (
+  `response_id` int NOT NULL,
+  `attempt_id` int NOT NULL,
+  `question_id` int NOT NULL,
+  `selected_option_id` int NOT NULL,
+  `is_correct` tinyint(1) NOT NULL,
+  `time_taken` int DEFAULT NULL,
+  `points_earned` int NOT NULL DEFAULT '0',
+  `answer_changed` tinyint(1) DEFAULT '0',
+  `answer_sequence` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `quizresponses`
+--
+
+INSERT INTO `quizresponses` (`response_id`, `attempt_id`, `question_id`, `selected_option_id`, `is_correct`, `time_taken`, `points_earned`, `answer_changed`, `answer_sequence`, `created_at`, `updated_at`) VALUES
+(1, 60, 1, 1, 0, 0, 0, 0, 1, '2025-05-24 03:37:31', '2025-05-24 03:37:31'),
+(2, 60, 2, 5, 0, 1, 0, 0, 2, '2025-05-24 03:37:31', '2025-05-24 03:37:31'),
+(3, 64, 1, 1, 0, 2, 0, 0, 1, '2025-05-24 03:37:43', '2025-05-24 03:37:43'),
+(4, 64, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 03:37:43', '2025-05-24 03:37:43'),
+(5, 68, 1, 1, 0, 0, 0, 0, 1, '2025-05-24 03:41:59', '2025-05-24 03:41:59'),
+(6, 68, 2, 6, 0, 0, 0, 0, 2, '2025-05-24 03:41:59', '2025-05-24 03:41:59'),
+(7, 72, 1, 1, 0, 0, 0, 0, 1, '2025-05-24 03:49:11', '2025-05-24 03:49:11'),
+(8, 72, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 03:49:11', '2025-05-24 03:49:11'),
+(9, 76, 1, 1, 0, 1, 0, 0, 1, '2025-05-24 03:53:02', '2025-05-24 03:53:02'),
+(10, 76, 2, 6, 0, 0, 0, 0, 2, '2025-05-24 03:53:02', '2025-05-24 03:53:02'),
+(11, 80, 1, 1, 0, 0, 0, 0, 1, '2025-05-24 06:53:56', '2025-05-24 06:53:56'),
+(12, 80, 2, 6, 0, 0, 0, 0, 2, '2025-05-24 06:53:56', '2025-05-24 06:53:56'),
+(13, 84, 1, 1, 0, 1, 0, 0, 1, '2025-05-24 07:03:14', '2025-05-24 07:03:14'),
+(14, 84, 2, 6, 0, 0, 0, 0, 2, '2025-05-24 07:03:14', '2025-05-24 07:03:14'),
+(15, 88, 1, 1, 1, 1, 1, 0, 1, '2025-05-24 07:13:44', '2025-05-24 07:13:44'),
+(16, 88, 2, 6, 1, 0, 1, 0, 2, '2025-05-24 07:13:44', '2025-05-24 07:13:44'),
+(17, 92, 1, 1, 1, 1, 1, 0, 1, '2025-05-24 10:15:08', '2025-05-24 10:15:08'),
+(18, 92, 2, 6, 1, 0, 1, 0, 2, '2025-05-24 10:15:08', '2025-05-24 10:15:08'),
+(19, 96, 1, 3, 0, 1, 0, 0, 1, '2025-05-24 10:15:34', '2025-05-24 10:15:34'),
+(20, 96, 2, 5, 0, 0, 0, 0, 2, '2025-05-24 10:15:34', '2025-05-24 10:15:34'),
+(21, 112, 1, 4, 0, 0, 0, 0, 1, '2025-05-24 10:43:21', '2025-05-24 10:43:21'),
+(22, 112, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 10:43:21', '2025-05-24 10:43:21'),
+(23, 116, 1, 4, 0, 1, 0, 0, 1, '2025-05-24 10:49:03', '2025-05-24 10:49:03'),
+(24, 116, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 10:49:03', '2025-05-24 10:49:03'),
+(25, 120, 1, 4, 0, 0, 0, 0, 1, '2025-05-24 10:50:50', '2025-05-24 10:50:50'),
+(26, 120, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 10:50:50', '2025-05-24 10:50:50'),
+(27, 124, 1, 1, 0, 2, 0, 0, 1, '2025-05-24 10:51:15', '2025-05-24 10:51:15'),
+(28, 124, 2, 6, 0, 1, 0, 0, 2, '2025-05-24 10:51:15', '2025-05-24 10:51:15'),
+(29, 128, 1, 1, 0, 1, 0, 0, 1, '2025-05-24 10:51:36', '2025-05-24 10:51:36'),
+(30, 128, 2, 6, 0, 3, 0, 0, 2, '2025-05-24 10:51:36', '2025-05-24 10:51:36'),
+(33, 151, 1, 1, 1, 1, 0, 0, 1, '2025-05-24 11:33:55', '2025-05-24 11:33:55'),
+(34, 151, 2, 6, 1, 0, 0, 0, 2, '2025-05-24 11:33:55', '2025-05-24 11:33:55'),
+(35, 155, 1, 1, 1, 2, 0, 0, 1, '2025-05-24 11:34:42', '2025-05-24 11:34:42'),
+(36, 155, 2, 6, 1, 0, 0, 0, 2, '2025-05-24 11:34:42', '2025-05-24 11:34:42'),
+(37, 159, 1, 1, 1, 1, 0, 0, 1, '2025-05-24 11:39:10', '2025-05-24 11:39:10'),
+(38, 159, 2, 6, 1, 1, 0, 0, 2, '2025-05-24 11:39:10', '2025-05-24 11:39:10'),
+(39, 160, 1, 1, 1, 1, 0, 0, 1, '2025-05-24 11:44:16', '2025-05-24 11:44:16'),
+(40, 160, 2, 6, 1, 0, 0, 0, 2, '2025-05-24 11:44:16', '2025-05-24 11:44:16'),
+(41, 161, 1, 1, 1, 1, 0, 0, 1, '2025-05-24 11:56:17', '2025-05-24 11:56:17'),
+(42, 161, 2, 6, 1, 1, 0, 0, 2, '2025-05-24 11:56:17', '2025-05-24 11:56:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `quizzes`
+--
+
+CREATE TABLE `quizzes` (
+  `quiz_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `quizzes`
+--
+
+INSERT INTO `quizzes` (`quiz_id`, `name`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Language Basics Quiz', 'Quiz for evaluating basic language and communication skills', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(2, 'Wildlife Knowledge Quiz', 'Test knowledge of local flora and fauna', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(3, 'Tour Organization Quiz', 'Assess skills in planning and managing tours', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(4, 'Visitor Engagement Quiz', 'Evaluate techniques for engaging visitors', '2025-05-22 18:25:25', '2025-05-22 18:25:25'),
+(5, 'Safety Procedures Quiz', 'Test understanding of safety protocols', '2025-05-22 18:25:25', '2025-05-22 18:25:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `trainingmodules`
+--
+
+CREATE TABLE `trainingmodules` (
+  `module_id` int NOT NULL,
+  `module_code` varchar(10) COLLATE utf8mb4_general_ci NOT NULL,
+  `module_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `difficulty` enum('beginner','intermediate','advanced') COLLATE utf8mb4_general_ci NOT NULL,
+  `aspect` enum('language','knowledge','organization','engagement','safety') COLLATE utf8mb4_general_ci NOT NULL,
+  `video_url` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `course_content` longtext COLLATE utf8mb4_general_ci,
+  `quiz_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `is_compulsory` tinyint(1) DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `trainingmodules`
+--
+
+INSERT INTO `trainingmodules` (`module_id`, `module_code`, `module_name`, `description`, `difficulty`, `aspect`, `video_url`, `course_content`, `quiz_id`, `created_at`, `price`, `is_compulsory`) VALUES
+(1, 'PKG101', 'Park Guide Basics', 'Introduction to the role and responsibilities of a park guide.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'This module covers the basics of being a park guide, including responsibilities and expectations.', 1, '2025-05-22 18:25:25', 100.00, 1),
+(2, 'ENG201', 'Visitor Engagement Techniques', 'Effective techniques for engaging with park visitors.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=3fumBcKC6RE', 'Learn effective techniques for engaging with park visitors.', 2, '2025-05-22 18:25:25', 100.00, 1),
+(3, 'KNW102', 'Flora and Fauna Identification', 'Identifying local flora and fauna in the park.', 'beginner', 'knowledge', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'This module focuses on identifying local flora and fauna in the park.', 1, '2025-05-22 18:25:25', 0.00, 0),
+(4, 'ORG102', 'Organization Skills for Guides', 'Essential skills for organizing tours and activities.', 'intermediate', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Learn essential organization skills for planning and executing tours.', 2, '2025-05-22 18:25:25', 0.00, 0),
+(5, 'SAF101', 'Safety Awareness Basics', 'Introduction to safety awareness in outdoor environments.', 'beginner', 'safety', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'This module covers the basics of safety awareness in outdoor environments.', 1, '2025-05-22 18:25:25', 0.00, 0),
+(6, 'ENG202', 'Engagement Strategies', 'Techniques for engaging with park visitors effectively.', 'intermediate', 'engagement', 'https://www.youtube.com/watch?v=SsUn8aAbU6g', 'This module provides strategies for engaging with park visitors effectively.', 2, '2025-05-22 18:25:25', 0.00, 0),
+(7, 'LAN103', 'Language and Communication', 'Basic language and communication skills for park guides.', 'beginner', 'language', 'https://www.youtube.com/watch?v=3GwjfUFyY6M', 'Learn essential language and communication skills for interacting with visitors.', 1, '2025-05-22 18:25:25', 0.00, 0),
+(8, 'KNW204', 'Wildlife Knowledge', 'Comprehensive overview of local flora and fauna.', 'intermediate', 'knowledge', 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', 'Gain knowledge about the wildlife found in the park.', 2, '2025-05-22 18:25:25', 0.00, 0),
+(9, 'ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3, '2025-05-22 18:25:25', 0.00, 0),
+(10, 'SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5, '2025-05-22 18:25:25', 0.00, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `usermoduleaccess`
+-- (See below for the actual view)
+--
+CREATE TABLE `usermoduleaccess` (
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `usermoduleaccessbyuid`
+-- (See below for the actual view)
+--
+CREATE TABLE `usermoduleaccessbyuid` (
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `usermodulequizprogress`
+-- (See below for the actual view)
+--
+CREATE TABLE `usermodulequizprogress` (
+);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `user_id` int NOT NULL,
+  `uid` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `first_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `last_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `role` enum('admin','park_guide') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'park_guide',
+  `status` enum('pending','approved','rejected','deleted') COLLATE utf8mb4_general_ci DEFAULT 'pending',
+  `failed_attempts` int DEFAULT '0',
+  `last_failed_attempt` datetime DEFAULT NULL,
+  `locked_until` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role`, `status`, `failed_attempts`, `last_failed_attempt`, `locked_until`, `created_at`, `deleted_at`) VALUES
+(1, 'vTJ6RpxoDeOP83TKZZjONPyUhX13', 'theadmin@gmail.com', 'Admin', 'Wong', 'admin', 'approved', 0, NULL, NULL, '2025-05-15 02:38:38', NULL),
+(2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'parkguide@gmail.com', 'SkibidiRui', 'Wahwah', 'park_guide', 'approved', 0, NULL, NULL, '2025-05-15 06:31:20', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `visitorfeedback`
+--
+
+CREATE TABLE `visitorfeedback` (
+  `feedback_id` int NOT NULL,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `email` varchar(255) NOT NULL,
+  `ticket_no` varchar(50) NOT NULL,
+  `park` varchar(255) NOT NULL,
+  `visit_date` date NOT NULL,
+  `guide_id` int NOT NULL,
+  `language_rating` int NOT NULL,
+  `knowledge_rating` int NOT NULL,
+  `organization_rating` int NOT NULL,
+  `engagement_rating` int NOT NULL,
+  `safety_rating` int NOT NULL,
+  `comment` text,
+  `submitted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `visitorfeedback`
+--
+
+INSERT INTO `visitorfeedback` (`feedback_id`, `first_name`, `last_name`, `telephone`, `email`, `ticket_no`, `park`, `visit_date`, `guide_id`, `language_rating`, `knowledge_rating`, `organization_rating`, `engagement_rating`, `safety_rating`, `comment`, `submitted_at`) VALUES
+(1, 'John', 'Smith', '+60123456789', 'john.smith@email.com', 'SW10001', 'Semenggoh Wildlife Centre', '2025-05-15', 1, 5, 4, 5, 5, 4, 'Excellent experience! The guide was very knowledgeable about orangutans and made the tour engaging.', '2025-05-22 18:25:25'),
+(2, 'Emma', 'Johnson', '+60187654321', 'emma.j@email.com', 'SW10002', 'Semenggoh Wildlife Centre', '2025-05-18', 1, 4, 5, 4, 5, 5, 'Very informative tour. The safety briefing was thorough and I felt secure throughout the visit.', '2025-05-22 18:25:25'),
+(3, 'Raj', 'Patel', '+60192345678', 'raj.patel@email.com', 'SW10003', 'Semenggoh Wildlife Centre', '2025-05-19', 1, 5, 5, 4, 4, 5, 'Amazing experience watching the orangutans. The guide was very professional and answered all our questions.', '2025-05-22 18:25:25'),
+(4, 'Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 1, 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.', '2025-05-22 18:25:25');
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `moduleprogressbyguide`
+--
+DROP TABLE IF EXISTS `moduleprogressbyguide`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `moduleprogressbyguide`  AS SELECT `gtp`.`progress_id` AS `progress_id`, `pg`.`guide_id` AS `guide_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `gtp`.`status` AS `status`, `gtp`.`start_date` AS `start_date`, `gtp`.`completion_date` AS `completion_date`, `mp`.`completion_percentage` AS `completion_percentage` FROM ((((`guidetrainingprogress` `gtp` join `parkguides` `pg` on((`gtp`.`guide_id` = `pg`.`guide_id`))) join `users` `u` on((`pg`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`gtp`.`module_id` = `tm`.`module_id`))) left join `modulepurchases` `mp` on(((`mp`.`user_id` = `u`.`user_id`) and (`mp`.`module_id` = `tm`.`module_id`)))) WHERE ((`mp`.`is_active` = 1) OR (`mp`.`is_active` is null)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `pendingmodulepayments`
+--
+DROP TABLE IF EXISTS `pendingmodulepayments`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `pendingmodulepayments`  AS SELECT `pt`.`payment_id` AS `payment_id`, `u`.`user_id` AS `user_id`, concat(`u`.`first_name`,' ',`u`.`last_name`) AS `user_name`, `u`.`email` AS `email`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `pt`.`amountPaid` AS `amountPaid`, `pt`.`paymentMethod` AS `paymentMethod`, `pt`.`transaction_date` AS `transaction_date` FROM ((`paymenttransactions` `pt` join `users` `u` on((`pt`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`pt`.`module_id` = `tm`.`module_id`))) WHERE ((`pt`.`paymentStatus` = 'pending') AND (`pt`.`module_id` is not null)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `usermoduleaccess`
+--
+DROP TABLE IF EXISTS `usermoduleaccess`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccess`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`user_id` AS `user_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on((`mp`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `paymenttransactions` `pt` on((`mp`.`payment_id` = `pt`.`payment_id`))) WHERE ((`mp`.`is_active` = 1) AND (`mp`.`status` = 'active')) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `usermoduleaccessbyuid`
+--
+DROP TABLE IF EXISTS `usermoduleaccessbyuid`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccessbyuid`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`uid` AS `uid`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `tm`.`description` AS `description`, `tm`.`price` AS `price`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on((`mp`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `paymenttransactions` `pt` on((`mp`.`payment_id` = `pt`.`payment_id`))) WHERE (`mp`.`is_active` = 1) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `usermodulequizprogress`
+--
+DROP TABLE IF EXISTS `usermodulequizprogress`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermodulequizprogress`  AS SELECT `u`.`uid` AS `uid`, `u`.`user_id` AS `user_id`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `q`.`quiz_id` AS `quiz_id`, `q`.`name` AS `quiz_title`, `qa`.`attempt_id` AS `attempt_id`, `qa`.`score` AS `score`, `qa`.`passed` AS `passed`, `qa`.`attempt_number` AS `attempt_number`, `qa`.`start_time` AS `attempt_start_time`, `qa`.`end_time` AS `attempt_end_time`, `mp`.`completion_percentage` AS `completion_percentage` FROM ((((`users` `u` join `modulepurchases` `mp` on((`u`.`user_id` = `mp`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `quizzes` `q` on((`tm`.`quiz_id` = `q`.`quiz_id`))) left join `quizattempts` `qa` on(((`q`.`quiz_id` = `qa`.`quiz_id`) and (`u`.`user_id` = `qa`.`user_id`)))) WHERE ((`mp`.`is_active` = 1) AND (`mp`.`status` = 'active')) ;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `certifications`
+--
+ALTER TABLE `certifications`
+  ADD PRIMARY KEY (`cert_id`);
+
+--
+-- Indexes for table `guidetrainingprogress`
+--
+ALTER TABLE `guidetrainingprogress`
+  ADD PRIMARY KEY (`progress_id`),
+  ADD UNIQUE KEY `unique_guide_module` (`guide_id`,`module_id`),
+  ADD KEY `module_id` (`module_id`);
+
+--
+-- Indexes for table `iotmonitoring`
+--
+ALTER TABLE `iotmonitoring`
+  ADD PRIMARY KEY (`sensor_id`);
+
+--
+-- Indexes for table `modulepurchases`
+--
+ALTER TABLE `modulepurchases`
+  ADD PRIMARY KEY (`purchase_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `module_id` (`module_id`),
+  ADD KEY `payment_id` (`payment_id`);
+
+--
+-- Indexes for table `options`
+--
+ALTER TABLE `options`
+  ADD PRIMARY KEY (`options_id`),
+  ADD KEY `question_id` (`question_id`);
+
+--
+-- Indexes for table `parkguides`
+--
+ALTER TABLE `parkguides`
+  ADD PRIMARY KEY (`guide_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `paymenttransactions`
+--
+ALTER TABLE `paymenttransactions`
+  ADD PRIMARY KEY (`payment_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `plantinfo`
+--
+ALTER TABLE `plantinfo`
+  ADD PRIMARY KEY (`plant_id`);
+
+--
+-- Indexes for table `questions`
+--
+ALTER TABLE `questions`
+  ADD PRIMARY KEY (`question_id`),
+  ADD KEY `quiz_id` (`quiz_id`);
+
+--
+-- Indexes for table `quizattempts`
+--
+ALTER TABLE `quizattempts`
+  ADD PRIMARY KEY (`attempt_id`),
+  ADD KEY `quiz_id` (`quiz_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `guide_id` (`guide_id`),
+  ADD KEY `module_id` (`module_id`);
+
+--
+-- Indexes for table `quizresponses`
+--
+ALTER TABLE `quizresponses`
+  ADD PRIMARY KEY (`response_id`),
+  ADD UNIQUE KEY `unique_response` (`attempt_id`,`question_id`),
+  ADD KEY `selected_option_id` (`selected_option_id`),
+  ADD KEY `idx_quizresponses_attempt` (`attempt_id`),
+  ADD KEY `idx_quizresponses_question` (`question_id`),
+  ADD KEY `idx_quizresponses_correct` (`is_correct`);
+
+--
+-- Indexes for table `quizzes`
+--
+ALTER TABLE `quizzes`
+  ADD PRIMARY KEY (`quiz_id`);
+
+--
+-- Indexes for table `trainingmodules`
+--
+ALTER TABLE `trainingmodules`
+  ADD PRIMARY KEY (`module_id`),
+  ADD UNIQUE KEY `module_code` (`module_code`),
+  ADD KEY `quiz_id` (`quiz_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`user_id`);
+
+--
+-- Indexes for table `visitorfeedback`
+--
+ALTER TABLE `visitorfeedback`
+  ADD PRIMARY KEY (`feedback_id`),
+  ADD KEY `guide_id` (`guide_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `certifications`
+--
+ALTER TABLE `certifications`
+  MODIFY `cert_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `guidetrainingprogress`
+--
+ALTER TABLE `guidetrainingprogress`
+  MODIFY `progress_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `iotmonitoring`
+--
+ALTER TABLE `iotmonitoring`
+  MODIFY `sensor_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `modulepurchases`
+--
+ALTER TABLE `modulepurchases`
+  MODIFY `purchase_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `options`
+--
+ALTER TABLE `options`
+  MODIFY `options_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `parkguides`
+--
+ALTER TABLE `parkguides`
+  MODIFY `guide_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `paymenttransactions`
+--
+ALTER TABLE `paymenttransactions`
+  MODIFY `payment_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `plantinfo`
+--
+ALTER TABLE `plantinfo`
+  MODIFY `plant_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `questions`
+--
+ALTER TABLE `questions`
+  MODIFY `question_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `quizattempts`
+--
+ALTER TABLE `quizattempts`
+  MODIFY `attempt_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=162;
+
+--
+-- AUTO_INCREMENT for table `quizresponses`
+--
+ALTER TABLE `quizresponses`
+  MODIFY `response_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+
+--
+-- AUTO_INCREMENT for table `quizzes`
+--
+ALTER TABLE `quizzes`
+  MODIFY `quiz_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `trainingmodules`
+--
+ALTER TABLE `trainingmodules`
+  MODIFY `module_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `user_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `visitorfeedback`
+--
+ALTER TABLE `visitorfeedback`
+  MODIFY `feedback_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `guidetrainingprogress`
+--
+ALTER TABLE `guidetrainingprogress`
+  ADD CONSTRAINT `guidetrainingprogress_ibfk_1` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`),
+  ADD CONSTRAINT `guidetrainingprogress_ibfk_2` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`);
+
+--
+-- Constraints for table `modulepurchases`
+--
+ALTER TABLE `modulepurchases`
+  ADD CONSTRAINT `modulepurchases_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `modulepurchases_ibfk_2` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`),
+  ADD CONSTRAINT `modulepurchases_ibfk_3` FOREIGN KEY (`payment_id`) REFERENCES `paymenttransactions` (`payment_id`);
+
+--
+-- Constraints for table `options`
+--
+ALTER TABLE `options`
+  ADD CONSTRAINT `options_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `questions` (`question_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `parkguides`
+--
+ALTER TABLE `parkguides`
+  ADD CONSTRAINT `parkguides_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+
+--
+-- Constraints for table `paymenttransactions`
+--
+ALTER TABLE `paymenttransactions`
+  ADD CONSTRAINT `paymenttransactions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `questions`
+--
+ALTER TABLE `questions`
+  ADD CONSTRAINT `questions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`quiz_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `quizattempts`
+--
+ALTER TABLE `quizattempts`
+  ADD CONSTRAINT `quizattempts_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`quiz_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `quizattempts_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `quizattempts_ibfk_3` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `quizattempts_ibfk_4` FOREIGN KEY (`module_id`) REFERENCES `trainingmodules` (`module_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `quizresponses`
+--
+ALTER TABLE `quizresponses`
+  ADD CONSTRAINT `quizresponses_ibfk_1` FOREIGN KEY (`attempt_id`) REFERENCES `quizattempts` (`attempt_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `quizresponses_ibfk_2` FOREIGN KEY (`question_id`) REFERENCES `questions` (`question_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `quizresponses_ibfk_3` FOREIGN KEY (`selected_option_id`) REFERENCES `options` (`options_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `trainingmodules`
+--
+ALTER TABLE `trainingmodules`
+  ADD CONSTRAINT `trainingmodules_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`quiz_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `visitorfeedback`
+--
+ALTER TABLE `visitorfeedback`
+  ADD CONSTRAINT `visitorfeedback_ibfk_1` FOREIGN KEY (`guide_id`) REFERENCES `parkguides` (`guide_id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
