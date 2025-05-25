@@ -21,261 +21,10 @@ SET time_zone = "+00:00";
 -- Database: `park_guide_management`
 --
 
-DELIMITER $$
---
--- Procedures
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `ApproveModulePayment` (IN `payment_id_param` INT)   BEGIN
-    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
-    
-    -- Check current payment status
-    SELECT paymentStatus INTO payment_status_var
-    FROM paymenttransactions
-    WHERE payment_id = payment_id_param;
-    
-    IF payment_status_var = 'pending' THEN
-        -- Update payment status to approved
-        UPDATE paymenttransactions
-        SET paymentStatus = 'approved'
-        WHERE payment_id = payment_id_param;
-        
-        -- Return success message
-        SELECT 
-            'success' AS result, 
-            'Payment approved successfully' AS message;
-    ELSE
-        -- Return error if payment is not in pending state
-        SELECT 
-            'error' AS result, 
-            CONCAT('Cannot approve payment in ', payment_status_var, ' state') AS message;
-    END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `GetModuleQuizInfo` (IN `module_id_param` INT, IN `user_uid_param` VARCHAR(255))   BEGIN
-    DECLARE user_id_var INT;
-    
-    -- Get user ID from UID
-    SELECT user_id INTO user_id_var
-    FROM users
-    WHERE uid = user_uid_param;
-    
-    -- Get all quizzes for this module
-    SELECT 
-        q.quiz_id,
-        q.title,
-        q.description,
-        q.pass_percentage,
-        q.attempts_allowed,
-        q.is_certification_quiz,
-        MAX(qa.score) AS highest_score,
-        CASE 
-            WHEN MAX(CASE WHEN qa.passed = 1 THEN 1 ELSE 0 END) = 1 THEN 'passed'
-            WHEN COUNT(qa.attempt_id) >= q.attempts_allowed THEN 'max_attempts_reached'
-            WHEN COUNT(qa.attempt_id) > 0 THEN 'in_progress'
-            ELSE 'not_attempted'
-        END AS attempt_status,
-        COUNT(qa.attempt_id) AS attempt_count
-    FROM 
-        quizzes q
-        LEFT JOIN quizattempts qa ON q.quiz_id = qa.quiz_id AND qa.user_id = user_id_var
-    WHERE 
-        q.module_id = module_id_param
-    GROUP BY 
-        q.quiz_id, q.title, q.description, q.pass_percentage, q.attempts_allowed, q.is_certification_quiz;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserModuleStatus` (IN `user_uid` VARCHAR(255))   BEGIN
-    -- Get user ID from UID
-    DECLARE user_id_var INT;
-    
-    SELECT user_id INTO user_id_var
-    FROM users
-    WHERE uid = user_uid;
-    
-    -- If user exists, get module information
-    IF user_id_var IS NOT NULL THEN
-        -- Get all modules, with purchase status
-        SELECT 
-            tm.module_id,
-            tm.module_name,
-            tm.description,
-            tm.price,
-            tm.is_premium,
-            CASE 
-                WHEN mp.purchase_id IS NOT NULL THEN 'purchased'
-                ELSE 'available'
-            END AS purchase_status,
-            IFNULL(mp.completion_percentage, 0) AS completion_percentage,
-            IFNULL(mp.status, 'not_purchased') AS module_status,
-            IFNULL(mp.purchase_date, NULL) AS purchase_date
-        FROM 
-            trainingmodules tm
-            LEFT JOIN (
-                SELECT mp.* 
-                FROM modulepurchases mp 
-                WHERE mp.user_id = user_id_var AND mp.is_active = 1
-            ) mp ON tm.module_id = mp.module_id
-        ORDER BY 
-            tm.is_premium ASC, 
-            tm.module_name ASC;
-    ELSE
-        -- If user doesn't exist, return empty result
-        SELECT NULL AS module_id;
-    END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `InitiateModulePurchase` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `payment_method_param` ENUM('debit','credit','e_wallet'), IN `amount_paid_param` DECIMAL(10,2), IN `receipt_image_blob` LONGBLOB)   BEGIN
-    DECLARE user_id_var INT;
-    DECLARE payment_id_var INT;
-    DECLARE already_purchased BOOLEAN DEFAULT FALSE;
-    
-    -- Transaction to ensure all operations succeed or fail together
-    START TRANSACTION;
-    
-    -- Get user ID from UID
-    SELECT user_id INTO user_id_var
-    FROM users
-    WHERE uid = user_uid_param;
-    
-    -- Check if user has already purchased the module
-    SELECT COUNT(*) > 0 INTO already_purchased
-    FROM modulepurchases
-    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
-    
-    IF user_id_var IS NOT NULL AND NOT already_purchased THEN
-        -- Create payment transaction record
-        INSERT INTO paymenttransactions (
-            user_id, 
-            uid, 
-            paymentPurpose, 
-            paymentMethod, 
-            amountPaid, 
-            receipt_image, 
-            paymentStatus,
-            module_id
-        ) VALUES (
-            user_id_var,
-            user_uid_param,
-            'module_purchase',
-            payment_method_param,
-            amount_paid_param,
-            receipt_image_blob,
-            'pending',
-            module_id_param
-        );
-        
-        -- Get the inserted payment ID
-        SET payment_id_var = LAST_INSERT_ID();
-        
-        -- Create module purchase record with pending status
-        INSERT INTO modulepurchases (
-            user_id,
-            module_id,
-            payment_id,
-            status,
-            is_active
-        ) VALUES (
-            user_id_var,
-            module_id_param,
-            payment_id_var,
-            'pending',
-            1
-        );
-        
-        -- Return the payment ID for reference
-        SELECT 
-            'success' AS result,
-            payment_id_var AS payment_id,
-            'Module purchase initiated, payment pending approval' AS message;
-        
-        COMMIT;
-    ELSE
-        IF user_id_var IS NULL THEN
-            SELECT 'error' AS result, 'User not found' AS message;
-        ELSEIF already_purchased THEN
-            SELECT 'error' AS result, 'Module already purchased by this user' AS message;
-        END IF;
-        
-        ROLLBACK;
-    END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `RejectModulePayment` (IN `payment_id_param` INT, IN `rejection_reason` VARCHAR(255))   BEGIN
-    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
-    
-    -- Check current payment status
-    SELECT paymentStatus INTO payment_status_var
-    FROM paymenttransactions
-    WHERE payment_id = payment_id_param;
-    
-    IF payment_status_var = 'pending' THEN
-        -- Start transaction to ensure all operations succeed or fail together
-        START TRANSACTION;
-        
-        -- Update payment status to rejected
-        UPDATE paymenttransactions
-        SET 
-            paymentStatus = 'rejected'
-        WHERE payment_id = payment_id_param;
-        
-        -- Update module purchase status to revoked
-        UPDATE modulepurchases
-        SET 
-            status = 'revoked',
-            is_active = 0
-        WHERE payment_id = payment_id_param;
-        
-        COMMIT;
-        
-        -- Return success message
-        SELECT 
-            'success' AS result, 
-            'Payment rejected successfully' AS message;
-    ELSE
-        -- Return error if payment is not in pending state
-        SELECT 
-            'error' AS result, 
-            CONCAT('Cannot reject payment in ', payment_status_var, ' state') AS message;
-    END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateModuleCompletionPercentage` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `completion_percentage_param` DECIMAL(5,2))   BEGIN
-    DECLARE user_id_var INT;
-    DECLARE module_purchase_exists BOOLEAN DEFAULT FALSE;
-    
-    -- Get user ID from UID
-    SELECT user_id INTO user_id_var
-    FROM users
-    WHERE uid = user_uid_param;
-    
-    -- Check if user has purchased the module
-    SELECT COUNT(*) > 0 INTO module_purchase_exists
-    FROM modulepurchases
-    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1 AND status = 'active';
-    
-    IF user_id_var IS NOT NULL AND module_purchase_exists THEN
-        -- Update completion percentage
-        UPDATE modulepurchases
-        SET completion_percentage = completion_percentage_param
-        WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
-        
-        -- Return success message
-        SELECT 
-            'success' AS result, 
-            'Module completion percentage updated successfully' AS message;
-    ELSE
-        IF user_id_var IS NULL THEN
-            SELECT 'error' AS result, 'User not found' AS message;
-        ELSEIF NOT module_purchase_exists THEN
-            SELECT 'error' AS result, 'Active module purchase not found for this user' AS message;
-        END IF;
-    END IF;
-END$$
-
-DELIMITER ;
+CREATE DATABASE IF NOT EXISTS park_guide_management;
+USE park_guide_management;
 
 -- --------------------------------------------------------
-
 --
 -- Table structure for table `activealerts`
 --
@@ -433,74 +182,6 @@ INSERT INTO `iotmonitoring` (`sensor_id`, `park_id`, `sensor_type`, `recorded_va
 (20, 1, 'humidity', '71%', '2025-05-15 01:38:38');
 
 -- --------------------------------------------------------
-
---
--- Views
---
-
--- View for module progress by guide
-CREATE OR REPLACE VIEW ModuleProgressByGuide AS
-SELECT 
-    pg.guide_id,
-    u.first_name,
-    u.last_name,
-    tm.module_name,
-    gtp.status as training_status,
-    gtp.completion_date,
-    CASE 
-        WHEN c.cert_id IS NOT NULL AND c.expiry_date > CURDATE() THEN 'Valid'
-        WHEN c.cert_id IS NOT NULL AND c.expiry_date <= CURDATE() THEN 'Expired'
-        ELSE 'Not Certified'
-    END as certification_status
-FROM 
-    parkguides pg
-    JOIN users u ON pg.user_id = u.user_id
-    JOIN guidetrainingprogress gtp ON pg.guide_id = gtp.guide_id
-    JOIN trainingmodules tm ON gtp.module_id = tm.module_id
-    LEFT JOIN certifications c ON pg.guide_id = c.guide_id AND tm.module_id = c.module_id;
-
--- View for active guide certifications
-CREATE OR REPLACE VIEW ActiveGuideCertifications AS
-SELECT 
-    pg.guide_id,
-    u.first_name,
-    u.last_name,
-    tm.module_name,
-    c.issued_date,
-    c.expiry_date,
-    CASE 
-        WHEN c.expiry_date > CURDATE() THEN 'Valid'
-        ELSE 'Expired'
-    END as status
-FROM 
-    parkguides pg
-    JOIN users u ON pg.user_id = u.user_id
-    JOIN certifications c ON pg.guide_id = c.guide_id
-    JOIN trainingmodules tm ON c.module_id = tm.module_id
-WHERE 
-    c.expiry_date >= CURDATE();
-
--- View for park monitoring status
-CREATE OR REPLACE VIEW ParkMonitoringStatus AS
-SELECT 
-    p.park_id,
-    p.park_name,
-    im.sensor_type,
-    im.recorded_value,
-    im.recorded_at,
-    CASE 
-        WHEN aa.alert_id IS NOT NULL THEN 'Alert'
-        ELSE 'Normal'
-    END as status,
-    aa.severity,
-    aa.message
-FROM 
-    parks p
-    LEFT JOIN iotmonitoring im ON p.park_id = im.park_id
-    LEFT JOIN activealerts aa ON p.park_id = aa.park_id AND im.sensor_type = aa.sensor_type;
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `modulepurchases`
 --
@@ -574,7 +255,7 @@ CREATE TABLE `options` (
   `is_correct` tinyint(1) DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `options`
@@ -589,28 +270,6 @@ INSERT INTO `options` (`options_id`, `question_id`, `text`, `is_correct`, `creat
 (6, 2, 'False', 1, '2025-05-22 18:25:25', '2025-05-22 18:25:25');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `parkguides`
---
-
-CREATE TABLE `parkguides` (
-  `guide_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
-  `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `parkguides`
---
-
-INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
-
--- --------------------------------------------------------
-
 --
 -- Table structure for table `parks`
 --
@@ -746,7 +405,7 @@ CREATE TABLE `questions` (
   `points` int DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `questions`
@@ -991,7 +650,7 @@ CREATE TABLE `quizresponses` (
   `answer_sequence` int NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `quizresponses`
@@ -1051,7 +710,7 @@ CREATE TABLE `quizzes` (
   `description` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `quizzes`
@@ -1101,36 +760,7 @@ INSERT INTO `trainingmodules` (`module_id`, `module_code`, `module_name`, `descr
 (9, 'ORG301', 'Tour Organization', 'Planning and managing guided tours efficiently.', 'advanced', 'organization', 'https://www.youtube.com/watch?v=2Z4m4lnjxkY', 'Master the skills needed to organize and manage tours.', 3, '2025-05-22 18:25:25', 0.00, 0),
 (10, 'SAF302', 'Advanced Safety Procedures', 'Advanced safety protocols and emergency response.', 'advanced', 'safety', 'https://www.youtube.com/watch?v=DLzxrzFCyOs', 'Learn advanced safety procedures and emergency response techniques.', 5, '2025-05-22 18:25:25', 0.00, 0);
 
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `usermoduleaccess`
--- (See below for the actual view)
---
-CREATE TABLE `usermoduleaccess` (
-);
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `usermoduleaccessbyuid`
--- (See below for the actual view)
---
-CREATE TABLE `usermoduleaccessbyuid` (
-);
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `usermodulequizprogress`
--- (See below for the actual view)
---
-CREATE TABLE `usermodulequizprogress` (
-);
-
--- --------------------------------------------------------
-
---
+-- ----------------------------------------------------------
 -- Table structure for table `users`
 --
 
@@ -1158,7 +788,26 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 (2, 'ajxMEqjwGJROneaRDLFFIBisL8b2', 'parkguide@gmail.com', 'SkibidiRui', 'Wahwah', 'park_guide', 'approved', 0, NULL, NULL, '2025-05-15 06:31:20', NULL);
 
 -- --------------------------------------------------------
+--
+-- Table structure for table `parkguides`
+--
 
+CREATE TABLE `parkguides` (
+  `guide_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `license_expiry_date` date DEFAULT NULL,
+  `assigned_park` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parkguides`
+--
+
+INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
+(1, 2, 'pending', '2026-05-15', 'Unassigned');
+
+-- --------------------------------------------------------
 --
 -- Table structure for table `visitorfeedback`
 --
@@ -1180,7 +829,7 @@ CREATE TABLE `visitorfeedback` (
   `safety_rating` int NOT NULL,
   `comment` text,
   `submitted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `visitorfeedback`
@@ -1193,53 +842,72 @@ INSERT INTO `visitorfeedback` (`feedback_id`, `first_name`, `last_name`, `teleph
 (4, 'Maria', 'Garcia', '+60176543210', 'maria.g@email.com', 'SW10004', 'Semenggoh Wildlife Centre', '2025-05-20', 1, 4, 5, 5, 5, 5, 'Outstanding tour! The guide was passionate about wildlife conservation and made the experience memorable.', '2025-05-22 18:25:25');
 
 -- --------------------------------------------------------
-
 --
--- Structure for view `moduleprogressbyguide`
+-- Views
 --
-DROP TABLE IF EXISTS `moduleprogressbyguide`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `moduleprogressbyguide`  AS SELECT `gtp`.`progress_id` AS `progress_id`, `pg`.`guide_id` AS `guide_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `gtp`.`status` AS `status`, `gtp`.`start_date` AS `start_date`, `gtp`.`completion_date` AS `completion_date`, `mp`.`completion_percentage` AS `completion_percentage` FROM ((((`guidetrainingprogress` `gtp` join `parkguides` `pg` on((`gtp`.`guide_id` = `pg`.`guide_id`))) join `users` `u` on((`pg`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`gtp`.`module_id` = `tm`.`module_id`))) left join `modulepurchases` `mp` on(((`mp`.`user_id` = `u`.`user_id`) and (`mp`.`module_id` = `tm`.`module_id`)))) WHERE ((`mp`.`is_active` = 1) OR (`mp`.`is_active` is null)) ;
+-- View for module progress by guide
+CREATE OR REPLACE VIEW ModuleProgressByGuide AS
+SELECT 
+    pg.guide_id,
+    u.first_name,
+    u.last_name,
+    tm.module_name,
+    gtp.status as training_status,
+    gtp.completion_date,
+    CASE 
+        WHEN c.cert_id IS NOT NULL AND c.expiry_date > CURDATE() THEN 'Valid'
+        WHEN c.cert_id IS NOT NULL AND c.expiry_date <= CURDATE() THEN 'Expired'
+        ELSE 'Not Certified'
+    END as certification_status
+FROM 
+    parkguides pg
+    JOIN users u ON pg.user_id = u.user_id
+    JOIN guidetrainingprogress gtp ON pg.guide_id = gtp.guide_id
+    JOIN trainingmodules tm ON gtp.module_id = tm.module_id
+    LEFT JOIN certifications c ON pg.guide_id = c.guide_id AND tm.module_id = c.module_id;
+
+-- View for active guide certifications
+CREATE OR REPLACE VIEW ActiveGuideCertifications AS
+SELECT 
+    pg.guide_id,
+    u.first_name,
+    u.last_name,
+    tm.module_name,
+    c.issued_date,
+    c.expiry_date,
+    CASE 
+        WHEN c.expiry_date > CURDATE() THEN 'Valid'
+        ELSE 'Expired'
+    END as status
+FROM 
+    parkguides pg
+    JOIN users u ON pg.user_id = u.user_id
+    JOIN certifications c ON pg.guide_id = c.guide_id
+    JOIN trainingmodules tm ON c.module_id = tm.module_id
+WHERE 
+    c.expiry_date >= CURDATE();
+
+-- View for park monitoring status
+CREATE OR REPLACE VIEW ParkMonitoringStatus AS
+SELECT 
+    p.park_id,
+    p.park_name,
+    im.sensor_type,
+    im.recorded_value,
+    im.recorded_at,
+    CASE 
+        WHEN aa.alert_id IS NOT NULL THEN 'Alert'
+        ELSE 'Normal'
+    END as status,
+    aa.severity,
+    aa.message
+FROM 
+    parks p
+    LEFT JOIN iotmonitoring im ON p.park_id = im.park_id
+    LEFT JOIN activealerts aa ON p.park_id = aa.park_id AND im.sensor_type = aa.sensor_type;
 
 -- --------------------------------------------------------
-
---
--- Structure for view `pendingmodulepayments`
---
-DROP TABLE IF EXISTS `pendingmodulepayments`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `pendingmodulepayments`  AS SELECT `pt`.`payment_id` AS `payment_id`, `u`.`user_id` AS `user_id`, concat(`u`.`first_name`,' ',`u`.`last_name`) AS `user_name`, `u`.`email` AS `email`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `pt`.`amountPaid` AS `amountPaid`, `pt`.`paymentMethod` AS `paymentMethod`, `pt`.`transaction_date` AS `transaction_date` FROM ((`paymenttransactions` `pt` join `users` `u` on((`pt`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`pt`.`module_id` = `tm`.`module_id`))) WHERE ((`pt`.`paymentStatus` = 'pending') AND (`pt`.`module_id` is not null)) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `usermoduleaccess`
---
-DROP TABLE IF EXISTS `usermoduleaccess`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccess`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`user_id` AS `user_id`, `u`.`uid` AS `uid`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on((`mp`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `paymenttransactions` `pt` on((`mp`.`payment_id` = `pt`.`payment_id`))) WHERE ((`mp`.`is_active` = 1) AND (`mp`.`status` = 'active')) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `usermoduleaccessbyuid`
---
-DROP TABLE IF EXISTS `usermoduleaccessbyuid`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermoduleaccessbyuid`  AS SELECT `mp`.`purchase_id` AS `purchase_id`, `u`.`uid` AS `uid`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `tm`.`description` AS `description`, `tm`.`price` AS `price`, `mp`.`status` AS `status`, `mp`.`purchase_date` AS `purchase_date`, `mp`.`completion_percentage` AS `completion_percentage`, `pt`.`payment_id` AS `payment_id`, `pt`.`paymentStatus` AS `paymentStatus` FROM (((`modulepurchases` `mp` join `users` `u` on((`mp`.`user_id` = `u`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `paymenttransactions` `pt` on((`mp`.`payment_id` = `pt`.`payment_id`))) WHERE (`mp`.`is_active` = 1) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `usermodulequizprogress`
---
-DROP TABLE IF EXISTS `usermodulequizprogress`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `usermodulequizprogress`  AS SELECT `u`.`uid` AS `uid`, `u`.`user_id` AS `user_id`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `tm`.`module_id` AS `module_id`, `tm`.`module_name` AS `module_name`, `q`.`quiz_id` AS `quiz_id`, `q`.`name` AS `quiz_title`, `qa`.`attempt_id` AS `attempt_id`, `qa`.`score` AS `score`, `qa`.`passed` AS `passed`, `qa`.`attempt_number` AS `attempt_number`, `qa`.`start_time` AS `attempt_start_time`, `qa`.`end_time` AS `attempt_end_time`, `mp`.`completion_percentage` AS `completion_percentage` FROM ((((`users` `u` join `modulepurchases` `mp` on((`u`.`user_id` = `mp`.`user_id`))) join `trainingmodules` `tm` on((`mp`.`module_id` = `tm`.`module_id`))) join `quizzes` `q` on((`tm`.`quiz_id` = `q`.`quiz_id`))) left join `quizattempts` `qa` on(((`q`.`quiz_id` = `qa`.`quiz_id`) and (`u`.`user_id` = `qa`.`user_id`)))) WHERE ((`mp`.`is_active` = 1) AND (`mp`.`status` = 'active')) ;
-
---
--- Indexes for dumped tables
---
 
 --
 -- Indexes for table `certifications`
@@ -1522,3 +1190,257 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ApproveModulePayment` (IN `payment_id_param` INT)   BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Update payment status to approved
+        UPDATE paymenttransactions
+        SET paymentStatus = 'approved'
+        WHERE payment_id = payment_id_param;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment approved successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot approve payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetModuleQuizInfo` (IN `module_id_param` INT, IN `user_uid_param` VARCHAR(255))   BEGIN
+    DECLARE user_id_var INT;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Get all quizzes for this module
+    SELECT 
+        q.quiz_id,
+        q.title,
+        q.description,
+        q.pass_percentage,
+        q.attempts_allowed,
+        q.is_certification_quiz,
+        MAX(qa.score) AS highest_score,
+        CASE 
+            WHEN MAX(CASE WHEN qa.passed = 1 THEN 1 ELSE 0 END) = 1 THEN 'passed'
+            WHEN COUNT(qa.attempt_id) >= q.attempts_allowed THEN 'max_attempts_reached'
+            WHEN COUNT(qa.attempt_id) > 0 THEN 'in_progress'
+            ELSE 'not_attempted'
+        END AS attempt_status,
+        COUNT(qa.attempt_id) AS attempt_count
+    FROM 
+        quizzes q
+        LEFT JOIN quizattempts qa ON q.quiz_id = qa.quiz_id AND qa.user_id = user_id_var
+    WHERE 
+        q.module_id = module_id_param
+    GROUP BY 
+        q.quiz_id, q.title, q.description, q.pass_percentage, q.attempts_allowed, q.is_certification_quiz;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserModuleStatus` (IN `user_uid` VARCHAR(255))   BEGIN
+    -- Get user ID from UID
+    DECLARE user_id_var INT;
+    
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid;
+    
+    -- If user exists, get module information
+    IF user_id_var IS NOT NULL THEN
+        -- Get all modules, with purchase status
+        SELECT 
+            tm.module_id,
+            tm.module_name,
+            tm.description,
+            tm.price,
+            tm.is_premium,
+            CASE 
+                WHEN mp.purchase_id IS NOT NULL THEN 'purchased'
+                ELSE 'available'
+            END AS purchase_status,
+            IFNULL(mp.completion_percentage, 0) AS completion_percentage,
+            IFNULL(mp.status, 'not_purchased') AS module_status,
+            IFNULL(mp.purchase_date, NULL) AS purchase_date
+        FROM 
+            trainingmodules tm
+            LEFT JOIN (
+                SELECT mp.* 
+                FROM modulepurchases mp 
+                WHERE mp.user_id = user_id_var AND mp.is_active = 1
+            ) mp ON tm.module_id = mp.module_id
+        ORDER BY 
+            tm.is_premium ASC, 
+            tm.module_name ASC;
+    ELSE
+        -- If user doesn't exist, return empty result
+        SELECT NULL AS module_id;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `InitiateModulePurchase` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `payment_method_param` ENUM('debit','credit','e_wallet'), IN `amount_paid_param` DECIMAL(10,2), IN `receipt_image_blob` LONGBLOB)   BEGIN
+    DECLARE user_id_var INT;
+    DECLARE payment_id_var INT;
+    DECLARE already_purchased BOOLEAN DEFAULT FALSE;
+    
+    -- Transaction to ensure all operations succeed or fail together
+    START TRANSACTION;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has already purchased the module
+    SELECT COUNT(*) > 0 INTO already_purchased
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+    
+    IF user_id_var IS NOT NULL AND NOT already_purchased THEN
+        -- Create payment transaction record
+        INSERT INTO paymenttransactions (
+            user_id, 
+            uid, 
+            paymentPurpose, 
+            paymentMethod, 
+            amountPaid, 
+            receipt_image, 
+            paymentStatus,
+            module_id
+        ) VALUES (
+            user_id_var,
+            user_uid_param,
+            'module_purchase',
+            payment_method_param,
+            amount_paid_param,
+            receipt_image_blob,
+            'pending',
+            module_id_param
+        );
+        
+        -- Get the inserted payment ID
+        SET payment_id_var = LAST_INSERT_ID();
+        
+        -- Create module purchase record with pending status
+        INSERT INTO modulepurchases (
+            user_id,
+            module_id,
+            payment_id,
+            status,
+            is_active
+        ) VALUES (
+            user_id_var,
+            module_id_param,
+            payment_id_var,
+            'pending',
+            1
+        );
+        
+        -- Return the payment ID for reference
+        SELECT 
+            'success' AS result,
+            payment_id_var AS payment_id,
+            'Module purchase initiated, payment pending approval' AS message;
+        
+        COMMIT;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF already_purchased THEN
+            SELECT 'error' AS result, 'Module already purchased by this user' AS message;
+        END IF;
+        
+        ROLLBACK;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RejectModulePayment` (IN `payment_id_param` INT, IN `rejection_reason` VARCHAR(255))   BEGIN
+    DECLARE payment_status_var ENUM('pending', 'approved', 'rejected');
+    
+    -- Check current payment status
+    SELECT paymentStatus INTO payment_status_var
+    FROM paymenttransactions
+    WHERE payment_id = payment_id_param;
+    
+    IF payment_status_var = 'pending' THEN
+        -- Start transaction to ensure all operations succeed or fail together
+        START TRANSACTION;
+        
+        -- Update payment status to rejected
+        UPDATE paymenttransactions
+        SET 
+            paymentStatus = 'rejected'
+        WHERE payment_id = payment_id_param;
+        
+        -- Update module purchase status to revoked
+        UPDATE modulepurchases
+        SET 
+            status = 'revoked',
+            is_active = 0
+        WHERE payment_id = payment_id_param;
+        
+        COMMIT;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Payment rejected successfully' AS message;
+    ELSE
+        -- Return error if payment is not in pending state
+        SELECT 
+            'error' AS result, 
+            CONCAT('Cannot reject payment in ', payment_status_var, ' state') AS message;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateModuleCompletionPercentage` (IN `user_uid_param` VARCHAR(255), IN `module_id_param` INT, IN `completion_percentage_param` DECIMAL(5,2))   BEGIN
+    DECLARE user_id_var INT;
+    DECLARE module_purchase_exists BOOLEAN DEFAULT FALSE;
+    
+    -- Get user ID from UID
+    SELECT user_id INTO user_id_var
+    FROM users
+    WHERE uid = user_uid_param;
+    
+    -- Check if user has purchased the module
+    SELECT COUNT(*) > 0 INTO module_purchase_exists
+    FROM modulepurchases
+    WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1 AND status = 'active';
+    
+    IF user_id_var IS NOT NULL AND module_purchase_exists THEN
+        -- Update completion percentage
+        UPDATE modulepurchases
+        SET completion_percentage = completion_percentage_param
+        WHERE user_id = user_id_var AND module_id = module_id_param AND is_active = 1;
+        
+        -- Return success message
+        SELECT 
+            'success' AS result, 
+            'Module completion percentage updated successfully' AS message;
+    ELSE
+        IF user_id_var IS NULL THEN
+            SELECT 'error' AS result, 'User not found' AS message;
+        ELSEIF NOT module_purchase_exists THEN
+            SELECT 'error' AS result, 'Active module purchase not found for this user' AS message;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
