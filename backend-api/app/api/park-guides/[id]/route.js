@@ -20,14 +20,17 @@ export async function GET(request, { params }) {
         );
 
         if (rows.length === 0) {
-            return NextResponse.json({ error: "Guide not found" }, { status: 404 });
+            return NextResponse.json(
+                { error: "Guide not found" },
+                { status: 404 }
+            );
         }
 
         return NextResponse.json(rows[0], {
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Content-Type": "application/json"
-            }
+                "Content-Type": "application/json",
+            },
         });
     } catch (error) {
         console.error("Error fetching guide:", error);
@@ -40,21 +43,18 @@ export async function GET(request, { params }) {
     }
 }
 
-
-
 export async function PUT(request, { params }) {
     console.log("PUT request received for /api/park-guides/[id]");
     const { id } = params;
     let connection;
 
     try {
-        // Parse the request body
         const body = await request.json();
         console.log(`Updating park guide ${id} with:`, JSON.stringify(body));
 
         if (!body.certification_status) {
             return NextResponse.json(
-                { error: "Missing required field: certification_status" },
+                { error: "certification_status is required" },
                 { status: 400 }
             );
         }
@@ -63,9 +63,10 @@ export async function PUT(request, { params }) {
 
         // First, get user info for email notifications
         const [guideInfo] = await connection.execute(
-            `SELECT pg.*, u.email, u.first_name, u.user_id
+            `SELECT pg.*, u.email, u.first_name, u.user_id, p.park_name
              FROM ParkGuides pg
              JOIN Users u ON pg.user_id = u.user_id
+             LEFT JOIN Parks p ON pg.requested_park_id = p.park_id
              WHERE pg.guide_id = ?`,
             [id]
         );
@@ -80,78 +81,57 @@ export async function PUT(request, { params }) {
         const guide = guideInfo[0];
 
         // Begin transaction for multiple updates
-        await connection.beginTransaction();
+        await connection.beginTransaction(); // Update certification status and handle park guide certification approval
+        if (body.certification_status === "certified") {
+            // Calculate expiry date (1 year from now)
+            const expiryDate = new Date();
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+            const mysqlDateStr = expiryDate.toISOString().split("T")[0];
 
-        try {
-            if (body.certification_status === "certified") {
-                // Set expiry date to one year from now
-                const oneYearFromNow = new Date();
-                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-                const expiryDate = oneYearFromNow.toISOString().split("T")[0];
-
-                // For approval: clear requested_park_id, update status to certified, set expiry date
-                const [approvalResult] = await connection.execute(
-                    `UPDATE ParkGuides 
-                    SET certification_status = 'certified',
-                        requested_park_id = NULL,
-                        assigned_park = ?,
-                        license_expiry_date = ?
-                    WHERE guide_id = ?`,
-                    [guide.requested_park_id, expiryDate, id]
-                );
-
-                // Update user status to approved
-                await connection.execute(
-                    "UPDATE Users SET status = 'approved' WHERE user_id = ?",
-                    [guide.user_id]
-                );
-
-                // Send approval email
-                await sendEmail({
-                    to: guide.email,
-                    template: "certificationApproved",
-                    data: {
-                        firstName: guide.first_name,
-                        certificationName: "Park Guide",
-                        expiryDate: expiryDate,
-                    },
-                });
-            } else {
-                // For other status changes (e.g. rejection)
-                const [updateResult] = await connection.execute(
-                    `UPDATE ParkGuides 
-                    SET certification_status = ?,
-                        requested_park_id = NULL
-                    WHERE guide_id = ?`,
-                    [body.certification_status, id]
-                );
-
-                // Update user status if rejected
-                if (body.certification_status === "rejected") {
-                    await connection.execute(
-                        "UPDATE Users SET status = 'rejected' WHERE user_id = ?",
-                        [guide.user_id]
-                    );
-                }
-            }
-
-            await connection.commit();
-
-            return NextResponse.json({
-                message: `Guide certification status updated successfully to ${body.certification_status}`,
-                statusCode: 200,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type",
+            // Update certification status, license expiry, assign requested park and clear request
+            await connection.execute(
+                `UPDATE ParkGuides 
+                 SET certification_status = ?,
+                     license_expiry_date = ?,
+                     assigned_park = COALESCE(requested_park_id, assigned_park),
+                     requested_park_id = NULL
+                 WHERE guide_id = ?`,
+                [body.certification_status, mysqlDateStr, id]
+            );
+        } else {
+            await connection.execute(
+                `UPDATE ParkGuides 
+                 SET certification_status = ?
+                 WHERE guide_id = ?`,
+                [body.certification_status, id]
+            );
+        } // If certification is approved, send email notification
+        if (body.certification_status === "certified") {
+            // Send certification approval email
+            await sendEmail({
+                to: guide.email,
+                template: "certificationApproved",
+                data: {
+                    firstName: guide.first_name,
+                    parkName: guide.park_name, // Include park name in email if available
                 },
             });
-        } catch (error) {
-            await connection.rollback();
-            throw error;
         }
+
+        await connection.commit();
+
+        return NextResponse.json({
+            message: "Park guide updated successfully",
+            guide: {
+                ...guide,
+                certification_status: body.certification_status,
+            },
+        });
     } catch (error) {
-        console.error(`Error updating park guide ${id}:`, error);
+        if (connection) {
+            await connection.rollback();
+        }
+        console.error("Error updating park guide:", error);
         return NextResponse.json(
             { error: "Failed to update park guide" },
             { status: 500 }
@@ -241,6 +221,65 @@ export async function DELETE(request, { params }) {
             connection.release();
             console.log("Database connection released");
         }
+    }
+}
+
+export async function POST(request, { params }) {
+    const { id } = params;
+    let connection;
+
+    try {
+        const { action } = await request.json();
+
+        if (action === "sendLicenseExpiryReminder") {
+            connection = await getConnection();
+
+            // Get guide information
+            const [guideInfo] = await connection.execute(
+                `SELECT pg.*, u.email, u.first_name, p.park_name
+                 FROM ParkGuides pg
+                 JOIN Users u ON pg.user_id = u.user_id
+                 LEFT JOIN Parks p ON pg.assigned_park = p.park_id
+                 WHERE pg.guide_id = ?`,
+                [id]
+            );
+
+            if (guideInfo.length === 0) {
+                return NextResponse.json(
+                    { error: "Guide not found" },
+                    { status: 404 }
+                );
+            }
+
+            const guide = guideInfo[0];
+            const expiryDate = new Date(guide.license_expiry_date);
+            const formattedExpiryDate = expiryDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+
+            // Send license expiry reminder email with firstName as direct value
+            await sendEmail({
+                to: guide.email,
+                template: "licenseExpirationReminder",
+                data: guide.first_name,
+            });
+
+            return NextResponse.json({
+                message: "License expiry reminder sent successfully",
+            });
+        }
+
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    } catch (error) {
+        console.error("Error in park guide POST operation:", error);
+        return NextResponse.json(
+            { error: "Failed to process request" },
+            { status: 500 }
+        );
+    } finally {
+        if (connection) connection.release();
     }
 }
 

@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import { Buffer } from "buffer";
+import { sendEmail } from "@/lib/emailService";
 
 export async function GET(request, { params }) {
     const { id } = params;
@@ -48,7 +49,7 @@ export async function PUT(request, { params }) {
 
     try {
         const { paymentStatus } = await request.json();
-        
+
         if (!paymentStatus) {
             return NextResponse.json(
                 { error: "Payment status is required" },
@@ -80,41 +81,59 @@ export async function PUT(request, { params }) {
             [paymentStatus, id]
         );
 
-        // If this payment is for a module purchase
-        if (currentPayment[0].module_id) {
+        // If this payment is for a module purchase and it was approved
+        if (currentPayment[0].module_id && paymentStatus === "approved") {
             const moduleId = currentPayment[0].module_id;
             const userId = currentPayment[0].user_id;
 
-            if (paymentStatus === 'approved') {
-                // Check if there's a ModulePurchases record
-                const [existingPurchase] = await connection.execute(
-                    `SELECT purchase_id FROM ModulePurchases WHERE payment_id = ? AND module_id = ?`,
-                    [id, moduleId]
-                );
+            // Check if there's a ModulePurchases record
+            const [existingPurchase] = await connection.execute(
+                `SELECT purchase_id FROM ModulePurchases WHERE payment_id = ? AND module_id = ?`,
+                [id, moduleId]
+            );
 
-                if (existingPurchase.length === 0) {
-                    // Create new module purchase record if it doesn't exist
-                    await connection.execute(
-                        `INSERT INTO ModulePurchases (user_id, module_id, payment_id, status, is_active)
-                         VALUES (?, ?, ?, 'active', 1)`,
-                        [userId, moduleId, id]
-                    );
-                } else {
-                    // Update existing module purchase record
-                    await connection.execute(
-                        `UPDATE ModulePurchases SET status = 'active', is_active = 1 
-                         WHERE payment_id = ? AND module_id = ?`,
-                        [id, moduleId]
-                    );
-                }
-            } else if (paymentStatus === 'rejected') {
-                // Update any existing module purchase record to rejected status
+            if (existingPurchase.length === 0) {
+                // Create new module purchase record if it doesn't exist
                 await connection.execute(
-                    `UPDATE ModulePurchases SET status = 'rejected', is_active = 0 
+                    `INSERT INTO ModulePurchases (user_id, module_id, payment_id, status, is_active)
+                     VALUES (?, ?, ?, 'active', 1)`,
+                    [userId, moduleId, id]
+                );
+            } else {
+                // Update existing module purchase record
+                await connection.execute(
+                    `UPDATE ModulePurchases SET status = 'active', is_active = 1 
                      WHERE payment_id = ? AND module_id = ?`,
                     [id, moduleId]
                 );
             }
+
+            // Get user and module info for email notification
+            const [userInfo] = await connection.execute(
+                `SELECT u.email, u.first_name, tm.module_name
+                 FROM Users u
+                 JOIN TrainingModules tm ON tm.module_id = ?
+                 WHERE u.user_id = ?`,
+                [moduleId, userId]
+            );
+            if (userInfo.length > 0) {
+                // Send module assignment email
+                await sendEmail({
+                    to: userInfo[0].email,
+                    template: "moduleAssignment",
+                    data: {
+                        firstName: userInfo[0].first_name,
+                        moduleName: userInfo[0].module_name,
+                    },
+                });
+            }
+        } else if (paymentStatus === "rejected") {
+            // Update any existing module purchase record to rejected status
+            await connection.execute(
+                `UPDATE ModulePurchases SET status = 'rejected', is_active = 0 
+                 WHERE payment_id = ? AND module_id = ?`,
+                [id, currentPayment[0].module_id]
+            );
         }
 
         // Commit all changes
@@ -122,14 +141,16 @@ export async function PUT(request, { params }) {
 
         return NextResponse.json({
             message: `Payment transaction with ID ${id} updated successfully`,
-            status: paymentStatus
+            status: paymentStatus,
         });
-
     } catch (error) {
         if (connection) {
             await connection.rollback();
         }
-        console.error(`Error updating payment transaction with ID ${id}:`, error);
+        console.error(
+            `Error updating payment transaction with ID ${id}:`,
+            error
+        );
         return NextResponse.json(
             { error: `Failed to update payment transaction: ${error.message}` },
             { status: 500 }

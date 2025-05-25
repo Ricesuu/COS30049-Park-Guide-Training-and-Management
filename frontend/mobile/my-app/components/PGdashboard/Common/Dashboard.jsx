@@ -1,9 +1,9 @@
 // components/PGdashboard/Common/Dashboard.jsx
 import React from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, RefreshControl } from "react-native";
 import Header from "../PGDashboardHome/Header";
 
-const Dashboard = ({ children, noScroll }) => {
+const Dashboard = ({ children, noScroll, onRefresh, refreshing }) => {
     const Content = () => (
         <View style={styles.container}>
             <Header />
@@ -17,6 +17,9 @@ const Dashboard = ({ children, noScroll }) => {
         <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
         >
             <Content />
         </ScrollView>

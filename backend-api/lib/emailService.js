@@ -25,6 +25,7 @@ const emailTemplates = {
         `,
     }),
 
+    // Approval and rejection emails
     guideApproval: (firstName) => ({
         subject: "Park Guide Application Approved",
         body: `
@@ -51,12 +52,12 @@ const emailTemplates = {
     }),
 
     // Training module emails
-    moduleAssignment: (firstName, moduleName) => ({
+    moduleAssignment: (data) => ({
         subject: "New Training Module Assignment",
         body: `
-            Dear ${firstName},
+            Dear ${data.firstName},
             
-            A new training module "${moduleName}" has been assigned to you.
+            A new training module "${data.moduleName}" has been assigned to you.
             Please log in to your dashboard to begin the module.
             
             Best regards,
@@ -64,6 +65,20 @@ const emailTemplates = {
         `,
     }),
 
+    moduleExpirationReminder: (firstName, moduleName, expiryDate) => ({
+        subject: "Training Module Expiration Reminder",
+        body: `
+            Dear ${firstName},
+            
+            This is a reminder that your training module "${moduleName}" will expire on ${expiryDate}.
+            Please complete the module before it expires to maintain your training status.
+            
+            Best regards,
+            Park Guide Training Team
+        `,
+    }),
+
+    // Module completion emails
     moduleCompletion: (firstName, moduleName) => ({
         subject: "Training Module Completed",
         body: `
@@ -78,13 +93,13 @@ const emailTemplates = {
     }),
 
     // Certification emails
-    certificationApproved: (firstName, certificationName, expiryDate) => ({
-        subject: "Certification Status Update",
+    certificationApproved: (firstName) => ({
+        subject: "License Certification Status Update",
         body: `
             Dear ${firstName},
             
-            Congratulations! Your ${certificationName} certification has been approved.
-            Your certification is valid until ${expiryDate}.
+            Congratulations! You have been certified as a park guide. You can now access your license certification details in your profile.
+            Please ensure you keep your license certification up to date.
             
             Best regards,
             Park Guide Training Team
@@ -92,12 +107,28 @@ const emailTemplates = {
     }),
 
     certificationExpiring: (firstName, certificationName, expiryDate) => ({
-        subject: "Certification Expiration Notice",
+        subject: "License Certification Expiration Notice",
         body: `
             Dear ${firstName},
             
             Your ${certificationName} certification will expire on ${expiryDate}.
             Please initiate the renewal process soon to maintain your certification status.
+            
+            Best regards,
+            Park Guide Training Team
+        `,
+    }),
+
+    licenseExpirationReminder: (firstName) => ({
+        subject: "Park Guide License Expiration Notice",
+        body: `
+            Dear ${firstName},
+            
+            This is an important reminder that your park guide license will expire soon.
+            
+            To maintain your active status as a park guide, please complete your license renewal before the expiration date.
+            
+            If your license expires, you may not be able to continue your park guide duties until renewal is completed.
             
             Best regards,
             Park Guide Training Team

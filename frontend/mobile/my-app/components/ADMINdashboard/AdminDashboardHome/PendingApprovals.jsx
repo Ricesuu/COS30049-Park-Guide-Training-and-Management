@@ -33,13 +33,11 @@ const PendingApprovals = forwardRef(({ navigation }, ref) => {
             );
 
             // Use the response directly as the data array
-            const transactionsData = transactionsResponse || [];
-
-            // Filter transactions with payment_status 'pending'
+            const transactionsData = transactionsResponse || []; // Filter transactions with paymentStatus 'pending'
             const pendingTransactions = transactionsData.filter(
                 (transaction) =>
-                    transaction.payment_status &&
-                    transaction.payment_status.toLowerCase() === "pending"
+                    transaction.paymentStatus &&
+                    transaction.paymentStatus.toLowerCase() === "pending"
             );
 
             setTransactionCount(pendingTransactions.length);

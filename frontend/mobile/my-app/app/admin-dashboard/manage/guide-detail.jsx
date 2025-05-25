@@ -15,6 +15,7 @@ import { API_URL } from "../../../src/constants/constants";
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
 import AssignedParkCard from "../../../components/ADMINdashboard/AdminDashboardManage/AssignedParkCard";
 import CertificationsCard from "../../../components/ADMINdashboard/AdminDashboardManage/CertificationsCard";
+import LicenseExpiryWarning from "../../../components/ADMINdashboard/AdminDashboardManage/LicenseExpiryWarning"; // Add this import
 import { auth } from "../../../lib/Firebase";
 
 // Ignore specific warnings
@@ -363,12 +364,19 @@ const GuideDetail = () => {
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">
                             License Expiry:
-                        </Text>
+                        </Text>{" "}
                         <Text className="text-gray-700">
                             {formatDate(guide.license_expiry_date)}
                         </Text>
                     </View>
-                </View>
+                </View>{" "}
+                {guide.license_expiry_date && (
+                    <LicenseExpiryWarning
+                        guideId={guide.guide_id}
+                        expiryDate={guide.license_expiry_date}
+                        guideName={guide.name}
+                    />
+                )}
                 <AssignedParkCard guide={guide} />
                 <CertificationsCard certifications={certifications} />
                 <View className="bg-white rounded-lg shadow p-4 mb-5">

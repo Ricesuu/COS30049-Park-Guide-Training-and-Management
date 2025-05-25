@@ -12,8 +12,20 @@ const TrainingProgressContainer = ({ trainingProgress }) => {
             default:
                 return "rgb(239 68 68)"; // red-500
         }
-    }; // Sort modules: in-progress first, then completed
-    const sortedModules = [...(trainingProgress || [])].sort((a, b) => {
+    }; // Sort modules: in-progress first, then completed    // Filter out modules with pending payments
+    const validModules = (trainingProgress || []).filter((module) => {
+        // Include modules if:
+        // 1. They are free (no purchase_status and payment_status)
+        // 2. They have an approved payment
+        return (
+            !module.purchase_status || // Free modules
+            (module.purchase_status === "active" &&
+                module.payment_status === "approved")
+        ); // Paid modules
+    });
+
+    // Sort the filtered modules
+    const sortedModules = [...validModules].sort((a, b) => {
         if (a.status === b.status) return 0;
         if (a.status.toLowerCase() === "in progress") return -1;
         if (b.status.toLowerCase() === "in progress") return 1;

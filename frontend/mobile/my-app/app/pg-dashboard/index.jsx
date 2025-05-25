@@ -24,10 +24,16 @@ const HomePage = () => {
     const [trainingProgress, setTrainingProgress] = useState([]);
     const [userProfile, setUserProfile] = useState(null);
     const [parkGuideInfo, setParkGuideInfo] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         fetchAllData();
     }, [authUser]);
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        fetchAllData().finally(() => setRefreshing(false));
+    }, []);
 
     const fetchAllData = async () => {
         setIsLoading(true);
@@ -201,9 +207,8 @@ const HomePage = () => {
             return [];
         }
     };
-
     return (
-        <Dashboard>
+        <Dashboard onRefresh={onRefresh} refreshing={refreshing}>
             <ProfileView
                 fullName={
                     userProfile

@@ -327,13 +327,6 @@ const Manage = () => {
                         />
                     }
                     contentContainerStyle={{ padding: 10 }}
-                    ListFooterComponent={
-                        <View style={{ marginTop: 10, marginBottom: 100 }}>
-                            <AddGuideButton
-                                onPress={() => console.log("Add new guide")}
-                            />
-                        </View>
-                    }
                 />
             )}
         </View>

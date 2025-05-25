@@ -39,7 +39,8 @@ export async function GET(request) {
 
         const guideId = guideRows[0].guide_id;
 
-        // Fetch training progress for the guide - fixed query to match the database schema
+        // Fetch training progress for the guide
+        // Join with ModulePurchases and PaymentTransactions to check payment status
         const [progressRows] = await connection.execute(
             `SELECT 
                 gtp.progress_id,
@@ -47,13 +48,26 @@ export async function GET(request) {
                 gtp.module_id,
                 gtp.status,
                 gtp.start_date,
-                gtp.completion_date,                tm.module_name,
-                tm.description
+                gtp.completion_date,
+                tm.module_name,
+                tm.description,
+                mp.status as purchase_status,
+                pt.paymentStatus as payment_status
             FROM GuideTrainingProgress gtp
             JOIN TrainingModules tm ON gtp.module_id = tm.module_id
+            LEFT JOIN (
+                SELECT mp.* 
+                FROM ModulePurchases mp 
+                WHERE mp.user_id = ? AND mp.is_active = TRUE
+            ) mp ON mp.module_id = gtp.module_id
+            LEFT JOIN PaymentTransactions pt ON mp.payment_id = pt.payment_id
             WHERE gtp.guide_id = ?
+            AND (
+                tm.price = 0 OR tm.price = '0' OR tm.price = '0.00' OR  -- Free modules
+                (mp.status = 'active' AND pt.paymentStatus = 'approved') -- Paid modules with approved payments
+            )
             ORDER BY gtp.completion_date DESC, gtp.start_date DESC`,
-            [guideId]
+            [userId, guideId]
         );
 
         return NextResponse.json(progressRows);

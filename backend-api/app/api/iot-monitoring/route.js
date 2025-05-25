@@ -15,8 +15,7 @@ export async function GET(request) {
         console.log(
             `[IoTMonitoring GET] Filtering by park: ${parkId || "all"}`
         );
-
-        let query = "SELECT * FROM IoTMonitoring ORDER BY recorded_at DESC LIMIT 500";
+        let query = "SELECT * FROM IoTMonitoring";
         let params = [];
 
         // Filter by park if specified
@@ -24,6 +23,9 @@ export async function GET(request) {
             query += " WHERE park_id = ?";
             params.push(parkId);
         }
+
+        // Add ordering and limit after WHERE clause
+        query += " ORDER BY recorded_at DESC LIMIT 500";
 
         const [rows] = await connection.execute(query, params);
 
