@@ -117,6 +117,7 @@ const Identification = () => {
                     description: result.info?.description || "No description available",
                     local_name: result.info?.local_name,
                     habitat: result.info?.habitat,
+                    conservation_status: result.info?.conservation_status,
                 }));
                 setIdentificationResults(topResults);
                 setSelectedIndex(0);

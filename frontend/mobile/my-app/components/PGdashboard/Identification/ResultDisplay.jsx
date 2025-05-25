@@ -18,7 +18,7 @@ const ResultDisplay = ({ loading, identificationResults, selectedIndex, setSelec
     }
 
     const selectedResult = identificationResults[selectedIndex];
-    const { name, scientificName, confidence, description, local_name, habitat } =
+    const { name, scientificName, confidence, description, local_name, habitat, conservation_status } =
         selectedResult || {};
     const confidencePercentage = Math.round(confidence * 100);
 
@@ -91,6 +91,12 @@ const ResultDisplay = ({ loading, identificationResults, selectedIndex, setSelec
                     <Text style={styles.description}>{habitat}</Text>
                 </View>
             )}
+            {conservation_status && (
+                <View style={styles.resultSection}>
+                    <Text style={styles.label}>Conservation Status:</Text>
+                    <Text style={styles.description}>{conservation_status}</Text>
+                </View>
+            )}            
         </View>
     );
 };
