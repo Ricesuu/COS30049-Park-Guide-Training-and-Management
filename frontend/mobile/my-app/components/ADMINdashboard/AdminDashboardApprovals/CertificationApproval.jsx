@@ -43,7 +43,7 @@ const CertificationApproval = () => {
         try {
             const token = await auth.currentUser.getIdToken();
             const response = await fetch(
-                `${API_URL}/api/certifications/${guideId}`,
+                `${API_URL}/api/park-guides/${guideId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -52,7 +52,6 @@ const CertificationApproval = () => {
                     },
                     body: JSON.stringify({
                         certification_status: "certified",
-                        update_guide_status: true,
                     }),
                 }
             );
