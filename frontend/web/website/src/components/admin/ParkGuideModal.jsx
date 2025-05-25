@@ -12,7 +12,7 @@ export default function ParkGuideModal({ guide, onClose }) {
 
   const fetchTransactions = async () => {
     try {
-      const res = await fetch(`/api/payment-transactions?${guide.user_id}`);
+      const res = await fetch(`/api/payment-transactions?${guide.uid}`);
       if (!res.ok) throw new Error("Failed to fetch transactions");
       const data = await res.json();
       setTransactions(data);
