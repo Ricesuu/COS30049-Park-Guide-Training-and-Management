@@ -63,9 +63,8 @@ export function AuthProvider({ children }) {
           setUser(null);
           setUserRole(null);
           setUserStatus(null);
-          
-          // Redirect to login if not on public routes
-          const publicRoutes = ["/", "/login", "/register", "/forgot_password", "/reset_password"];
+            // Redirect to login if not on public routes
+          const publicRoutes = ["/", "/login", "/register", "/forgot_password", "/reset_password", "/visitor", "/visitor/about", "/visitor/contact", "/visitor/feedback", "/visitor/map", "/visitor/info"];
           if (!publicRoutes.includes(window.location.pathname)) {
             navigate("/login");
           }
