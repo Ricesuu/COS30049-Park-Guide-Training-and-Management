@@ -64,7 +64,7 @@ const HomePage = () => {
             return response.data;
         } catch (error) {
             console.error("Error fetching user profile:", error);
-            throw error;
+            setUserProfile(null);
         }
     };
 
@@ -88,7 +88,7 @@ const HomePage = () => {
             return response.data;
         } catch (error) {
             console.error("Error fetching park guide info:", error);
-            throw error;
+            setParkGuideInfo(null);
         }
     };
 
@@ -99,8 +99,9 @@ const HomePage = () => {
                 throw new Error("Authentication required");
             }
 
-            const response = await axios.get(
-                `${API_URL}/api/certifications/user`,
+            // First get the guide's information to get the guide_id
+            const guideResponse = await axios.get(
+                `${API_URL}/api/park-guides/user`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -108,8 +109,63 @@ const HomePage = () => {
                 }
             );
 
-            setCertifications(response.data || []);
-            return response.data;
+            if (!guideResponse.data || !guideResponse.data.guide_id) {
+                console.log("No guide information found");
+                setCertifications([]);
+                return [];
+            }
+
+            const guideId = guideResponse.data.guide_id;
+
+            // Now fetch both ongoing training progress and completed certifications
+            const [certResponse, progressResponse] = await Promise.all([
+                axios.get(`${API_URL}/api/certifications/user/${guideId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }),
+                axios.get(`${API_URL}/api/guide-training-progress/user`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }),
+            ]);
+
+            console.log("Fetched certifications:", certResponse.data);
+            console.log("Fetched training progress:", progressResponse.data);
+
+            // Map completed certifications
+            const completedCertifications = certResponse.data.map((cert) => ({
+                id: cert.cert_id,
+                module_id: cert.module_id,
+                module_name: cert.module_name,
+                name: cert.module_name,
+                issued_date: cert.issued_date,
+                expiry_date: cert.expiry_date,
+                description: cert.description,
+                status: "completed",
+            }));
+
+            // Map ongoing training
+            const ongoingCertifications = progressResponse.data
+                .filter((progress) => progress.status === "in progress")
+                .map((progress) => ({
+                    id: progress.progress_id,
+                    module_id: progress.module_id,
+                    module_name: progress.module_name,
+                    name: progress.module_name,
+                    status: "ongoing",
+                    progress: progress.completion_percentage || 0,
+                }));
+
+            // Combine both arrays
+            const allCertifications = [
+                ...completedCertifications,
+                ...ongoingCertifications,
+            ];
+
+            setCertifications(allCertifications);
+            return allCertifications;
         } catch (error) {
             if (error.response && error.response.status === 404) {
                 console.log("No certifications found for this guide");

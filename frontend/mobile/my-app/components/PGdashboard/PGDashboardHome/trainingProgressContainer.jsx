@@ -7,18 +7,24 @@ const TrainingProgressContainer = ({ trainingProgress }) => {
         switch (status.toLowerCase()) {
             case "completed":
                 return "rgb(34 197 94)"; // green-500
-            case "in_progress":
+            case "in progress":
                 return "rgb(234 179 8)"; // yellow-500
             default:
                 return "rgb(239 68 68)"; // red-500
         }
-    };
+    }; // Sort modules: in-progress first, then completed
+    const sortedModules = [...(trainingProgress || [])].sort((a, b) => {
+        if (a.status === b.status) return 0;
+        if (a.status.toLowerCase() === "in progress") return -1;
+        if (b.status.toLowerCase() === "in progress") return 1;
+        return 0;
+    });
 
     return (
         <View style={styles.container}>
             <Text style={styles.sectionTitle}>Training Progress</Text>
 
-            {!trainingProgress || trainingProgress.length === 0 ? (
+            {!sortedModules || sortedModules.length === 0 ? (
                 <View style={styles.emptyState}>
                     <Ionicons name="book-outline" size={24} color="#9CA3AF" />
                     <Text style={styles.emptyText}>
@@ -27,7 +33,7 @@ const TrainingProgressContainer = ({ trainingProgress }) => {
                 </View>
             ) : (
                 <View style={styles.modulesList}>
-                    {trainingProgress.map((module, index) => (
+                    {sortedModules.slice(0, 3).map((module, index) => (
                         <View key={index} style={styles.moduleCard}>
                             <View style={styles.moduleHeader}>
                                 <Text style={styles.moduleName}>
@@ -68,6 +74,14 @@ const TrainingProgressContainer = ({ trainingProgress }) => {
                             </View>
                         </View>
                     ))}
+                    {sortedModules.length > 3 && (
+                        <Text style={styles.moreModulesText}>
+                            and {sortedModules.length - 3} more{" "}
+                            {sortedModules.length - 3 === 1
+                                ? "module"
+                                : "modules"}
+                        </Text>
+                    )}
                 </View>
             )}
         </View>
@@ -141,6 +155,13 @@ const styles = StyleSheet.create({
     emptyText: {
         color: "#9CA3AF",
         fontSize: 16,
+    },
+    moreModulesText: {
+        color: "#6B7280",
+        fontSize: 14,
+        textAlign: "center",
+        marginTop: 8,
+        fontStyle: "italic",
     },
 });
 

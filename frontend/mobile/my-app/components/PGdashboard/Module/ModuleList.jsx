@@ -20,6 +20,16 @@ const ModuleList = ({
     refreshing,
     onBrowseModules,
 }) => {
+    // Filter out completed modules by checking all possible completion indicators
+    const activeModules = modules.filter((module) => {
+        const isModuleCompleted =
+            module.status?.toLowerCase() === "completed" ||
+            module.module_status?.toLowerCase() === "completed" ||
+            module.completion_percentage === 100 ||
+            module.is_completed === true;
+        return !isModuleCompleted;
+    });
+
     return isLoading ? (
         <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#16a34a" />
@@ -45,9 +55,9 @@ const ModuleList = ({
                 </TouchableOpacity>
             </View>
 
-            {modules.length > 0 ? (
+            {activeModules.length > 0 ? (
                 <FlatList
-                    data={modules}
+                    data={activeModules}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
                         <ModuleCard module={item} onPress={onModulePress} />
@@ -60,15 +70,15 @@ const ModuleList = ({
             ) : (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
-                        No modules found. Check back later for new content or
-                        browse available modules.
+                        You have no active modules. Browse available modules to
+                        enroll in new ones.
                     </Text>
                     <TouchableOpacity
-                        style={styles.browseMoreButton}
+                        style={styles.browseButtonLarge}
                         onPress={onBrowseModules}
                     >
-                        <Text style={styles.browseMoreButtonText}>
-                            Browse Modules
+                        <Text style={styles.browseButtonLargeText}>
+                            Browse Available Modules
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -155,13 +165,13 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 20,
     },
-    browseMoreButton: {
+    browseButtonLarge: {
         backgroundColor: "rgb(22, 163, 74)",
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 8,
     },
-    browseMoreButtonText: {
+    browseButtonLargeText: {
         color: "white",
         fontWeight: "bold",
         fontSize: 16,

@@ -18,7 +18,38 @@ export const fetchUserModules = async () => {
             throw new Error("Authentication required");
         }
 
-        // Add cache-busting parameter to prevent caching
+        // First get user's guide ID
+        const guideResponse = await axios.get(
+            `${API_ENDPOINT}/park-guides/user`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Cache-Control": "no-cache",
+                    Pragma: "no-cache",
+                },
+            }
+        );
+
+        const guideId = guideResponse.data.guide_id;
+
+        // Fetch user's certifications to filter out completed modules
+        const certResponse = await axios.get(
+            `${API_ENDPOINT}/certifications/user/${guideId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Cache-Control": "no-cache",
+                    Pragma: "no-cache",
+                },
+            }
+        );
+
+        // Create a Set of module IDs that have certifications
+        const certifiedModuleIds = new Set(
+            certResponse.data.map((cert) => cert.module_id)
+        );
+
+        // Add cache-busting to prevent stale data
         const timestamp = new Date().getTime();
         const response = await axios.get(
             `${API_ENDPOINT}/training-modules/user?t=${timestamp}`,
@@ -30,24 +61,38 @@ export const fetchUserModules = async () => {
                 },
             }
         );
-        // Format the data to ensure consistency
-        const formattedModules = response.data.map((module) => ({
-            ...module,
-            id: module.id || module.module_id,
-            name: module.name || module.module_name,
-            title: module.title || module.name || module.module_name,
-            progress: module.progress !== undefined ? module.progress : 0,
-            difficulty: module.difficulty || "beginner",
-            aspect: module.aspect || "general",
-            videoUrl: module.video_url || module.videoUrl,
-            courseContent: module.course_content || module.courseContent,
-            imageUrl:
-                module.imageUrl ||
-                module.image_url ||
-                "https://via.placeholder.com/150",
-        }));
 
-        console.log("Fetched user modules:", formattedModules);
+        // Filter out modules that have certifications and format remaining modules
+        const formattedModules = response.data
+            .filter((module) => {
+                const moduleId = module.module_id || module.id;
+                return !certifiedModuleIds.has(moduleId);
+            })
+            .map((module) => ({
+                ...module,
+                id: module.id || module.module_id,
+                name: module.name || module.module_name,
+                title: module.title || module.name || module.module_name,
+                progress: module.progress !== undefined ? module.progress : 0,
+                difficulty: module.difficulty || "beginner",
+                aspect: module.aspect || "general",
+                videoUrl: module.video_url || module.videoUrl,
+                courseContent: module.course_content || module.courseContent,
+                completion_percentage: module.completion_percentage || 0,
+                status: module.status
+                    ? module.status.toLowerCase()
+                    : module.module_status
+                    ? module.module_status.toLowerCase()
+                    : "not started",
+                imageUrl:
+                    module.imageUrl ||
+                    module.image_url ||
+                    "https://via.placeholder.com/150",
+            }));
+
+        console.log(
+            `Fetched ${response.data.length} modules, filtered to ${formattedModules.length} after removing certified ones`
+        );
         return formattedModules;
     } catch (error) {
         console.error("Error fetching user modules:", error);
