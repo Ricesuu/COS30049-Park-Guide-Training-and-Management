@@ -115,7 +115,7 @@ export async function POST(request) {
                 // Update modulepurchases to completed
                 await connection.execute(
                     `UPDATE modulepurchases 
-                     SET status = 'completed', completion_percentage = 100 
+                     SET status = 'completed'=,
                      WHERE user_id = ? AND module_id = ? AND status = 'active'`,
                     [userId, moduleId]
                 );

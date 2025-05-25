@@ -4,6 +4,9 @@ import "../../ParkGuideStyle.css";
 import "../../ModuleStyle.css";
 import { auth } from '../../Firebase';
 
+// Import default image
+import defaultImage from '../../../public/images/advanced_guide.png';
+
 const ParkguideModule = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -13,7 +16,7 @@ const ParkguideModule = () => {
   const [module, setModule] = useState({
     title: 'Loading...',
     description: 'Loading module content...',
-    image: null,
+    image: defaultImage,
     video_url: null,
     course_content: null,
     quiz_id: null,
@@ -49,8 +52,10 @@ const ParkguideModule = () => {
           }
           throw new Error('Failed to fetch module data');
         }
+          const moduleData = await response.json();
         
-        const moduleData = await response.json();
+        // Ensure image is set
+        moduleData.image = moduleData.image || defaultImage;
         
         // Check module completion status and quiz attempts
         const quizResponse = await fetch(`/api/quizattempts?moduleId=${moduleId}`, {
@@ -133,12 +138,13 @@ const ParkguideModule = () => {
 
       {loading && <div className="loading-spinner">Loading module content...</div>}
       {error && <div className="error-message">{error}</div>}
-      
-      {!loading && !error && (
+        {!loading && !error && (
         <div className="module-details">
-          {module.image && (
-            <img src={module.image} alt={module.title} className="module-image" />
-          )}
+          <img 
+            src={module.image || defaultImage} 
+            alt={module.title} 
+            className="module-image"
+          />
           
           <div className="module-description">
             <p>{module.description}</p>
