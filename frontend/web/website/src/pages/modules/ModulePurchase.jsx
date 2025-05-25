@@ -58,10 +58,15 @@ const ModulePurchase = () => {
         const token = await user.getIdToken();
         
         let statusResponse;
-        try {
+        try {          const user = auth.currentUser;
+          if (!user) {
+            throw new Error("User not authenticated");
+          }
+          const freshToken = await user.getIdToken(true);
+          
           statusResponse = await fetch(`/api/training-modules/${moduleId}/purchase-status`, {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${freshToken}`
             }
           });
           
