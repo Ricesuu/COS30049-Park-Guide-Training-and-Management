@@ -29,6 +29,54 @@ const Certificate = () => {
     const [ongoingCertifications, setOngoingCertifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [parkGuideInfo, setParkGuideInfo] = useState(null);
+    const [isEligibleForLicense, setIsEligibleForLicense] = useState(false);
+    const [parks, setParks] = useState([]);
+    const [selectedPark, setSelectedPark] = useState("");
+    const [parkModalVisible, setParkModalVisible] = useState(false);
+
+    const fetchParkGuideInfo = async (token) => {
+        try {
+            const response = await axios.get(
+                `${API_URL}/api/park-guides/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching park guide info:", error);
+            return null;
+        }
+    };
+
+    // Check if the guide is eligible for official license
+    const checkLicenseEligibility = (guideInfo, certifications) => {
+        if (!guideInfo) {
+            console.log("No guide info available");
+            return false;
+        }
+
+        const status = guideInfo.certification_status?.toLowerCase();
+        console.log("Current certification status:", status);
+
+        // Only proceed if status is 'not applicable'
+        if (status !== "not applicable") {
+            console.log("Guide not eligible - wrong status:", status);
+            return false;
+        }
+
+        // Get all compulsory module certifications
+        const compulsoryCerts = certifications.filter(
+            (cert) => cert.is_compulsory
+        );
+        console.log("Found compulsory certs:", compulsoryCerts.length);
+
+        // Only eligible if they have completed both compulsory modules
+        return compulsoryCerts.length >= 2;
+    };
 
     // Fetch user's certificates from the API
     useEffect(() => {
@@ -43,6 +91,42 @@ const Certificate = () => {
         }
     }, [certifications]);
 
+    // Add useEffect to fetch park guide info and check eligibility
+    useEffect(() => {
+        const checkEligibility = async () => {
+            try {
+                setLoading(true);
+                const idToken = await auth.currentUser.getIdToken();
+                const guideInfo = await fetchParkGuideInfo(idToken);
+
+                setParkGuideInfo(guideInfo);
+
+                // Check eligibility only if guideInfo is fetched
+                if (guideInfo) {
+                    const eligible = checkLicenseEligibility(
+                        guideInfo,
+                        certifications
+                    );
+                    console.log("Eligibility check:", {
+                        status: guideInfo.certification_status,
+                        compulsoryCerts: certifications.filter(
+                            (cert) => cert.is_compulsory
+                        ).length,
+                        eligible,
+                    });
+                    setIsEligibleForLicense(eligible);
+                }
+            } catch (error) {
+                console.error("Error checking eligibility:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (certifications && certifications.length > 0) {
+            checkEligibility();
+        }
+    }, [certifications]);
     const fetchUserCertifications = async () => {
         try {
             setLoading(true);
@@ -50,23 +134,17 @@ const Certificate = () => {
 
             const idToken = await auth.currentUser.getIdToken();
 
-            // First get the guide ID
-            const guideResponse = await axios.get(
-                `${API_URL}/api/park-guides/user`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${idToken}`,
-                    },
-                }
-            );
+            // First get park guide info
+            const guideInfo = await fetchParkGuideInfo(idToken);
+            setParkGuideInfo(guideInfo);
 
-            if (!guideResponse.data || !guideResponse.data.guide_id) {
+            if (!guideInfo || !guideInfo.guide_id) {
                 console.log("No guide information found");
                 setCertifications([]);
                 return;
             }
 
-            const guideId = guideResponse.data.guide_id;
+            const guideId = guideInfo.guide_id;
 
             // Now fetch certifications using guide_id
             const response = await axios.get(
@@ -77,8 +155,22 @@ const Certificate = () => {
                     },
                 }
             );
-
             console.log("User certifications:", response.data);
+
+            // Also fetch training modules to get compulsory status
+            const modulesResponse = await axios.get(
+                `${API_URL}/api/training-modules/available`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                }
+            );
+
+            const moduleCompulsoryMap = {};
+            modulesResponse.data.forEach((module) => {
+                moduleCompulsoryMap[module.id] = module.is_compulsory;
+            });
 
             // Map the API data to our component's expected format
             const mappedCertifications = response.data.map((cert) => ({
@@ -91,12 +183,21 @@ const Certificate = () => {
                 issuedDate: new Date(cert.issued_date).toLocaleDateString(),
                 image: getImageForCertificate(cert.module_id),
                 obtained: true,
+                is_compulsory: moduleCompulsoryMap[cert.module_id] || false,
                 description:
                     cert.description ||
                     "This certification validates your knowledge and skills in this area.",
             }));
 
             setCertifications(mappedCertifications);
+
+            // Check eligibility for official license
+            const isEligible = checkLicenseEligibility(
+                guideInfo,
+                mappedCertifications
+            );
+            console.log("Setting eligibility:", isEligible);
+            setIsEligibleForLicense(isEligible);
         } catch (error) {
             console.error("Error fetching certifications:", error);
             setError("Failed to load certifications. Please try again.");
@@ -217,6 +318,66 @@ const Certificate = () => {
         setSelectedCert(null);
         setModalVisible(false);
     };
+
+    const fetchParks = async () => {
+        try {
+            const token = await auth.currentUser.getIdToken();
+            const response = await axios.get(`${API_URL}/api/parks`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setParks(response.data);
+        } catch (error) {
+            console.error("Error fetching parks:", error);
+        }
+    };
+
+    const handleSubmitApproval = async () => {
+        try {
+            const token = await auth.currentUser.getIdToken();
+            await axios.post(
+                `${API_URL}/api/park-guides/license-approval-request`,
+                {
+                    guide_id: parkGuideInfo.guide_id,
+                    requested_park_id: selectedPark,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            // Update the park guide's certification status locally
+            setParkGuideInfo((prev) => ({
+                ...prev,
+                certification_status: "pending",
+            }));
+            setIsEligibleForLicense(false);
+
+            Alert.alert(
+                "Success",
+                "Your license approval request has been submitted for review.",
+                [{ text: "OK" }]
+            );
+            setParkModalVisible(false);
+        } catch (error) {
+            console.error("Error submitting approval:", error);
+            Alert.alert(
+                "Error",
+                "Failed to submit approval request. Please try again.",
+                [{ text: "OK" }]
+            );
+        }
+    };
+
+    useEffect(() => {
+        if (parkModalVisible) {
+            fetchParks();
+        }
+    }, [parkModalVisible]);
+
     return (
         <View style={{ flex: 1, backgroundColor: "rgb(22, 163, 74)" }}>
             <ScrollView
@@ -269,6 +430,26 @@ const Certificate = () => {
                         </View>
                     ) : (
                         <View style={styles.content}>
+                            {/* Eligibility Notice Section */}
+                            {isEligibleForLicense && (
+                                <View style={styles.eligibilityNotice}>
+                                    <Text style={styles.eligibilityText}>
+                                        🎉 Congratulations! You are now eligible
+                                        for an official park guide license.
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.applyButton}
+                                        onPress={() =>
+                                            setParkModalVisible(true)
+                                        }
+                                    >
+                                        <Text style={styles.applyButtonText}>
+                                            Apply for License
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
                             {/* Current Certifications Section */}
                             <Text style={styles.sectionTitle}>
                                 Current Certifications
@@ -486,6 +667,67 @@ const Certificate = () => {
                     </View>
                 </Modal>
             )}
+
+            {/* Park Selection Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={parkModalVisible}
+                onRequestClose={() => setParkModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.parkModalContent}>
+                        <Text style={styles.modalTitle}>Select Park</Text>
+                        <Text style={styles.modalSubtitle}>
+                            Choose the park you would like to be assigned to:
+                        </Text>
+                        {parks.map((park) => (
+                            <TouchableOpacity
+                                key={park.park_id}
+                                style={[
+                                    styles.parkOption,
+                                    selectedPark === park.park_id &&
+                                        styles.selectedPark,
+                                ]}
+                                onPress={() => setSelectedPark(park.park_id)}
+                            >
+                                <Text style={styles.parkOptionText}>
+                                    {park.park_name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    styles.cancelButton,
+                                ]}
+                                onPress={() => {
+                                    setParkModalVisible(false);
+                                    setSelectedPark("");
+                                }}
+                            >
+                                <Text style={styles.cancelButtonText}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    styles.submitButton,
+                                    !selectedPark && styles.disabledButton,
+                                ]}
+                                onPress={handleSubmitApproval}
+                                disabled={!selectedPark}
+                            >
+                                <Text style={styles.submitButtonText}>
+                                    Submit Approval
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -747,6 +989,87 @@ const styles = StyleSheet.create({
         color: "#9ca3af",
         fontStyle: "italic",
         marginTop: 4,
+    },
+    eligibilityNotice: {
+        backgroundColor: "#d1e7dd",
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 15,
+        marginHorizontal: 10,
+    },
+    eligibilityText: {
+        color: "#0f5132",
+        fontSize: 16,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 10,
+    },
+    applyButton: {
+        backgroundColor: "#047857",
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignSelf: "center",
+    },
+    applyButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    parkModalContent: {
+        backgroundColor: "white",
+        width: "90%",
+        borderRadius: 20,
+        padding: 20,
+        maxHeight: "80%",
+    },
+    parkOption: {
+        padding: 15,
+        borderRadius: 8,
+        marginBottom: 8,
+        backgroundColor: "#f3f4f6",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
+    selectedPark: {
+        backgroundColor: "#d1fae5",
+        borderColor: "#059669",
+    },
+    parkOptionText: {
+        fontSize: 16,
+        color: "#374151",
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 20,
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginHorizontal: 5,
+    },
+    submitButton: {
+        backgroundColor: "rgb(22, 163, 74)",
+    },
+    cancelButton: {
+        backgroundColor: "#f3f4f6",
+    },
+    disabledButton: {
+        backgroundColor: "#9ca3af",
+    },
+    submitButtonText: {
+        color: "white",
+        textAlign: "center",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    cancelButtonText: {
+        color: "#374151",
+        textAlign: "center",
+        fontWeight: "bold",
+        fontSize: 16,
     },
 });
 

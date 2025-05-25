@@ -32,46 +32,68 @@ const Manage = () => {
     const [sortBy, setSortBy] = useState("name");
 
     // Helper function to convert certification_status to display status    const getStatusFromCertification = (certificationStatus, hasRequestedPark) => {
-    if (!certificationStatus) return "Training";
+        if (!certificationStatus) return "Training";
 
-    switch (certificationStatus.toLowerCase()) {
-        case "certified":
-            return "Active";
-        case "suspended":
-            return "Suspended";
-        case "rejected":
-            return "Rejected";
-        case "pending_review":
-            return "Ready for Certification";
-        case "pending":
-            return hasRequestedPark ? "Pending Approval" : "Training";
-        default:
-            return "Training";
-    }
+        switch (certificationStatus.toLowerCase()) {
+            case "certified":
+                return "Active";
+            case "suspended":
+                return "Suspended";
+            case "rejected":
+                return "Rejected";
+            case "pending_review":
+                return "Ready for Certification";
+            case "pending":
+                return hasRequestedPark ? "Pending Approval" : "Training";
+            default:
+                return "Training";
+        }
+    };
 
     // Function to fetch park guide data with user details
     const fetchGuides = async (isRefreshing = false) => {
         try {
             console.log("Fetching all park guides...");
-            const parkGuidesResponse = await fetchData(
-                "/park-guides/pending-certifications"
+            const parkGuidesResponse = await fetchData("/park-guides"); // Fetch data from the ParkGuides table
+
+            // Also fetch training progress to determine which guides are ready for certification
+            const trainingProgressResponse = await fetchData(
+                "/guide-training-progress"
             );
 
+            // The API already joins with Users table, so we have user information in the response
             const guidesWithUserInfo = parkGuidesResponse.map((guide) => {
-                // All guides from this endpoint should have pending certification status and requested park assignments
+                // Check if guide has completed all required training
+                const guideTrainingModules = trainingProgressResponse.filter(
+                    (progress) => progress.guide_id === guide.guide_id
+                );
+
+                // If guide has 'pending' status and has completed modules, mark as ready for certification
+                const hasCompletedTraining = guideTrainingModules.some(
+                    (module) => module.status === "completed"
+                );                // Set a special certification status for guides ready to be certified
+                let certificationStatus =
+                    guide.certification_status || "pending";
+                if (certificationStatus === "pending" && hasCompletedTraining) {
+                    certificationStatus = "pending_review";
+                }
+
+                // Check for requested park assignment
+                const hasRequestedPark = guide.requested_park_id != null;
+
                 return {
                     id: guide.guide_id.toString(),
                     name: `${guide.first_name || "Unknown"} ${
                         guide.last_name || "User"
                     }`,
                     role: "Park Guide",
-                    status: "Pending Approval", // These guides all have pending status and requested parks
-                    certification_status: "pending",
+                    status: getStatusFromCertification(certificationStatus, hasRequestedPark),
+                    certification_status: certificationStatus,
                     license_expiry_date: guide.license_expiry_date,
                     user_id: guide.user_id,
                     guide_id: guide.guide_id,
                     email: guide.email || "unknown@example.com",
-                    park: guide.requested_park_name || "",
+                    park: guide.assigned_park || "",
                     user_status: guide.user_status,
                 };
             });
@@ -303,7 +325,7 @@ const Manage = () => {
                     backgroundColor: "rgb(22 163 74)",
                 }}
             >
-                Pending License Approvals
+                Manage Park Guides
             </Text>{" "}
             {/* Filters Row */}
             <View style={{ flexDirection: "row", padding: 10 }}>
@@ -336,8 +358,12 @@ const Manage = () => {
                             filterGuides();
                         }}
                     >
-                        {" "}
-                        <Picker.Item label="All Parks" value="all" />
+                <Picker.Item label="All Statuses" value="all" />
+                        <Picker.Item label="Active" value="Active" />
+                        <Picker.Item label="Training" value="Training" />
+                        <Picker.Item label="Suspended" value="Suspended" />
+                        <Picker.Item label="Ready for Certification" value="Ready for Certification" />
+                        <Picker.Item label="Pending Approval" value="Pending Approval" />
                     </Picker>
                 </View>
             </View>

@@ -271,28 +271,6 @@ INSERT INTO `options` (`options_id`, `question_id`, `text`, `is_correct`, `creat
 
 -- --------------------------------------------------------
 --
--- Table structure for table `parks`
---
-
-CREATE TABLE `parks` (
-  `park_id` int NOT NULL,
-  `park_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `location` text COLLATE utf8mb4_general_ci NOT NULL,
-  `description` text COLLATE utf8mb4_general_ci,
-  `wildlife` text COLLATE utf8mb4_general_ci
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `parks`
---
-
-INSERT INTO `parks` (`park_id`, `park_name`, `location`, `description`, `wildlife`) VALUES
-(1, 'Bako National Park', 'Sarawak, Malaysia', 'Bako National Park is known for its diverse ecosystems, ranging from mangroves to rainforest, and its stunning coastline.', 'Proboscis monkeys, bearded pigs, otters, and various bird species'),
-(2, 'Semenggoh Wildlife Centre', 'Kuching, Sarawak, Malaysia', 'Semenggoh Wildlife Centre is a sanctuary for rehabilitated orangutans, providing visitors with a chance to observe these magnificent creatures in their natural habitat.', 'Orangutans, gibbons, crocodiles, and local birdlife');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `paymenttransactions`
 --
 
@@ -789,15 +767,37 @@ INSERT INTO `users` (`user_id`, `uid`, `email`, `first_name`, `last_name`, `role
 
 -- --------------------------------------------------------
 --
+-- Table structure for table `parks`
+--
+
+CREATE TABLE `parks` (
+  `park_id` int NOT NULL,
+  `park_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `location` text COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `wildlife` text COLLATE utf8mb4_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parks`
+--
+
+INSERT INTO `parks` (`park_id`, `park_name`, `location`, `description`, `wildlife`) VALUES
+(1, 'Bako National Park', 'Sarawak, Malaysia', 'Bako National Park is known for its diverse ecosystems, ranging from mangroves to rainforest, and its stunning coastline.', 'Proboscis monkeys, bearded pigs, otters, and various bird species'),
+(2, 'Semenggoh Wildlife Centre', 'Kuching, Sarawak, Malaysia', 'Semenggoh Wildlife Centre is a sanctuary for rehabilitated orangutans, providing visitors with a chance to observe these magnificent creatures in their natural habitat.', 'Orangutans, gibbons, crocodiles, and local birdlife');
+
+-- --------------------------------------------------------
+--
 -- Table structure for table `parkguides`
 --
 
 CREATE TABLE `parkguides` (
   `guide_id` int NOT NULL,
   `user_id` int NOT NULL,
-  `certification_status` enum('pending','certified','expired') DEFAULT 'pending',
+  `certification_status` enum('not applicable','pending','certified','expired') DEFAULT 'not applicable',
   `license_expiry_date` date DEFAULT NULL,
-  `assigned_park` varchar(255) DEFAULT NULL
+  `assigned_park` varchar(255) DEFAULT NULL,
+  `requested_park_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -805,7 +805,7 @@ CREATE TABLE `parkguides` (
 --
 
 INSERT INTO `parkguides` (`guide_id`, `user_id`, `certification_status`, `license_expiry_date`, `assigned_park`) VALUES
-(1, 2, 'pending', '2026-05-15', 'Unassigned');
+(1, 2, 'not applicable', '2026-05-15', 'Unassigned');
 
 -- --------------------------------------------------------
 --
