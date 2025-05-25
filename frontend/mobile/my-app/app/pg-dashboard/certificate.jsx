@@ -26,6 +26,7 @@ const Certificate = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [certifications, setCertifications] = useState([]);
     const [availableCertifications, setAvailableCertifications] = useState([]);
+    const [ongoingCertifications, setOngoingCertifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -41,13 +42,35 @@ const Certificate = () => {
             fetchAvailableCertifications();
         }
     }, [certifications]);
+
     const fetchUserCertifications = async () => {
         try {
             setLoading(true);
+            setError(null);
+
             const idToken = await auth.currentUser.getIdToken();
 
+            // First get the guide ID
+            const guideResponse = await axios.get(
+                `${API_URL}/api/park-guides/user`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${idToken}`,
+                    },
+                }
+            );
+
+            if (!guideResponse.data || !guideResponse.data.guide_id) {
+                console.log("No guide information found");
+                setCertifications([]);
+                return;
+            }
+
+            const guideId = guideResponse.data.guide_id;
+
+            // Now fetch certifications using guide_id
             const response = await axios.get(
-                `${API_URL}/api/certifications/user`,
+                `${API_URL}/api/certifications/user/${guideId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${idToken}`,
@@ -57,23 +80,15 @@ const Certificate = () => {
 
             console.log("User certifications:", response.data);
 
-            if (!response.data || response.data.length === 0) {
-                console.log("No certifications found for user");
-                setCertifications([]);
-                return;
-            }
-
             // Map the API data to our component's expected format
             const mappedCertifications = response.data.map((cert) => ({
                 id: cert.cert_id,
                 name: cert.module_name,
                 moduleId: cert.module_id,
-                expiryDate: new Date(cert.expiry_date)
-                    .toISOString()
-                    .split("T")[0],
-                issuedDate: new Date(cert.issued_date)
-                    .toISOString()
-                    .split("T")[0],
+                expiryDate: cert.expiry_date
+                    ? new Date(cert.expiry_date).toLocaleDateString()
+                    : "No expiration date",
+                issuedDate: new Date(cert.issued_date).toLocaleDateString(),
                 image: getImageForCertificate(cert.module_id),
                 obtained: true,
                 description:
@@ -84,17 +99,18 @@ const Certificate = () => {
             setCertifications(mappedCertifications);
         } catch (error) {
             console.error("Error fetching certifications:", error);
-            // Don't show error for empty certifications, just set to empty array
+            setError("Failed to load certifications. Please try again.");
             setCertifications([]);
         } finally {
             setLoading(false);
         }
     };
+
     const fetchAvailableCertifications = async () => {
         try {
             const idToken = await auth.currentUser.getIdToken();
 
-            // Fetch user's modules (completed and in progress)
+            // Get the user's modules (both completed and in-progress)
             const completedResponse = await axios.get(
                 `${API_URL}/api/training-modules/user`,
                 {
@@ -104,106 +120,78 @@ const Certificate = () => {
                 }
             );
 
-            // Fetch all available modules
-            const availableResponse = await axios.get(
-                `${API_URL}/api/training-modules/available`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${idToken}`,
-                    },
-                }
-            );
-
-            console.log("User modules:", completedResponse.data);
-            console.log("Available modules:", availableResponse.data);
-
-            // Ensure we have valid data before proceeding
-            if (!completedResponse.data || !availableResponse.data) {
+            // Ensure we have valid data
+            if (!completedResponse.data) {
                 console.log("No module data available");
                 setAvailableCertifications([]);
                 return;
             }
 
-            // Find modules that are completed (100%) but don't have certificates yet
-            const completedModules = completedResponse.data.filter(
-                (module) =>
-                    module.completion_percentage === 100 &&
-                    module.paymentStatus === "approved"
+            // Get IDs of modules that already have certifications
+            const certificationModuleIds = certifications.map(
+                (cert) => cert.moduleId
             );
 
-            const completedModuleIds = completedModules.map(
-                (module) => module.id
-            );
-            const certificationModuleIds = certifications
-                ? certifications.map((cert) => cert.moduleId)
-                : [];
+            // Separate modules into completed and in-progress
+            const { completedModules, ongoingModules } =
+                completedResponse.data.reduce(
+                    (acc, module) => {
+                        const moduleId = module.module_id || module.id;
+                        const hasNoCertificate =
+                            !certificationModuleIds.includes(moduleId);
+                        const isPaid = module.paymentStatus === "approved";
 
-            // Filter out modules that already have certificates
-            const availableForCertification = completedModules.filter(
-                (module) => !certificationModuleIds.includes(module.id)
-            );
+                        if (!hasNoCertificate) {
+                            return acc;
+                        }
 
-            // Map to the format our component expects
-            const mappedAvailableCerts = availableForCertification.map(
-                (module) => ({
-                    id: module.id,
-                    name: module.name,
-                    moduleId: module.id,
-                    expiryDate: null,
-                    image: getImageForCertificate(module.id),
-                    obtained: false,
-                    description:
-                        module.description ||
-                        "You've completed this module. Take the quiz to earn your certification!",
-                })
-            );
+                        const isCompleted =
+                            module.completion_percentage === 100 ||
+                            module.status === "completed" ||
+                            module.module_status === "completed";
 
-            // Also add modules that are available for purchase but not yet completed
-            // Filter to include modules that are 'purchased' or 'pending'
-            const purchasableModules = availableResponse.data.filter(
-                (module) => {
-                    // Check for a valid purchase status
-                    const hasPurchaseStatus =
-                        module && typeof module.purchase_status === "string";
+                        if (isCompleted && isPaid) {
+                            acc.completedModules.push(module);
+                        } else if (isPaid) {
+                            acc.ongoingModules.push(module);
+                        }
 
-                    // Only include modules with valid purchase status that are not completed and not certified
-                    return (
-                        hasPurchaseStatus &&
-                        (module.purchase_status === "purchased" ||
-                            module.purchase_status === "pending") &&
-                        !completedModuleIds.includes(module.id) &&
-                        !certificationModuleIds.includes(module.id)
-                    );
-                }
-            );
+                        return acc;
+                    },
+                    { completedModules: [], ongoingModules: [] }
+                );
 
-            const mappedPurchasableModules = purchasableModules.map(
-                (module) => ({
-                    id: module.id,
-                    name: module.name || "Training Module",
-                    moduleId: module.id,
-                    expiryDate: null,
-                    image: getImageForCertificate(module.id),
-                    obtained: false,
-                    description:
-                        "Complete this module and pass the quiz to earn your certification.",
-                    incomplete: true,
-                    pending: module.purchase_status === "pending",
-                })
-            );
+            // Map completed modules to available certifications
+            const mappedAvailableCerts = completedModules.map((module) => ({
+                id: module.module_id || module.id,
+                name: module.module_name || module.name,
+                moduleId: module.module_id || module.id,
+                expiryDate: null,
+                image: getImageForCertificate(module.module_id || module.id),
+                description:
+                    module.description ||
+                    "Complete the necessary requirements to earn this certification.",
+                obtained: false,
+            }));
 
-            setAvailableCertifications([
-                ...mappedAvailableCerts,
-                ...mappedPurchasableModules,
-            ]);
-            console.log("Available certifications set:", [
-                ...mappedAvailableCerts,
-                ...mappedPurchasableModules,
-            ]);
+            // Map ongoing modules to show progress
+            const mappedOngoingCerts = ongoingModules.map((module) => ({
+                id: module.module_id || module.id,
+                name: module.module_name || module.name,
+                moduleId: module.module_id || module.id,
+                image: getImageForCertificate(module.module_id || module.id),
+                description:
+                    "Complete all quizzes and modules to earn this certification.",
+                obtained: false,
+                ongoing: true,
+            }));
+
+            setAvailableCertifications(mappedAvailableCerts);
+            setOngoingCertifications(mappedOngoingCerts);
         } catch (error) {
             console.error("Error fetching available certifications:", error);
-            // Don't show error for empty available certifications, just set to empty array
             setAvailableCertifications([]);
+            setOngoingCertifications([]);
         }
     };
 
@@ -280,22 +268,18 @@ const Certificate = () => {
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        <>
-                            {/* User's active certifications */}
-                            {certifications.length > 0 ? (
+                        <View style={styles.content}>
+                            {/* Current Certifications Section */}
+                            <Text style={styles.sectionTitle}>
+                                Current Certifications
+                            </Text>
+                            {certifications && certifications.length > 0 ? (
                                 <>
-                                    <Text style={styles.sectionTitle}>
-                                        My Certifications
-                                    </Text>
                                     {certifications.map((cert, index) => (
                                         <View
                                             key={index}
                                             style={styles.certItem}
                                         >
-                                            <Image
-                                                source={cert.image}
-                                                style={styles.certImage}
-                                            />
                                             <View style={styles.certDetails}>
                                                 <Text style={styles.certName}>
                                                     {cert.name}
@@ -334,7 +318,48 @@ const Certificate = () => {
                                 </View>
                             )}
 
-                            {/* Available certifications */}
+                            {/* Ongoing Certifications Section */}
+                            {ongoingCertifications.length > 0 && (
+                                <>
+                                    <Text
+                                        style={[
+                                            styles.sectionTitle,
+                                            { marginTop: 20 },
+                                        ]}
+                                    >
+                                        Ongoing Certifications
+                                    </Text>
+                                    {ongoingCertifications.map(
+                                        (cert, index) => (
+                                            <View
+                                                key={`ongoing-${index}`}
+                                                style={[
+                                                    styles.certItem,
+                                                    styles.ongoingCertItem,
+                                                ]}
+                                            >
+                                                <View
+                                                    style={styles.certDetails}
+                                                >
+                                                    <Text
+                                                        style={styles.certName}
+                                                    >
+                                                        {cert.name}
+                                                    </Text>
+                                                    <Text
+                                                        style={styles.certNote}
+                                                    >
+                                                        Complete all quizzes and
+                                                        modules to get certified
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        )
+                                    )}
+                                </>
+                            )}
+
+                            {/* Available Certifications Section */}
                             {availableCertifications.length > 0 && (
                                 <>
                                     <Text
@@ -351,18 +376,6 @@ const Certificate = () => {
                                                 key={`available-${index}`}
                                                 style={styles.certItem}
                                             >
-                                                <Image
-                                                    source={cert.image}
-                                                    style={[
-                                                        styles.certImage,
-                                                        cert.incomplete && {
-                                                            opacity: 0.6,
-                                                        },
-                                                        cert.pending && {
-                                                            opacity: 0.4,
-                                                        },
-                                                    ]}
-                                                />
                                                 <View
                                                     style={styles.certDetails}
                                                 >
@@ -405,7 +418,7 @@ const Certificate = () => {
                                     )}
                                 </>
                             )}
-                        </>
+                        </View>
                     )}
                 </View>
             </ScrollView>
@@ -541,6 +554,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 4,
         color: "#666",
+    },
+    certProgress: {
+        fontSize: 14,
+        marginTop: 4,
+        color: "#007bff",
+        fontWeight: "bold",
     },
     infoButton: {
         backgroundColor: "rgb(22, 163, 74)",
@@ -712,6 +731,22 @@ const styles = StyleSheet.create({
     renewButtonText: {
         color: "white",
         fontWeight: "bold",
+    },
+    ongoingCertItem: {
+        backgroundColor: "#f3f4f6",
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+    },
+    progressText: {
+        fontSize: 14,
+        color: "#6b7280",
+        marginVertical: 4,
+    },
+    certNote: {
+        fontSize: 12,
+        color: "#9ca3af",
+        fontStyle: "italic",
+        marginTop: 4,
     },
 });
 
