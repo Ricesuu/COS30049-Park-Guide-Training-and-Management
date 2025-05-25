@@ -15,6 +15,7 @@ import { API_URL } from "../../../src/constants/constants";
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
 import AssignedParkCard from "../../../components/ADMINdashboard/AdminDashboardManage/AssignedParkCard";
 import CertificationsCard from "../../../components/ADMINdashboard/AdminDashboardManage/CertificationsCard";
+import { auth } from "../../../lib/Firebase";
 
 // Ignore specific warnings
 LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
@@ -38,11 +39,16 @@ const GuideDetail = () => {
             return "Invalid date";
         }
     };
-
     useEffect(() => {
         const fetchGuideDetails = async () => {
             try {
                 setLoading(true);
+
+                // Get authentication token
+                const token = await auth.currentUser?.getIdToken();
+                if (!token) {
+                    throw new Error("Not authenticated");
+                }
 
                 const parkGuidesResponse = await fetchData("/park-guides");
                 const currentGuide = parkGuidesResponse.find(
@@ -99,11 +105,14 @@ const GuideDetail = () => {
                         }
                     });
                 }
-
                 try {
                     const certificationsUrl = `${API_URL}/api/certifications/user/${currentGuide.guide_id}`;
                     try {
-                        const response = await axios.get(certificationsUrl);
+                        const response = await axios.get(certificationsUrl, {
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        });
                         setCertifications(response.data || []);
                     } catch (certError) {
                         if (
@@ -294,19 +303,9 @@ const GuideDetail = () => {
                                 </Text>
                             </View>
                         )}
-                </View>
-
-                <AssignedParkCard
-                    guide={guide}
-                    selectedPark={selectedPark}
-                    setSelectedPark={setSelectedPark}
-                    parkChanged={parkChanged}
-                    setParkChanged={setParkChanged}
-                    handleSave={handleSave}
-                />
-
+                </View>{" "}
+                <AssignedParkCard guide={guide} />
                 <CertificationsCard certifications={certifications} />
-
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-lg font-bold mb-4">
                         Training Modules
@@ -356,40 +355,8 @@ const GuideDetail = () => {
                             </View>
                         ))
                     )}
-                </View>
-
+                </View>{" "}
                 <View className="flex-row justify-evenly mb-32">
-                    {guide.status !== "Training" && (
-                        <TouchableOpacity
-                            className={`${
-                                guide.status === "Active"
-                                    ? "bg-red-100"
-                                    : "bg-green-100"
-                            } px-8 py-3 rounded-lg`}
-                            onPress={() => {
-                                alert(
-                                    `${
-                                        guide.status === "Active"
-                                            ? "Suspend"
-                                            : "Activate"
-                                    } functionality would be triggered here`
-                                );
-                            }}
-                        >
-                            <Text
-                                className={`${
-                                    guide.status === "Active"
-                                        ? "text-red-600"
-                                        : "text-green-600"
-                                } font-semibold text-center`}
-                            >
-                                {guide.status === "Active"
-                                    ? "Suspend"
-                                    : "Activate"}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-
                     {guide.status === "Training" &&
                         guide.certification_status === "pending_review" && (
                             <TouchableOpacity
