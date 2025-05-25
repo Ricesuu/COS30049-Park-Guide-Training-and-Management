@@ -1,97 +1,74 @@
 const mqtt = require("mqtt");
-const mysql = require("mysql2/promise");
 
-const client = mqtt.connect("mqtt://localhost:1883", {
+
+const client = mqtt.connect("mqtt://172.20.10.4:1883", {
   username: "zasha",
   password: "mypassword",
 });
-
-// MySQL config
-const dbConfig = {
-  host: "localhost",
-  user: "your_user",
-  password: "password123",
-  database: "park_guide_management",
-};
 
 // MQTT topics
 const topics = {
   humidity: "sensor/DHT11/humidity",
   temperature: "sensor/DHT11/temperature",
-  distance: "sensor/Ultrasonic/distance", 
+  distance: "sensor/Ultrasonic/distance",
   moisture: "sensor/Soil Moisture/moisture",
 };
 
-
-let currentData = {
-  sensor_id: "ESP32-1", 
-  temperature: null,
-  humidity: null,
-  soil_moisture: null,
-  timestamp: null,
-};
-
-
-let insertTimeout = null;
-
+const park_id = 1; // Replace with actual dynamic park ID if needed
 
 client.on("connect", () => {
-  console.log("Connected to MQTT broker");
+  console.log(" Connected to MQTT broker");
 
   Object.values(topics).forEach((topic) => {
     client.subscribe(topic, (err) => {
-      if (!err) console.log(`Subscribed to ${topic}`);
+      if (!err) {
+        console.log(`Subscribed to ${topic}`);
+      } else {
+        console.error(`Failed to subscribe to ${topic}:`, err.message);
+      }
     });
   });
 });
 
-
-client.on("message", (topic, message) => {
+client.on("message", async (topic, message) => {
   const value = parseFloat(message.toString());
 
-  if (isNaN(value)) return;
+  if (isNaN(value)) {
+    console.warn(`⚠️ Received non-numeric value on ${topic}: ${message}`);
+    return;
+  }
 
-  if (topic === topics.temperature) currentData.temperature = value;
-  else if (topic === topics.humidity) currentData.humidity = value;
-  else if (topic === topics.moisture) currentData.soil_moisture = value;
+  let sensor_type = null;
+  if (topic === topics.temperature) sensor_type = "temperature";
+  else if (topic === topics.humidity) sensor_type = "humidity";
+  else if (topic === topics.moisture) sensor_type = "soil moisture";
+  else if (topic === topics.distance) sensor_type = "motion";
+  else return; // Unrecognized topic
 
-  currentData.timestamp = new Date();
+  try {
+    const response = await fetch("http://localhost:3000/api/iot-monitoring", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        park_id,
+        sensor_type,
+        recorded_value: value.toString(),
+      }),
+    });
 
-  
-  if (insertTimeout) clearTimeout(insertTimeout);
+    const data = await response.json();
 
-  insertTimeout = setTimeout(async () => {
-    
-    if (
-      currentData.temperature !== null &&
-      currentData.humidity !== null &&
-      currentData.soil_moisture !== null
-    ) {
-      try {
-        const conn = await mysql.createConnection(dbConfig);
-        await conn.execute(
-          `INSERT INTO iot_readings (sensor_id, temperature, humidity, soil_moisture, timestamp)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            currentData.sensor_id,
-            currentData.temperature,
-            currentData.humidity,
-            currentData.soil_moisture,
-            currentData.timestamp,
-          ]
-        );
-        await conn.end();
-
-        console.log("Inserted row:", currentData);
-      } catch (err) {
-        console.error("DB Insert Error:", err);
-      }
-
-      
-      currentData.temperature = null;
-      currentData.humidity = null;
-      currentData.soil_moisture = null;
-      currentData.timestamp = null;
+    if (!response.ok) {
+      throw new Error(data.error || "Unknown error from API");
     }
-  }, 2000); // Wait 2s before inserting
+
+    console.log(
+      ` Sent ${sensor_type} = ${value} to API | Insert ID: ${data.id}`
+    );
+  } catch (err) {
+    console.error("API POST Error:", err.message);
+  }
 });
+

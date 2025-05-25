@@ -3,6 +3,45 @@ import { getConnection } from "@/lib/db";
 import { sendEmail } from "@/lib/emailService";
 import admin from "@/lib/firebaseAdmin";
 
+export async function GET(request, { params }) {
+    const { id } = params;
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const [rows] = await connection.execute(
+            `SELECT pg.guide_id, pg.user_id, pg.certification_status, pg.license_expiry_date, 
+                    pg.assigned_park, u.first_name, u.last_name, u.email, u.status as user_status
+             FROM ParkGuides pg
+             JOIN Users u ON pg.user_id = u.user_id
+             WHERE pg.guide_id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return NextResponse.json({ error: "Guide not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(rows[0], {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json"
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching guide:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch guide" },
+            { status: 500 }
+        );
+    } finally {
+        if (connection) connection.release();
+    }
+}
+
+
+
 export async function PUT(request, { params }) {
     console.log("PUT request received for /api/park-guides/[id]");
     const { id } = params;

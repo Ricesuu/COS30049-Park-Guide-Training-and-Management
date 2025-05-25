@@ -97,8 +97,8 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="iot-hub" element={<IoTHub />} />
-        <Route path="park-guides" element={<ParkGuides />} />
-        <Route path="guides/:id" element={<ParkGuideDetails />} />        
+        <Route path="park-guides" element={<ParkGuides />} /> 
+        <Route path="guides/:id" element={<ParkGuideDetails />} />   
         <Route path="assign-course" element={<AssignCourse />} />
         <Route path="info-manager" element={<InfoManager />} />
         <Route path="course-manager" element={<CourseManager />} />

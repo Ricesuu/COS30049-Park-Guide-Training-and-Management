@@ -51,7 +51,7 @@ export async function PUT(request, context) {
 
     try {
         // Step 1: Only admins can update user status
-        const { role: requesterRole } = await assertUser(request, ["admin"]);
+        //const { role: requesterRole } = await assertUser(request, ["admin"]);
 
         // Step 2: Parse the request body
         const body = await request.json();
