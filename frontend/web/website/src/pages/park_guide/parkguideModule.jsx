@@ -4,19 +4,14 @@ import "../../ParkGuideStyle.css";
 import "../../ModuleStyle.css";
 import { auth } from "../../Firebase";
 
-// Import default image
-import defaultImage from "../../../public/images/advanced_guide.png";
-
 const ParkguideModule = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [quizCompleted, setQuizCompleted] = useState(false);
-    const [module, setModule] = useState({
+    const [quizCompleted, setQuizCompleted] = useState(false);    const [module, setModule] = useState({
         title: "Loading...",
         description: "Loading module content...",
-        image: defaultImage,
         video_url: null,
         course_content: null,
         quiz_id: null,
@@ -59,9 +54,17 @@ const ParkguideModule = () => {
                     throw new Error("Failed to fetch module data");
                 }
                 const moduleData = await response.json();
-
-                // Ensure image is set
-                moduleData.image = moduleData.image || defaultImage;
+                
+                // Create the module data with default values if needed
+                const processedModuleData = {
+                    title: moduleData.module_name,
+                    description: moduleData.description,
+                    video_url: moduleData.video_url,
+                    course_content: moduleData.course_content,
+                    quiz_id: moduleData.quiz_id,
+                    completion_percentage: moduleData.completion_percentage || 0,
+                    status: moduleData.status
+                };
 
                 // Check module completion status and quiz attempts
                 const quizResponse = await fetch(
@@ -81,11 +84,11 @@ const ParkguideModule = () => {
 
                     // Update module status if quiz is passed
                     if (hasPassedQuiz) {
-                        moduleData.status = "completed";
+                        processedModuleData.status = "completed";
                     }
                 }
 
-                setModule(moduleData);
+                setModule(processedModuleData);
                 setError(null);
             } catch (err) {
                 console.error("Error fetching module:", err);
@@ -148,17 +151,13 @@ const ParkguideModule = () => {
 
     return (
         <div className="module-content">
-            <div className="module-title">{module.title}</div>
-
-            {loading && (
-                <div className="loading-spinner">Loading module content...</div>
+            <div className="module-title">{module.title}</div>            {loading && (
+                <div className="module-details" style={{ justifyContent: "center", alignItems: "center" }}>
+                    <p style={{ fontSize: "1.1rem", color: "#64748b", textAlign: "center" }}>Loading module content...</p>
+                </div>
             )}
-            {error && <div className="error-message">{error}</div>}
-            {!loading && !error && (
+            {error && <div className="error-message">{error}</div>}{!loading && !error && (
                 <div className="module-details">
-                    <div className="module-description">
-                        <p>{module.description}</p>
-                    </div>
 
                     {module.video_url && (
                         <div className="video-section">

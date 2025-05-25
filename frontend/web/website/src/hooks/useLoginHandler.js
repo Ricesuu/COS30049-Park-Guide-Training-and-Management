@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, browserLocalPersistence, setPersistence } from "firebase/auth";
 import { auth } from "../Firebase";
 import { toast } from "react-toastify";
 
@@ -82,7 +82,6 @@ const getUserRole = async (token) => {
 
 export const useLoginHandler = () => {
   const navigate = useNavigate();
-
   const handleLogin = async (email, password) => {
     if (!email || !password) {
       showError("Please enter both email and password");
@@ -93,8 +92,10 @@ export const useLoginHandler = () => {
     if (lockInfo.blocked) return;
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdToken();
+      // Store auth persistence preference
+      await setPersistence(auth, browserLocalPersistence);      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Force a fresh token on login
+      const token = await userCredential.user.getIdToken(true);
 
       const userData = await getUserRole(token);
 

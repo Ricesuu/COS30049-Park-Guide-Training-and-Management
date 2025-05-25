@@ -3,6 +3,7 @@ import "./App.css";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { AnimatePresence } from "framer-motion";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 
 // 🔐 Auth Pages
@@ -49,6 +50,13 @@ import ModulePurchase from "./pages/modules/ModulePurchase";
 
 function AppRoutes() {
   const location = useLocation();
+  const { loading, user, userRole } = useAuth();
+
+  // If the auth context is still loading, show nothing or a loading spinner
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   const isAuthRoute = [
     "/login",
     "/register",
@@ -78,20 +86,28 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
-    );
-  }
+    );  }
+
+  // Function to protect routes based on role
+  const ProtectedRoute = ({ element, allowedRoles }) => {
+    if (!user) return <Navigate to="/login" replace />;
+    if (allowedRoles && !allowedRoles.includes(userRole)) return <Navigate to="/unauthorized" replace />;
+    return element;
+  };
+
   return (
     <Routes location={location} key={location.pathname}>
-      {" "}
-      {/* Visitor Section */}
+      {/* Visitor Section - Public Routes */}
       <Route path="/visitor" element={<VisitorLandingPage />} />
       <Route path="/visitor/about" element={<AboutPage />} />
       <Route path="/visitor/contact" element={<ContactPage />} />
       <Route path="/visitor/feedback" element={<FeedbackPage />} />
       <Route path="/visitor/map" element={<MapPage />} />
       <Route path="/visitor/info" element={<InfoPage />} />
-      {/* Admin Section */}
-      <Route path="/admin" element={<AdminLayout />}>
+      
+      {/* Admin Section - Protected Routes */}
+      <Route path="/admin" 
+        element={<ProtectedRoute element={<AdminLayout />} allowedRoles={["admin"]} />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="iot-hub" element={<IoTHub />} />
         <Route path="park-guides" element={<ParkGuides />} />
@@ -100,7 +116,12 @@ function AppRoutes() {
         <Route path="info-manager" element={<InfoManager />} />
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
-      </Route>      {/* Park Guide Section */}      <Route path="/park_guide" element={<ParkGuideLayout />}>        <Route path="dashboard" element={<ParkguideDashboard />} />
+      </Route>
+      
+      {/* Park Guide Section - Protected Routes */}
+      <Route path="/park_guide" 
+        element={<ProtectedRoute element={<ParkGuideLayout />} allowedRoles={["park_guide"]} />}>
+        <Route path="dashboard" element={<ParkguideDashboard />} />
         <Route path="training" element={<ParkguideTraining />} />
         <Route path="certifications" element={<ParkguideCert />} />
         <Route path="performance" element={<ParkguidePerformance />} />        
@@ -120,7 +141,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <AppRoutes />
       <ToastContainer
         position="top-center"
@@ -134,6 +155,6 @@ export default function App() {
         pauseOnHover
         theme="colored"
       />
-    </>
+    </AuthProvider>
   );
 }

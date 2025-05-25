@@ -3,9 +3,6 @@ import React, { useState, useEffect } from 'react';
 import "../../ParkGuideStyle.css";
 import { auth } from '../../Firebase';
 
-// Using direct path for images
-const placeholderModuleImg = '/images/advanced_guide.png'; // Placeholder for modules
-
 // Helper function that is used in the component
 const formatDateString = (dateString) => {
   if (!dateString) return 'Not available';
@@ -159,16 +156,21 @@ const Dashboard = () => {
         <p>Welcome to your park guide dashboard. Track your training progress and manage your certifications.</p>
       </div>
 
-      {/* User Info Container */}
-      <div className="user-info-card">
+      {/* User Info Container */}      <div className="user-info-card">
         {loading ? (
-          <div className="loading-spinner">Loading user information...</div>
+          <div style={{
+            textAlign: "center",
+            padding: "2rem",
+            color: "#64748b",
+            fontSize: "1.1rem",
+            backgroundColor: "#f8fafc",
+            borderRadius: "8px"
+          }}>Loading user information...</div>
         ) : error ? (
           <div className="error-message">Error loading user information: {error}</div>
         ) : (
           <div className="user-details">
-            <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>
-            <div className="user-info-grid">
+            <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>        <div className="user-info-grid">
               <div className="user-info-item">
                 <span className="info-label">Guide ID:</span>
                 <span className="info-value">{guideData?.guide_id || 'Not Available'}</span>
@@ -201,18 +203,49 @@ const Dashboard = () => {
           <div className="box module-container">
             <h2 className="boxtitle">Your Training Modules</h2>
             {modules && modules.length > 0 ? (
-              <div className="modules-list">
-                {modules.map((module, index) => (                  <div className="module-item" key={index}>
-                      <div className="module-image-container">
-                        <img 
-                          src={placeholderModuleImg} 
-                          alt={`Module ${index + 1}`} 
-                          className="module-image"
-                        />
-                      </div>
-                      <div className="module-content">
-                        <h3>{module.name}</h3>
-                        <p>{module.description}</p>                        <div className="module-status">
+              <div className="modules-list">                {modules.map((module, index) => (                      <div className="module-item" key={index} style={{
+                        backgroundColor: "#fff",
+                        borderRadius: "12px",
+                        padding: "2rem",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        border: "1px solid rgba(124, 194, 66, 0.2)",
+                        transition: "all 0.3s ease",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        position: "relative",
+                        overflow: "hidden"
+                      }}>
+                        <div style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "4px",
+                          height: "100%",
+                          background: module.module_status === "completed" ? "#4CAF50" : 
+                                    module.module_status === "in progress" ? "#FF9800" : "#2E7D32"
+                        }} />
+                        <div className="module-content" style={{ marginLeft: "1rem" }}>
+                          <h3 style={{ 
+                            fontSize: "1.5rem",
+                            fontWeight: "700",
+                            color: "#2c3e50",
+                            marginBottom: "1rem",
+                            borderBottom: "2px solid rgba(124, 194, 66, 0.2)",
+                            paddingBottom: "0.5rem"
+                          }}>{module.name}</h3>
+                          <p style={{
+                            color: "#64748b",
+                            fontSize: "1rem",
+                            marginBottom: "1.5rem",
+                            lineHeight: "1.5"
+                          }}>{module.description}</p>
+                          <div className="module-status" style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginTop: "auto"
+                          }}>
                           <span className={`status-${module.module_status?.toLowerCase() || 'not-started'}`}>
                             <strong>Status:</strong> {module.module_status || 'Not Started'}
                           </span>
@@ -241,30 +274,79 @@ const Dashboard = () => {
             <h2 className="boxtitle">Your Certifications</h2>
             {certifications && certifications.length > 0 ? (
               <div className="certification-grid">
-                {certifications.map((cert, index) => (
-                  <div 
-                    className="dashboard-cert-card" 
+                {certifications.map((cert, index) => (                  <div 
                     key={cert.cert_id || index} 
-                    onClick={() => navigate('/park_guide/certifications')}
+                    onClick={() => navigate('/park_guide/certifications')}                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: "12px",
+                      padding: "2.5rem 1.5rem 1.5rem",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      border: "1px solid rgba(124, 194, 66, 0.2)",
+                      cursor: "pointer",
+                      position: "relative",
+                      overflow: "hidden",
+                      transition: "all 0.3s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      minHeight: "200px"
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = "translateY(-5px)";
+                      e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                    }}
                   >
-                    <div className="dashboard-cert-image-container">
-                      <img
-                        src={cert.image_url}
-                        alt={cert.module_name || `Certification ${index + 1}`}
-                        className="dashboard-cert-image"
-                      />
-                      <div className={`cert-status-badge ${                          checkExpired(cert.expiry_date) ? 'expired' : 
-                          checkExpiringSoon(cert.expiry_date) ? 'expiring-soon' : 'active'
-                        }`}>                          {checkExpired(cert.expiry_date) ? 'Expired' : 
-                           checkExpiringSoon(cert.expiry_date) ? 'Expiring Soon' : 'Active'}
-                      </div>
+                    <div style={{
+                      position: "absolute",
+                      top: "1rem",
+                      right: "1rem",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "20px",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      backgroundColor: checkExpired(cert.expiry_date) ? "#FEE2E2" : 
+                                    checkExpiringSoon(cert.expiry_date) ? "#FEF3C7" : "#DCFCE7",
+                      color: checkExpired(cert.expiry_date) ? "#DC2626" : 
+                             checkExpiringSoon(cert.expiry_date) ? "#D97706" : "#059669"
+                    }}>
+                      {checkExpired(cert.expiry_date) ? 'Expired' : 
+                       checkExpiringSoon(cert.expiry_date) ? 'Expiring Soon' : 'Active'}
                     </div>
-                    <div className="dashboard-cert-info">
-                      <h3 className="dashboard-cert-title">{cert.module_name || 'Untitled Certificate'}</h3>                        <p className="dashboard-cert-expiry">
-                        Issued: {formatDateString(cert.issued_date)}
+                    <h3 style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "600",
+                      color: "#2c3e50",
+                      marginTop: "0.5rem"
+                    }}>{cert.module_name || 'Untitled Certificate'}</h3>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      marginTop: "auto"
+                    }}>
+                      <p style={{
+                        fontSize: "0.95rem",
+                        color: "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{ fontWeight: "500" }}>Issued:</span> 
+                        {formatDateString(cert.issued_date)}
                       </p>
-                      <p className={`dashboard-cert-expiry ${checkExpired(cert.expiry_date) ? 'expired' : ''}`}>
-                        Expires: {formatDateString(cert.expiry_date)}
+                      <p style={{
+                        fontSize: "0.95rem",
+                        color: checkExpired(cert.expiry_date) ? "#DC2626" : "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{ fontWeight: "500" }}>Expires:</span> 
+                        {formatDateString(cert.expiry_date)}
                       </p>
                     </div>
                   </div>

@@ -239,17 +239,45 @@
 
 .cert-popup {
   background: white;
-  border-radius: 20px;
-  padding: 2rem;
+  border-radius: 16px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   position: relative;
   transform: translateY(20px);
   opacity: 0;
   animation: slideUp 0.3s ease 0.1s forwards;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.cert-popup-header {
+  background-color: #2E7D32;
+  padding: 2rem;
+  color: white;
+}
+
+.cert-popup-content {
+  padding: 2rem;
+}
+
+.cert-popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-top: 1px solid #e5e7eb;
+  padding: 1.5rem 2rem;
+}
+
+.cert-title-container {
+  background-color: #2E7D32;
+  color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @keyframes fadeIn {
