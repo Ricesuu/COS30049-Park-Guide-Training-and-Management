@@ -93,34 +93,37 @@ const Manage = () => {
                 }
             }
 
-            const guidesWithUserInfo = parkGuidesResponse.map((guide) => {
-                const status = getStatusFromCertification(
-                    guide.certification_status,
-                    guide.requested_park_name
-                );
+            const guidesWithUserInfo = parkGuidesResponse
+                .map((guide) => {
+                    const status = getStatusFromCertification(
+                        guide.certification_status || "pending",
+                        guide.requested_park_name
+                    );
 
-                // Get park name from our fetched parks or use the ID if name not found
-                const parkName = guide.assigned_park
-                    ? parkNames[guide.assigned_park] || guide.assigned_park
-                    : "";
+                    // Get park name from our fetched parks or use the ID if name not found
+                    const parkName = guide.assigned_park
+                        ? parkNames[guide.assigned_park] || guide.assigned_park
+                        : "";
 
-                return {
-                    id: guide.guide_id.toString(),
-                    name: `${guide.first_name || "Unknown"} ${
-                        guide.last_name || "User"
-                    }`,
-                    role: "Park Guide",
-                    status: status,
-                    certification_status:
-                        guide.certification_status || "not applicable",
-                    license_expiry_date: guide.license_expiry_date,
-                    user_id: guide.user_id,
-                    guide_id: guide.guide_id,
-                    email: guide.email || "unknown@example.com",
-                    park: parkName,
-                    user_status: guide.user_status,
-                };
-            });
+                    return {
+                        id: guide.guide_id?.toString() || "0",
+                        name:
+                            guide.first_name && guide.last_name
+                                ? `${guide.first_name} ${guide.last_name}`
+                                : "Unknown User",
+                        role: "Park Guide",
+                        status: status,
+                        certification_status:
+                            guide.certification_status || "not applicable",
+                        license_expiry_date: guide.license_expiry_date || null,
+                        user_id: guide.user_id,
+                        guide_id: guide.guide_id,
+                        email: guide.email || "unknown@example.com",
+                        park: parkName,
+                        user_status: guide.user_status || "pending",
+                    };
+                })
+                .filter((guide) => guide.id && guide.guide_id); // Filter out any invalid guides
 
             setGuides(guidesWithUserInfo);
             setFilteredGuides(guidesWithUserInfo);

@@ -31,6 +31,24 @@ const GuideDetail = () => {
     const [selectedPark, setSelectedPark] = useState("");
     const [certifications, setCertifications] = useState([]);
 
+    const getStatusFromCertification = (certificationStatus) => {
+        if (!certificationStatus) return "Training";
+        switch ((certificationStatus || "").toLowerCase()) {
+            case "certified":
+                return "Active";
+            case "suspended":
+                return "Suspended";
+            case "rejected":
+                return "Rejected";
+            case "pending_review":
+                return "Ready for Certification";
+            case "pending":
+                return "Training";
+            default:
+                return "Training";
+        }
+    };
+
     const formatDate = (dateStr) => {
         if (!dateStr) return "N/A";
         try {
@@ -88,7 +106,6 @@ const GuideDetail = () => {
                 const guideProgress = progress.filter(
                     (item) => item.guide_id === currentGuide.guide_id
                 );
-
                 const enrolledModules = [];
                 if (guideProgress.length > 0) {
                     guideProgress.forEach((progressEntry) => {
@@ -105,6 +122,44 @@ const GuideDetail = () => {
                         }
                     });
                 }
+
+                // Sort modules by status - in progress first, then completed
+                enrolledModules.sort((a, b) => {
+                    const getStatusPriority = (status) => {
+                        switch (status?.toLowerCase()) {
+                            case "in progress":
+                                return 1;
+                            case "completed":
+                                return 2;
+                            default:
+                                return 3;
+                        }
+                    };
+                    return (
+                        getStatusPriority(a.status) -
+                        getStatusPriority(b.status)
+                    );
+                });
+
+                // Sort modules by status - in progress first, then completed
+                const sortedModules = enrolledModules.sort((a, b) => {
+                    // Helper function to get sort priority
+                    const getStatusPriority = (status) => {
+                        switch (status?.toLowerCase()) {
+                            case "in progress":
+                                return 1;
+                            case "completed":
+                                return 2;
+                            default:
+                                return 3;
+                        }
+                    };
+                    return (
+                        getStatusPriority(a.status) -
+                        getStatusPriority(b.status)
+                    );
+                });
+
                 try {
                     const certificationsUrl = `${API_URL}/api/certifications/user/${currentGuide.guide_id}`;
                     try {
@@ -136,7 +191,7 @@ const GuideDetail = () => {
                     setCertifications([]);
                 }
 
-                setTrainingModules(enrolledModules);
+                setTrainingModules(sortedModules);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching guide details:", err);
@@ -148,25 +203,7 @@ const GuideDetail = () => {
         };
 
         fetchGuideDetails();
-    }, [id]);
-
-    const getStatusFromCertification = (certificationStatus) => {
-        if (!certificationStatus) return "Training";
-
-        switch (certificationStatus.toLowerCase()) {
-            case "certified":
-                return "Active";
-            case "suspended":
-                return "Suspended";
-            case "rejected":
-                return "Rejected";
-            case "pending_review":
-                return "Ready for Certification";
-            case "pending":
-            default:
-                return "Training";
-        }
-    };
+    }, [id]); // Using the getStatusFromCertification function defined above
 
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
@@ -225,14 +262,16 @@ const GuideDetail = () => {
             <View className="flex-1 justify-center items-center">
                 <ActivityIndicator size="large" color="rgb(22 163 74)" />
                 <Text className="mt-4 text-gray-600">
-                    Loading guide details...
+                    Loading Guide Details...
                 </Text>
             </View>
         </SafeAreaView>
     ) : error ? (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
             <View className="flex-1 justify-center items-center p-4">
-                <Text className="text-red-500 text-lg">{error}</Text>
+                <Text className="text-red-500 text-lg">
+                    {error.charAt(0).toUpperCase() + error.slice(1)}
+                </Text>
                 <TouchableOpacity
                     className="mt-4 bg-gray-200 px-4 py-2 rounded"
                     onPress={() => router.back()}
@@ -244,7 +283,19 @@ const GuideDetail = () => {
     ) : !guide ? (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
             <View className="flex-1 justify-center items-center">
-                <Text className="text-lg">Guide not found</Text>
+                <Text className="text-lg">Guide Not Found</Text>
+                <TouchableOpacity
+                    className="mt-4 bg-gray-200 px-4 py-2 rounded"
+                    onPress={() => router.back()}
+                >
+                    <Text>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    ) : !guide.name ? (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <View className="flex-1 justify-center items-center">
+                <Text className="text-lg">Invalid Guide Data</Text>
                 <TouchableOpacity
                     className="mt-4 bg-gray-200 px-4 py-2 rounded"
                     onPress={() => router.back()}
@@ -269,51 +320,64 @@ const GuideDetail = () => {
 
             <ScrollView className="flex-1 p-4">
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
-                    <Text className="text-xl font-bold mb-4">{guide.name}</Text>
+                    <Text className="text-xl font-bold mb-4">
+                        {guide.name || "Unknown"}
+                    </Text>
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Email:</Text>
-                        <Text className="text-gray-700">{guide.email}</Text>
+                        <Text className="text-gray-700">
+                            {guide.email || "N/A"}
+                        </Text>
                     </View>
                     <View className="flex-row mb-2">
                         <Text className="font-semibold w-1/3">Role:</Text>
-                        <Text className="text-gray-700">{guide.role}</Text>
+                        <Text className="text-gray-700">
+                            {guide.role || "Park Guide"}
+                        </Text>
                     </View>
                     <View className="flex-row mb-2">
-                        <Text className="font-semibold w-1/3">Status:</Text>
+                        <Text className="font-semibold w-1/3">
+                            License Status:
+                        </Text>
                         <Text
                             className={`${
-                                guide.status === "Active"
+                                (
+                                    guide.certification_status || ""
+                                ).toLowerCase() === "certified"
                                     ? "text-green-600"
-                                    : guide.status === "Training"
+                                    : (
+                                          guide.certification_status || ""
+                                      ).toLowerCase() === "pending"
                                     ? "text-blue-600"
                                     : "text-red-600"
                             }`}
                         >
-                            {guide.status}
+                            {guide.certification_status
+                                ? guide.certification_status
+                                      .charAt(0)
+                                      .toUpperCase() +
+                                  guide.certification_status.slice(1)
+                                : "Pending"}
                         </Text>
                     </View>
-                    {guide.status !== "Training" &&
-                        guide.license_expiry_date && (
-                            <View className="flex-row mb-2">
-                                <Text className="font-semibold w-1/3">
-                                    License Expiry:
-                                </Text>
-                                <Text className="text-gray-700">
-                                    {formatDate(guide.license_expiry_date)}
-                                </Text>
-                            </View>
-                        )}
-                </View>{" "}
+                    <View className="flex-row mb-2">
+                        <Text className="font-semibold w-1/3">
+                            License Expiry:
+                        </Text>
+                        <Text className="text-gray-700">
+                            {formatDate(guide.license_expiry_date)}
+                        </Text>
+                    </View>
+                </View>
                 <AssignedParkCard guide={guide} />
                 <CertificationsCard certifications={certifications} />
                 <View className="bg-white rounded-lg shadow p-4 mb-5">
                     <Text className="text-lg font-bold mb-4">
                         Training Modules
                     </Text>
-
                     {trainingModules.length === 0 ? (
                         <Text className="text-gray-500 italic text-center py-4">
-                            No training modules taken
+                            No Training Modules Taken
                         </Text>
                     ) : (
                         trainingModules.map((module) => (
@@ -323,19 +387,13 @@ const GuideDetail = () => {
                             >
                                 <Text className="font-bold text-lg">
                                     {module.module_name}
-                                </Text>
+                                </Text>{" "}
                                 <Text className="text-gray-700 mb-1">
-                                    {module.description}
-                                </Text>
-                                <Text className="text-gray-600 text-sm mb-1">
-                                    Duration: {module.duration || "N/A"} minutes
-                                </Text>
-                                <Text className="text-sm mb-1">
-                                    {`${
-                                        module.is_required
-                                            ? "Required"
-                                            : "Optional"
-                                    } module`}
+                                    {module.description &&
+                                        module.description
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            module.description.slice(1)}
                                 </Text>
                                 <View className="flex-row justify-between items-center mt-2">
                                     <Text
@@ -343,7 +401,13 @@ const GuideDetail = () => {
                                             module.status
                                         )} font-medium`}
                                     >
-                                        Status: {module.status || "Not started"}
+                                        Status:{" "}
+                                        {module.status
+                                            ? module.status
+                                                  .charAt(0)
+                                                  .toUpperCase() +
+                                              module.status.slice(1)
+                                            : "Not Started"}
                                     </Text>
                                     {module.completion_date && (
                                         <Text className="text-gray-600 text-sm">
@@ -356,33 +420,54 @@ const GuideDetail = () => {
                         ))
                     )}
                 </View>{" "}
-                <View className="flex-row justify-evenly mb-32">
-                    {guide.status === "Training" &&
-                        guide.certification_status === "pending_review" && (
-                            <TouchableOpacity
-                                className="bg-green-100 px-8 py-3 rounded-lg"
-                                onPress={() => {
-                                    alert(
-                                        "Certify functionality would be triggered here"
-                                    );
-                                }}
-                            >
-                                <Text className="text-green-600 font-semibold text-center">
-                                    Certify
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-
+                <View className="mt-4 mb-40">
                     <TouchableOpacity
-                        className="bg-red-600 px-8 py-3 rounded-lg"
-                        onPress={() => {
-                            alert(
-                                "Delete functionality would be triggered here"
-                            );
+                        className="bg-red-500 py-3 px-4 rounded-lg"
+                        onPress={async () => {
+                            if (
+                                window.confirm(
+                                    "Are you sure you want to delete this guide? This action cannot be undone."
+                                )
+                            ) {
+                                try {
+                                    const token =
+                                        await auth.currentUser?.getIdToken();
+                                    if (!token) {
+                                        throw new Error("Not authenticated");
+                                    }
+
+                                    const response = await fetch(
+                                        `${API_URL}/api/park-guides/${guide.guide_id}`,
+                                        {
+                                            method: "DELETE",
+                                            headers: {
+                                                Authorization: `Bearer ${token}`,
+                                            },
+                                        }
+                                    );
+
+                                    if (!response.ok) {
+                                        throw new Error(
+                                            "Failed to delete guide"
+                                        );
+                                    }
+
+                                    alert("Guide successfully deleted");
+                                    router.back(); // Navigate back to the guides list
+                                } catch (error) {
+                                    console.error(
+                                        "Error deleting guide:",
+                                        error
+                                    );
+                                    alert(
+                                        "Failed to delete guide. Please try again."
+                                    );
+                                }
+                            }
                         }}
                     >
-                        <Text className="text-white font-semibold text-center">
-                            Delete
+                        <Text className="text-white text-center font-semibold">
+                            Delete Guide
                         </Text>
                     </TouchableOpacity>
                 </View>

@@ -1,84 +1,56 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
-const ParkGuideCard = ({ guide, onDelete }) => {
-    const router = useRouter();
-
-    const handleDelete = () => {
-        Alert.alert(
-            "Confirm Delete",
-            `Are you sure you want to delete ${guide.name}?`,
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel",
-                },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => onDelete(guide.id),
-                },
-            ]
-        );
-    };
-
-    const handleViewDetails = () => {
-        router.push(`/admin-dashboard/manage/guide-detail?id=${guide.id}`);
-    };
-
+const CertificationsCard = ({ certifications = [] }) => {
     return (
-        <View
-            className="bg-white p-4 rounded-lg shadow mb-3"
-            style={{
-                elevation: 5,
-                flexDirection: "row",
-                justifyContent: "space-between",
-            }}
-        >
-            {/* Guide details */}
-            <View className="flex-1 justify-center">
-                <Text className="text-lg font-bold">{guide.name}</Text>
-                <Text className="text-gray-600">Role: {guide.role}</Text>
-                <Text
-                    className={`${
-                        guide.status === "Active"
-                            ? "text-green-600"
-                            : guide.status === "Training"
-                            ? "text-blue-600"
-                            : "text-red-600"
-                    }`}
-                >
-                    Status: {guide.status}
+        <View className="bg-white rounded-lg shadow p-4 mb-5">
+            <Text className="text-lg font-bold mb-4">Certifications</Text>
+            {certifications?.length > 0 ? (
+                certifications.map((cert, index) => (
+                    <View
+                        key={cert?.cert_id || index}
+                        className="flex-row items-center py-2 border-b border-gray-200 last:border-b-0"
+                    >
+                        <MaterialIcons
+                            name="verified"
+                            size={24}
+                            color="rgb(22, 163, 74)"
+                        />
+                        <View className="ml-2 flex-1">
+                            <Text className="text-base font-medium">
+                                {cert?.module_name ||
+                                    cert?.name ||
+                                    "Unknown Certificate"}
+                            </Text>
+                            <View className="flex-row justify-between items-center mt-1">
+                                <Text className="text-sm text-gray-600">
+                                    Issued:{" "}
+                                    {cert?.issued_date
+                                        ? new Date(
+                                              cert.issued_date
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </Text>
+                                {cert?.expiry_date && (
+                                    <Text className="text-sm text-gray-600">
+                                        Expires:{" "}
+                                        {new Date(
+                                            cert.expiry_date
+                                        ).toLocaleDateString()}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                    </View>
+                ))
+            ) : (
+                <Text className="text-gray-500 italic text-center py-4">
+                    No certifications available
                 </Text>
-                {guide.status !== "Training" && guide.license_expiry_date ? (
-                    <Text className="text-gray-600">
-                        License Expiry:{" "}
-                        {new Date(
-                            guide.license_expiry_date
-                        ).toLocaleDateString()}
-                    </Text>
-                ) : (
-                    guide.status !== "Training" && (
-                        <Text className="text-gray-600 italic">
-                            No certification expiry date available
-                        </Text>
-                    )
-                )}
-            </View>{" "}
-            {/* Action buttons */}
-            <View className="flex-column space-y-2 gap-2 justify-center">
-                <TouchableOpacity
-                    className="bg-blue-100 px-4 py-2 rounded-lg"
-                    onPress={handleViewDetails}
-                >
-                    <Text className="text-blue-600 font-semibold text-center">
-                        Details
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            )}
         </View>
     );
 };
 
-export default ParkGuideCard;
+export default CertificationsCard;

@@ -26,8 +26,7 @@ const AssignedParkCard = ({ guide }) => {
 
         fetchParkDetails();
     }, [guide?.park]);
-
-    return !guide ? (
+    return !guide || !guide.park ? (
         <View style={styles.container}>
             <Text style={styles.sectionTitle}>Assigned Park</Text>
             <View style={styles.emptyState}>
@@ -36,7 +35,9 @@ const AssignedParkCard = ({ guide }) => {
                     size={24}
                     color="#9CA3AF"
                 />
-                <Text style={styles.emptyText}>No guide data available</Text>
+                <Text style={styles.emptyText}>
+                    {!guide ? "No guide data available" : "No park assigned"}
+                </Text>
             </View>
         </View>
     ) : (
