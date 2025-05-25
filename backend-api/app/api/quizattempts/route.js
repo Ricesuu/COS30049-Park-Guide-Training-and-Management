@@ -102,22 +102,15 @@ export async function POST(request) {
 
             // If passed, update both GuideTrainingProgress and modulepurchases
             if (passed) {
-                console.log(`User ${userId} passed the quiz for module ${moduleId} with score ${score}/${totalQuestions}`);
-                
-                // Update GuideTrainingProgress to completed
+                console.log(`User ${userId} passed the quiz for module ${moduleId} with score ${score}/${totalQuestions}`);                // Update GuideTrainingProgress from 'in progress' to 'completed'
                 await connection.execute(
-                    `INSERT INTO GuideTrainingProgress (guide_id, module_id, status, completion_date)
-                     VALUES (?, ?, 'completed', CURDATE())
-                     ON DUPLICATE KEY UPDATE status='completed', completion_date=CURDATE()`,
+                    `UPDATE GuideTrainingProgress 
+                     SET status = 'completed', 
+                         completion_date = CURDATE()
+                     WHERE guide_id = ? 
+                     AND module_id = ? 
+                     AND status = 'in progress'`,
                     [guide_id, moduleId]
-                );
-
-                // Update modulepurchases to completed
-                await connection.execute(
-                    `UPDATE modulepurchases 
-                     SET status = 'completed'=,
-                     WHERE user_id = ? AND module_id = ? AND status = 'active'`,
-                    [userId, moduleId]
                 );
 
                 // Check if certification already exists
