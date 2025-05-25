@@ -35,8 +35,6 @@ import ParkGuideLayout from "./pages/park_guide/ParkGuideLayout";
 import ParkguideDashboard from "./pages/park_guide/parkguideDashboard";
 import ParkguideTraining from "./pages/park_guide/parkguideTraining";
 import ParkguideCert from "./pages/park_guide/parkguideCert";
-import ParkguidePlantInfo from "./pages/park_guide/parkguidePlantInfo";
-import ParkguideIdentification from "./pages/park_guide/parkguideIdentification";
 import ParkguidePerformance from "./pages/park_guide/parkguidePerformance";
 import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
@@ -102,11 +100,9 @@ function AppRoutes() {
         <Route path="info-manager" element={<InfoManager />} />
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
-      </Route>      {/* Park Guide Section */}      <Route path="/park_guide" element={<ParkGuideLayout />}>
-        <Route path="dashboard" element={<ParkguideDashboard />} />
+      </Route>      {/* Park Guide Section */}      <Route path="/park_guide" element={<ParkGuideLayout />}>        <Route path="dashboard" element={<ParkguideDashboard />} />
         <Route path="training" element={<ParkguideTraining />} />
         <Route path="certifications" element={<ParkguideCert />} />
-        <Route path="plants" element={<ParkguidePlantInfo />} />
         <Route path="performance" element={<ParkguidePerformance />} />        
         <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />
