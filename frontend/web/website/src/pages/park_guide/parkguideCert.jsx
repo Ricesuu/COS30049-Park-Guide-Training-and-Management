@@ -242,20 +242,17 @@ const ParkguideCert = () => {
                 }}>
                   {selectedCert.description || 'This certificate verifies successful completion of the training module and demonstrates your expertise as a professional park guide.'}
                 </p>
-              </div>
-                <div className="cert-popup-footer">
+              </div>                <div className="cert-popup-footer">
                 <button
                   onClick={closePopup}
                   className="cert-action-button"
                   style={{
                     backgroundColor: '#f3f4f6',
-                    color: '#374151'
+                    color: '#374151',
+                    width: '100%'
                   }}
                 >
                   Close
-                </button>
-                <button className="cert-action-button view">
-                  Download Certificate
                 </button>
               </div>
             </div>

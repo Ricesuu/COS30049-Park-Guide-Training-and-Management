@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getConnection } from "@/lib/db";
 import { getAuth } from "@/lib/auth";
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
     let connection;
     try {
         // Get the authenticated user for authorization check
@@ -13,8 +13,10 @@ export async function GET(request, context) {
                 { error: "Unauthorized" },
                 { status: 401 }
             );
-        }        // Get the guide ID from the URL parameter
-        const { id } = context.params;
+        }
+        
+        // Get the guide ID from the URL parameter
+        const id = params.id;
         if (!id) {
             return NextResponse.json(
                 { error: "Guide ID is required" },

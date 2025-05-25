@@ -158,9 +158,6 @@ const ParkguideModule = () => {
             )}
             {error && <div className="error-message">{error}</div>}{!loading && !error && (
                 <div className="module-details">
-                    <div className="module-description">
-                        <p>{module.description}</p>
-                    </div>
 
                     {module.video_url && (
                         <div className="video-section">

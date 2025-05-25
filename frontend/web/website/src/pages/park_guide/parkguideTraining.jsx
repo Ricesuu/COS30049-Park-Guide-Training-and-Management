@@ -252,17 +252,17 @@ const ParkguideTraining = () => {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
                 }}
-            >
-                <div
+            >                <div
                     style={{
                         backgroundColor: bgColor,
                         padding: "16px",
                         color: "white",
                     }}
-                >
-                    {module.is_compulsory && !isPurchased && (
-                        <div style={{ fontWeight: "bold", marginBottom: "8px" }}>Required Module</div>
-                    )}                {!isPurchased && (
+                >                    {!isPurchased && (
+                        <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                            {module.is_compulsory ? "Required Module" : "Optional Module"}
+                        </div>
+                    )}                    {!isPurchased && (
                         <div
                             style={{
                                 display: "inline-block",
