@@ -47,10 +47,8 @@ export async function GET(request) {
                 gtp.module_id,
                 gtp.status,
                 gtp.start_date,
-                gtp.completion_date,
-                tm.module_name,
-                tm.description,
-                tm.duration
+                gtp.completion_date,                tm.module_name,
+                tm.description
             FROM GuideTrainingProgress gtp
             JOIN TrainingModules tm ON gtp.module_id = tm.module_id
             WHERE gtp.guide_id = ?

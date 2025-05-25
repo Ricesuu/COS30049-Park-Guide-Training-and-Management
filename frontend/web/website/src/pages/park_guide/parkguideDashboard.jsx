@@ -3,13 +3,38 @@ import React, { useState, useEffect } from 'react';
 import "../../ParkGuideStyle.css";
 import { auth } from '../../Firebase';
 
-// Import images to ensure they're properly handled by Vite
-import semenggohImg from '/images/Semenggoh.jpg';
-import advancedGuideImg from '/images/advanced_guide.png';
-import firstaidImg from '/images/firstaid.jpg';
-import placeholderModuleImg from '/images/advanced_guide.png'; // Placeholder for modules
+// Helper function that is used in the component
+const formatDateString = (dateString) => {
+  if (!dateString) return 'Not available';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
+  }
+};
 
+const checkExpired = (dateString) => {
+  if (!dateString) return false;
+  const expiryDate = new Date(dateString);
+  const now = new Date();
+  return expiryDate < now;
+};
 
+const checkExpiringSoon = (dateString) => {
+  if (!dateString) return false;
+  const expiryDate = new Date(dateString);
+  const now = new Date();
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(now.getDate() + 30);
+  return expiryDate > now && expiryDate <= thirtyDaysFromNow;
+};
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -22,72 +47,91 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get current auth token
+        setLoading(true);
         const user = auth.currentUser;
         if (!user) {
-          console.error('User not authenticated');
-          setError('User not authenticated');
-          setLoading(false);
-          return;
+          throw new Error('User not authenticated');
         }
         
         const token = await user.getIdToken();
         
         // Fetch user data
-        const userResponse = await fetch('/api/users/'+user.uid, {
+        const userResponse = await fetch('/api/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (!userResponse.ok) {
           throw new Error('Failed to fetch user data');
         }
-          const userData = await userResponse.json();
-        console.log('User data received:', userData);
+
+        const userData = await userResponse.json();
         setUserData(userData);
-        
-        // Fetch park guide data
+
+        // Get guide data
         const guideResponse = await fetch('/api/park-guides/user', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (!guideResponse.ok) {
           throw new Error('Failed to fetch guide data');
         }
-        
+
         const guideData = await guideResponse.json();
-        console.log('Guide data received:', guideData);
         setGuideData(guideData);
-        
-        // Fetch training modules
-        const modulesResponse = await fetch('/api/training-modules/user', {
+
+        // Get modules from guide training progress
+        const modulesResponse = await fetch('/api/guide-training-progress/user', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (modulesResponse.ok) {
-          const modulesData = await modulesResponse.json();
-          console.log('Modules data received:', modulesData);
-          setModules(modulesData || []);
+
+        const modulesData = await modulesResponse.json();
+        if (!modulesResponse.ok) {
+          throw new Error(modulesData.error || 'Failed to fetch training progress');
         }
-        
-        // Fetch certifications
-        const certificationsResponse = await fetch('/api/certifications/user', {
+
+        // Transform the data to match the expected format
+        let formattedModules = [];
+        if (modulesData && modulesData.length > 0) {
+          formattedModules = modulesData.map(module => ({
+            ...module,
+            name: module.module_name,
+            module_status: module.status,
+            completion_percentage: module.status === 'completed' ? 100 : 
+                                module.status === 'in progress' ? 50 : 0
+          }));
+        }
+        setModules(formattedModules);
+
+        // Get certifications using guide_id
+        const certsResponse = await fetch(`/api/certifications/user/${guideData.guide_id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (certificationsResponse.ok) {
-          const certificationsData = await certificationsResponse.json();
-          console.log('Certifications data received:', certificationsData);
-          setCertifications(certificationsData || []);
+
+        // Handle certification response
+        if (!certsResponse.ok) {
+          // Don't throw error for 404 - just means no certifications yet
+          if (certsResponse.status === 404) {
+            setCertifications([]);
+          } else {
+            throw new Error('Failed to fetch certifications');
+          }
+        } else {
+          const certsData = await certsResponse.json();
+          setCertifications(certsData.map(cert => ({
+            ...cert,
+            image_url: '/images/advanced_guide.png' // Default image
+          })));
         }
-        
+
+        setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
@@ -95,55 +139,116 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-      fetchUserData();  }, []);
+
+    fetchUserData();
+  }, []);
+  // Helper functions are now moved to top of file
 
   const navigate = (path) => {
     window.location.href = path;
   };
-
-  // Use imported images instead of string paths
-  const certImages = [semenggohImg, advancedGuideImg, firstaidImg];
+  // Removed unused certImages array
 
   return (
-      <div className="dashboard-main-content">
-        {/* User Info Container */}
-        <div className="box user-info">
-          {loading ? (
-            <p>Loading user information...</p>
-          ) : error ? (
-            <p>Error loading user information: {error}</p>          ) : (
-            <>
-              
-                <div className="user-details" style={{textAlign: 'center'}}>
-                <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>
-                <p className="user-id">Guide ID: {guideData?.guide_id || 'Not Available'}</p>                <p className="user-park">Park: {guideData?.assigned_park || 'Unassigned'}</p>
-                <p className="user-cert-status">Certification Status: {guideData?.certification_status || 'Pending'}</p>
-                {userData && (
-                  <p className="user-email">Email: {userData.email}</p>
-                )}
+    <div className="dashboard-main-content">
+      <div className="page-title-card">
+        <h1>Dashboard</h1>
+        <p>Welcome to your park guide dashboard. Track your training progress and manage your certifications.</p>
+      </div>
+
+      {/* User Info Container */}      <div className="user-info-card">
+        {loading ? (
+          <div style={{
+            textAlign: "center",
+            padding: "2rem",
+            color: "#64748b",
+            fontSize: "1.1rem",
+            backgroundColor: "#f8fafc",
+            borderRadius: "8px"
+          }}>Loading user information...</div>
+        ) : error ? (
+          <div className="error-message">Error loading user information: {error}</div>
+        ) : (
+          <div className="user-details">
+            <h2 className="user-name">{userData ? `${userData.first_name} ${userData.last_name}` : 'User Name Not Available'}</h2>        <div className="user-info-grid">
+              <div className="user-info-item">
+                <span className="info-label">Guide ID:</span>
+                <span className="info-value">{guideData?.guide_id || 'Not Available'}</span>
               </div>
-            </>
-          )}        </div>        {/* Only show content if there's no loading and no errors */}
-        {!loading && !error && (          <div className="centered-boxes">
-            {/* Modules Container */}
-            <div className="box module-container" style={{ flex: 1, maxWidth: '48%' }}>
-              <h2 className="boxtitle">Your Training Modules</h2>
-              {modules && modules.length > 0 ? (
-                <div className="modules-list">
-                  {modules.map((module, index) => (
-                    <div className="module-item" key={index}>                      <div className="module-image-container" style={{ height: '120px', maxWidth: '180px', margin: '0 auto 15px auto' }}>
-                        <img 
-                          src={placeholderModuleImg} 
-                          alt={`Module ${index + 1}`} 
-                          className="module-image" 
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
-                      </div>
-                      <div className="module-content">
-                        <h3>{module.name}</h3>
-                        <p>{module.description}</p>
-                        <div className="module-status">
-                          <span><strong>Status:</strong> {module.module_status || 'In Progress'}</span>
+              <div className="user-info-item">
+                <span className="info-label">Park:</span>
+                <span className="info-value">{guideData?.assigned_park || 'Unassigned'}</span>
+              </div>
+              <div className="user-info-item">
+                <span className="info-label">Certification Status:</span>
+                <span className={`info-value status-${guideData?.certification_status?.toLowerCase() || 'pending'}`}>
+                  {guideData?.certification_status || 'Pending'}
+                </span>
+              </div>
+              {userData && (
+                <div className="user-info-item">
+                  <span className="info-label">Email:</span>
+                  <span className="info-value">{userData.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Only show content if there's no loading and no errors */}
+      {!loading && !error && (
+        <div className="centered-boxes">
+          {/* Modules Container */}
+          <div className="box module-container">
+            <h2 className="boxtitle">Your Training Modules</h2>
+            {modules && modules.length > 0 ? (
+              <div className="modules-list">                {modules.map((module, index) => (                      <div className="module-item" key={index} style={{
+                        backgroundColor: "#fff",
+                        borderRadius: "12px",
+                        padding: "2rem",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        border: "1px solid rgba(124, 194, 66, 0.2)",
+                        transition: "all 0.3s ease",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        position: "relative",
+                        overflow: "hidden"
+                      }}>
+                        <div style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "4px",
+                          height: "100%",
+                          background: module.module_status === "completed" ? "#4CAF50" : 
+                                    module.module_status === "in progress" ? "#FF9800" : "#2E7D32"
+                        }} />
+                        <div className="module-content" style={{ marginLeft: "1rem" }}>
+                          <h3 style={{ 
+                            fontSize: "1.5rem",
+                            fontWeight: "700",
+                            color: "#2c3e50",
+                            marginBottom: "1rem",
+                            borderBottom: "2px solid rgba(124, 194, 66, 0.2)",
+                            paddingBottom: "0.5rem"
+                          }}>{module.name}</h3>
+                          <p style={{
+                            color: "#64748b",
+                            fontSize: "1rem",
+                            marginBottom: "1.5rem",
+                            lineHeight: "1.5"
+                          }}>{module.description}</p>
+                          <div className="module-status" style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginTop: "auto"
+                          }}>
+                          <span className={`status-${module.module_status?.toLowerCase() || 'not-started'}`}>
+                            <strong>Status:</strong> {module.module_status || 'Not Started'}
+                          </span>
                           {module.completion_percentage && (
                             <div className="progress-bar">
                               <div 
@@ -157,42 +262,105 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <p className="no-modules-message">You don't have any training modules yet.</p>
-              )}            </div>
+              </div>
+            ) : (
+              <div className="no-modules-message">
+                <p>You don't have any training modules yet.</p>
+              </div>
+            )}          </div>
 
-            {/* Certification Section */}
-            <div className="box certification" style={{ flex: 1, maxWidth: '48%' }}>
-              <h2 className="boxtitle">Your Certifications</h2>              {certifications && certifications.length > 0 ? (
-                <div className="certification-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>                  {certifications.map((cert, index) => (
-                    <div className="dashboard-cert-card" key={index} onClick={() => navigate('/certifications')}>
-                      <div className="dashboard-cert-image-container">
-                        <img
-                          src={certImages[index % certImages.length]}
-                          alt={`Certification ${index + 1}`}
-                          className="dashboard-cert-image"
-                        />
-                      </div>
-                      <div className="dashboard-cert-info">
-                        <h3 className="dashboard-cert-title">{cert.module_name}</h3>
-                        <p className="dashboard-cert-expiry">
-                          Expiry: <span>{new Date(cert.expiry_date).toLocaleDateString()}</span>
-                        </p>
-                        <p className="dashboard-cert-issued">
-                          Issued: <span>{new Date(cert.issued_date).toLocaleDateString()}</span>
-                        </p>
-                      </div>
+          {/* Certification Section */}
+          <div className="box certification">
+            <h2 className="boxtitle">Your Certifications</h2>
+            {certifications && certifications.length > 0 ? (
+              <div className="certification-grid">
+                {certifications.map((cert, index) => (                  <div 
+                    key={cert.cert_id || index} 
+                    onClick={() => navigate('/park_guide/certifications')}                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: "12px",
+                      padding: "2.5rem 1.5rem 1.5rem",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      border: "1px solid rgba(124, 194, 66, 0.2)",
+                      cursor: "pointer",
+                      position: "relative",
+                      overflow: "hidden",
+                      transition: "all 0.3s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      minHeight: "200px"
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = "translateY(-5px)";
+                      e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                    }}
+                  >
+                    <div style={{
+                      position: "absolute",
+                      top: "1rem",
+                      right: "1rem",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "20px",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      backgroundColor: checkExpired(cert.expiry_date) ? "#FEE2E2" : 
+                                    checkExpiringSoon(cert.expiry_date) ? "#FEF3C7" : "#DCFCE7",
+                      color: checkExpired(cert.expiry_date) ? "#DC2626" : 
+                             checkExpiringSoon(cert.expiry_date) ? "#D97706" : "#059669"
+                    }}>
+                      {checkExpired(cert.expiry_date) ? 'Expired' : 
+                       checkExpiringSoon(cert.expiry_date) ? 'Expiring Soon' : 'Active'}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="no-certs-message">You don't have any completed certifications yet.</p>
-              )}
-            </div>
+                    <h3 style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "600",
+                      color: "#2c3e50",
+                      marginTop: "0.5rem"
+                    }}>{cert.module_name || 'Untitled Certificate'}</h3>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      marginTop: "auto"
+                    }}>
+                      <p style={{
+                        fontSize: "0.95rem",
+                        color: "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{ fontWeight: "500" }}>Issued:</span> 
+                        {formatDateString(cert.issued_date)}
+                      </p>
+                      <p style={{
+                        fontSize: "0.95rem",
+                        color: checkExpired(cert.expiry_date) ? "#DC2626" : "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{ fontWeight: "500" }}>Expires:</span> 
+                        {formatDateString(cert.expiry_date)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-certs-message">
+                <p>Complete training modules to earn certifications</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
   );
 };
 

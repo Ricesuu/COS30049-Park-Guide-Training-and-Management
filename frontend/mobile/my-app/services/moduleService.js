@@ -18,7 +18,38 @@ export const fetchUserModules = async () => {
             throw new Error("Authentication required");
         }
 
-        // Add cache-busting parameter to prevent caching
+        // First get user's guide ID
+        const guideResponse = await axios.get(
+            `${API_ENDPOINT}/park-guides/user`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Cache-Control": "no-cache",
+                    Pragma: "no-cache",
+                },
+            }
+        );
+
+        const guideId = guideResponse.data.guide_id;
+
+        // Fetch user's certifications to filter out completed modules
+        const certResponse = await axios.get(
+            `${API_ENDPOINT}/certifications/user/${guideId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Cache-Control": "no-cache",
+                    Pragma: "no-cache",
+                },
+            }
+        );
+
+        // Create a Set of module IDs that have certifications
+        const certifiedModuleIds = new Set(
+            certResponse.data.map((cert) => cert.module_id)
+        );
+
+        // Add cache-busting to prevent stale data
         const timestamp = new Date().getTime();
         const response = await axios.get(
             `${API_ENDPOINT}/training-modules/user?t=${timestamp}`,
@@ -30,24 +61,38 @@ export const fetchUserModules = async () => {
                 },
             }
         );
-        // Format the data to ensure consistency
-        const formattedModules = response.data.map((module) => ({
-            ...module,
-            id: module.id || module.module_id,
-            name: module.name || module.module_name,
-            title: module.title || module.name || module.module_name,
-            progress: module.progress !== undefined ? module.progress : 0,
-            imageUrl:
-                module.imageUrl ||
-                module.image_url ||
-                "https://via.placeholder.com/150",
-            videoUrl:
-                module.videoUrl ||
-                module.video_url ||
-                "https://example.com/video.mp4",
-        }));
 
-        console.log("Fetched user modules:", formattedModules);
+        // Filter out modules that have certifications and format remaining modules
+        const formattedModules = response.data
+            .filter((module) => {
+                const moduleId = module.module_id || module.id;
+                return !certifiedModuleIds.has(moduleId);
+            })
+            .map((module) => ({
+                ...module,
+                id: module.id || module.module_id,
+                name: module.name || module.module_name,
+                title: module.title || module.name || module.module_name,
+                progress: module.progress !== undefined ? module.progress : 0,
+                difficulty: module.difficulty || "beginner",
+                aspect: module.aspect || "general",
+                videoUrl: module.video_url || module.videoUrl,
+                courseContent: module.course_content || module.courseContent,
+                completion_percentage: module.completion_percentage || 0,
+                status: module.status
+                    ? module.status.toLowerCase()
+                    : module.module_status
+                    ? module.module_status.toLowerCase()
+                    : "not started",
+                imageUrl:
+                    module.imageUrl ||
+                    module.image_url ||
+                    "https://via.placeholder.com/150",
+            }));
+
+        console.log(
+            `Fetched ${response.data.length} modules, filtered to ${formattedModules.length} after removing certified ones`
+        );
         return formattedModules;
     } catch (error) {
         console.error("Error fetching user modules:", error);
@@ -97,7 +142,15 @@ export const fetchAvailableModules = async () => {
                 }
             );
 
-            // Filter out modules the user already has and ensure all have price property
+            // Filter out modules the user already has and ensure all have price property            // Get all modules for checking compulsory ones
+            const allPurchasedModules = userModulesResponse.data;
+            const missingCompulsoryModules = response.data
+                .filter((module) => module.is_compulsory)
+                .filter((module) => !userModuleIds.has(module.id));
+
+            const hasAllCompulsoryModules =
+                missingCompulsoryModules.length === 0;
+
             const modules = response.data
                 .filter((module) => !userModuleIds.has(module.id))
                 .map((module) => ({
@@ -106,6 +159,16 @@ export const fetchAvailableModules = async () => {
                         module.price !== undefined
                             ? parseFloat(module.price)
                             : 0,
+                    is_compulsory: Boolean(module.is_compulsory),
+                    canPurchase:
+                        module.is_compulsory || hasAllCompulsoryModules,
+                    // Add a field to track incomplete compulsory modules
+                    incompleteCompulsoryModules:
+                        !module.is_compulsory && !hasAllCompulsoryModules
+                            ? missingCompulsoryModules.map((m) => m.name)
+                            : [],
+                    // Add a field to indicate if module is locked due to compulsory requirements
+                    isLocked: !module.is_compulsory && !hasAllCompulsoryModules,
                 }));
 
             console.log(

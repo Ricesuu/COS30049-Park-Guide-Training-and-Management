@@ -1,437 +1,774 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../../ParkGuideStyle.css";
-import { auth } from '../../Firebase';
-
-// Import images for proper loading in Vite
-import advancedGuideImg from '/images/advanced_guide.png';
-import wildlifeSafetyImg from '/images/wildlife_safety.jpg';
-import firstAidImg from '/images/firstaid.jpg';
-import semenggohImg from '/images/Semenggoh.jpg';
-import ruiziqImg from '/images/Ruiziq.jpg';
-import phalaenopsisImg from '/images/phalaenopsis.jpg';
+import { auth } from "../../Firebase";
 
 const ParkguideTraining = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [purchasedModules, setPurchasedModules] = useState([]);
-  const [availableModules, setAvailableModules] = useState([]);
-  const [showModuleStore, setShowModuleStore] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [purchasedModules, setPurchasedModules] = useState([]);
+    const [completedModules, setCompletedModules] = useState([]);
+    const [ongoingModules, setOngoingModules] = useState([]);
+    const [availableModules, setAvailableModules] = useState([]);
+    const [activeView, setActiveView] = useState("ongoing");
+    const [hasAllCompulsoryModules, setHasAllCompulsoryModules] =
+        useState(false);
+    const [missingCompulsoryModules, setMissingCompulsoryModules] = useState(
+        []
+    );
+    const [token, setToken] = useState(null);
+    const [guideInfo, setGuideInfo] = useState(null);
 
-  // Map of module images for both purchased and available modules
-  const moduleImages = {
-    'Basics of Park Guiding': advancedGuideImg,
-    'Wildlife Identification': wildlifeSafetyImg,
-    'First Aid & Safety': firstAidImg,
-    'Conservation Principles': semenggohImg,
-    'Cultural Heritage': ruiziqImg,
-    'Plant Identification': phalaenopsisImg,
-    'default': advancedGuideImg // Fallback image
-  };
+    // Get query params to check if we need to refresh data
+    const queryParams = new URLSearchParams(location.search);
+    const hasRefresh = queryParams.has("refresh");
 
-  useEffect(() => {
-    const fetchModuleData = async () => {
-      try {
-        setLoading(true);
-        // Get current auth token
-        const user = auth.currentUser;
-        if (!user) {
-          console.error('User not authenticated');
-          setError('User not authenticated');
-          setLoading(false);
-          return;
+    useEffect(() => {
+        const checkAndGetToken = async () => {
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    navigate("/login");
+                    return null;
+                }
+
+                // Always get a fresh token
+                const newToken = await user.getIdToken(true); // Force token refresh
+                setToken(newToken);
+                return newToken;
+            } catch (error) {
+                console.error("Authentication error:", error);
+                navigate("/login");
+                return null;
+            }
+        };
+
+        const fetchGuideInfo = async (token) => {
+            try {
+                const guideResponse = await fetch("/api/park-guides/user", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!guideResponse.ok) {
+                    throw new Error("Failed to fetch guide information");
+                }
+
+                const guideData = await guideResponse.json();
+                setGuideInfo(guideData);
+                return guideData;
+            } catch (error) {
+                console.error("Error fetching guide info:", error);
+                return null;
+            }
+        };
+
+        const fetchModuleData = async () => {
+            try {
+                setLoading(true);
+
+                const currentToken = await checkAndGetToken();
+                if (!currentToken) return;
+
+                // Fetch guide info first
+                const guideData = await fetchGuideInfo(currentToken);
+
+                // Fetch user's purchased modules
+                const modulesResponse = await fetch(
+                    "/api/training-modules/user",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${currentToken}`,
+                        },
+                    }
+                );
+
+                let purchasedModulesData = [];
+                if (modulesResponse.ok) {
+                    purchasedModulesData = await modulesResponse.json();
+                    console.log("User modules received:", purchasedModulesData);
+
+                    // Get certifications
+                    const certsResponse = await fetch(
+                        `/api/certifications/user/${guideData.guide_id}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${currentToken}`,
+                            },
+                        }
+                    );
+
+                    let certifications = [];
+                    if (certsResponse.ok) {
+                        certifications = await certsResponse.json();
+                    }
+
+                    // Mark modules with certifications as completed
+                    const updatedPurchasedModules = purchasedModulesData.map(
+                        (module) => {
+                            const hasCertification = certifications.some(
+                                (cert) =>
+                                    cert.module_id === module.id ||
+                                    cert.module_id === module.module_id
+                            );
+                            return {
+                                ...module,
+                                module_status: hasCertification
+                                    ? "completed"
+                                    : module.module_status || "not started",
+                                status: hasCertification
+                                    ? "completed"
+                                    : module.status || "not started",
+                            };
+                        }
+                    );
+
+                    // Split modules into completed and ongoing
+                    const completed = updatedPurchasedModules.filter(
+                        (module) =>
+                            module.module_status === "completed" ||
+                            module.status === "completed"
+                    );
+
+                    const ongoing = updatedPurchasedModules.filter(
+                        (module) =>
+                            module.module_status !== "completed" &&
+                            module.status !== "completed"
+                    );
+
+                    setCompletedModules(completed);
+                    setOngoingModules(ongoing);
+                    setPurchasedModules(updatedPurchasedModules);
+
+                    // Fetch available modules for purchase
+                    const availableModulesResponse = await fetch(
+                        "/api/training-modules/available",
+                        {
+                            headers: {
+                                Authorization: `Bearer ${currentToken}`,
+                            },
+                        }
+                    );
+
+                    if (availableModulesResponse.ok) {
+                        const availableModulesData =
+                            await availableModulesResponse.json();
+                        console.log(
+                            "Available modules received:",
+                            availableModulesData
+                        );
+
+                        // Find all compulsory modules
+                        const compulsoryModules = availableModulesData.filter(
+                            (module) => module.is_compulsory
+                        );
+                        const purchasedCompulsoryModules =
+                            compulsoryModules.filter((module) =>
+                                purchasedModulesData.some(
+                                    (purchased) => purchased.id === module.id
+                                )
+                            );
+
+                        // Set compulsory module states
+                        const missingModules = compulsoryModules.filter(
+                            (module) =>
+                                !purchasedModulesData.some(
+                                    (purchased) => purchased.id === module.id
+                                )
+                        );
+                        setMissingCompulsoryModules(missingModules);
+                        setHasAllCompulsoryModules(
+                            purchasedCompulsoryModules.length ===
+                                compulsoryModules.length
+                        );
+
+                        // Filter out modules that are already purchased
+                        const notPurchasedModules = availableModulesData.filter(
+                            (module) =>
+                                !purchasedModulesData.some(
+                                    (purchased) => purchased.id === module.id
+                                )
+                        );
+
+                        setAvailableModules(notPurchasedModules || []);
+                    } else {
+                        console.error("Failed to fetch available modules");
+                    }
+                } else {
+                    console.error("Failed to fetch user modules");
+                }
+
+                setError(null);
+            } catch (err) {
+                console.error("Error fetching module data:", err);
+                if (err.message.includes("authentication")) {
+                    localStorage.removeItem("authToken");
+                    setToken(null);
+                    navigate("/login");
+                } else {
+                    setError(err.message);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        // Fetch data when component mounts or when returning from purchase page
+        if (hasRefresh || !purchasedModules.length) {
+            fetchModuleData();
         }
-        
-        const token = await user.getIdToken();
-        
-        // Fetch user's purchased training modules
-        const modulesResponse = await fetch('/api/training-modules/user', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (modulesResponse.ok) {
-          const modulesData = await modulesResponse.json();
-          console.log('User modules received:', modulesData);
-          setPurchasedModules(modulesData || []);
-        } else {
-          console.error('Failed to fetch user modules');
+    }, [location.search, hasRefresh, purchasedModules.length, token, navigate]);
+
+    const startTraining = (moduleId, event) => {
+        // Prevent the event from bubbling up to parent elements
+        if (event) {
+            event.stopPropagation();
         }
-        
-        // Fetch available modules for purchase
-        const availableModulesResponse = await fetch('/api/training-modules/available', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (availableModulesResponse.ok) {
-          const availableModulesData = await availableModulesResponse.json();
-          console.log('Available modules received:', availableModulesData);
-          
-          // Filter out modules that are already purchased
-          const notPurchasedModules = availableModulesData.filter(
-            module => module.purchase_status === 'not_purchased'
-          );
-          
-          setAvailableModules(notPurchasedModules || []);
-        } else {
-          console.error('Failed to fetch available modules');
-        }
-        
-      } catch (err) {
-        console.error('Error fetching module data:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+        navigate(`/park_guide/module?moduleId=${moduleId}`);
     };
-    
-    fetchModuleData();
-  }, []);
 
-  const startTraining = (moduleId, event) => {
-    // Prevent the event from bubbling up to parent elements
-    if (event) {
-      event.stopPropagation();
-    }
-    navigate(`/park_guide/module?moduleId=${moduleId}`);
-  };
-  const purchaseModule = (moduleId, event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    
-    // Navigate to module purchase page with moduleId parameter
-    navigate(`/modules/purchase/${moduleId}`);
-  };
+    const purchaseModule = (moduleId, event, isCompulsory) => {
+        if (event) {
+            event.stopPropagation();
+        }
 
-  const getModuleImage = (moduleName) => {
-    // Try to match the module name with our image map
-    for (const [key, image] of Object.entries(moduleImages)) {
-      if (moduleName && moduleName.includes(key)) {
-        return image;
-      }
-    }
-    // Return default image if no match found
-    return moduleImages['default'];
-  };
+        // Prevent purchase of non-compulsory modules if compulsory ones are not completed
+        if (!isCompulsory && !hasAllCompulsoryModules) {
+            const missingModuleNames = missingCompulsoryModules
+                .map((m) => m.name || m.module_name)
+                .join(", ");
+            alert(
+                `You must complete the following compulsory modules first:\n${missingModuleNames}`
+            );
+            return;
+        }
 
-  return (
-      <div className="training-main-content">
-        <h1 className="training-page-title">Training Modules</h1>
-          <div className="training-header">
-          <p className="training-introduction">
-            Welcome to the Park Guide Training Program. These modules are designed to enhance your skills and knowledge
-            as a professional park guide.
-          </p>
-          
-          <div className="module-view-toggle">
-            <button 
-              className={`toggle-btn ${!showModuleStore ? 'active' : ''}`}
-              onClick={() => setShowModuleStore(false)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: !showModuleStore ? '#4CAF50' : '#f0f0f0',
-                color: !showModuleStore ? 'white' : '#333',
-                border: 'none',
-                borderRadius: '4px 0 0 4px',
-                cursor: 'pointer'
-              }}
+        if (!moduleId) {
+            console.error("No module ID provided to purchaseModule function");
+            return;
+        }
+
+        navigate(`/modules/purchase/${moduleId}`);
+    };
+    const renderModuleCard = (module, isPurchased = false) => {
+        // Ensure we're using a standardized status value
+        const status = (
+            module.module_status ||
+            module.status ||
+            ""
+        ).toLowerCase();
+        // Check if payment is pending approval
+        const isPending =
+            module.paymentStatus === "pending" ||
+            module.approval_status === "pending";
+
+        const bgColor = isPending
+            ? "#FFF3CD" // Yellow background for pending modules
+            : isPurchased
+            ? status === "completed"
+                ? "#4CAF50"
+                : status === "in progress"
+                ? "#FF9800"
+                : "#2E7D32"
+            : module.is_compulsory
+            ? "#dc3545"
+            : "#2E7D32";
+
+        const isFree =
+            module.price === 0 ||
+            module.price === "0" ||
+            module.price === "0.00";
+
+        return (
+            <div
+                className={
+                    isPurchased ? "training-module-card" : "store-module-card"
+                }
+                style={{
+                    // Fixed dimensions for consistent card sizes
+                    width: "100%",
+                    minHeight: "320px",
+                    border: "1px solid #ddd",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    transition: "transform 0.3s, box-shadow 0.3s",
+                    cursor: "pointer",
+                    backgroundColor: "#fff",
+                    opacity:
+                        !isPurchased &&
+                        !module.is_compulsory &&
+                        !hasAllCompulsoryModules
+                            ? 0.7
+                            : 1,
+                }}
+                onClick={(e) => {
+                    // Don't allow clicks if payment is pending
+                    if (isPending) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    isPurchased
+                        ? startTraining(module.id || module.module_id, e)
+                        : purchaseModule(
+                              module.module_id || module.id,
+                              e,
+                              module.is_compulsory
+                          );
+                }}
+                onMouseOver={(e) => {
+                    if (
+                        !isPending &&
+                        (isPurchased ||
+                            module.is_compulsory ||
+                            hasAllCompulsoryModules)
+                    ) {
+                        e.currentTarget.style.transform = "translateY(-5px)";
+                        e.currentTarget.style.boxShadow =
+                            "0 5px 15px rgba(0,0,0,0.1)";
+                    }
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                        "0 2px 4px rgba(0,0,0,0.1)";
+                }}
             >
-              My Modules
-            </button>
-            <button 
-              className={`toggle-btn ${showModuleStore ? 'active' : ''}`}
-              onClick={() => setShowModuleStore(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: showModuleStore ? '#2196F3' : '#f0f0f0',
-                color: showModuleStore ? 'white' : '#333',
-                border: 'none',
-                borderRadius: '0 4px 4px 0',
-                cursor: 'pointer'
-              }}
-            >
-              Available Modules
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="loading-container" style={{ textAlign: 'center', padding: '2rem' }}>
-            <p>Loading modules...</p>
-          </div>
-        ) : error ? (
-          <div className="error-container" style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
-            <p>Error: {error}</p>
-          </div>
-        ) : (
-          <>
-            {showModuleStore ? (              // Available modules for purchase
-              <div className="training-module-store">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2>Available Training Modules</h2>
-                  <button
-                    onClick={() => setShowModuleStore(false)}
+                {" "}
+                <div
                     style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#4CAF50',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
+                        backgroundColor: bgColor,
+                        padding: "16px",
+                        color: "white",
                     }}
-                  >
-                    Return to My Modules
-                  </button>
-                </div>
-                
-                {availableModules.length === 0 ? (
-                  <p className="no-modules-message" style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-                    No additional modules available at this time.
-                  </p>
-                ) : (
-                  <div className="store-module-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                    {availableModules.map((module, index) => (
-                      <div 
-                        key={index} 
-                        className="store-module-card" 
-                        style={{ 
-                          border: '1px solid #ddd', 
-                          borderRadius: '8px', 
-                          overflow: 'hidden',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                          transition: 'transform 0.3s, box-shadow 0.3s',
-                          cursor: 'pointer',
-                          backgroundColor: '#fff'
-                        }}
-                        onClick={() => purchaseModule(module.module_id || module.id, null)}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                        }}
-                      >
-                        <div className="store-module-image" style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
-                          <div style={{ 
-                            position: 'absolute', 
-                            top: '10px', 
-                            left: '10px', 
-                            backgroundColor: (module.price === 0 || module.price === '0' || module.price === '0.00') ? '#4CAF50' : '#2196F3',
-                            color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            zIndex: 1
-                          }}>
-                            {(module.price === 0 || module.price === '0' || module.price === '0.00') ? 'FREE' : `$${parseFloat(module.price).toFixed(2)}`}
-                          </div>
-                          <img 
-                            src={getModuleImage(module.module_name || module.name || '')} 
-                            alt={module.module_name || module.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                >
+                    {" "}
+                    {!isPurchased && (
+                        <div
+                            style={{ fontWeight: "bold", marginBottom: "8px" }}
+                        >
+                            {module.is_compulsory
+                                ? "Required Module"
+                                : "Optional Module"}
                         </div>
-                        <div className="store-module-content" style={{ padding: '16px' }}>
-                          <h3 style={{ margin: '0 0 8px 0' }}>{module.module_name || module.name}</h3>
-                          <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>{module.description || 'No description available.'}</p>
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            marginTop: 'auto' 
-                          }}>
-                            <span style={{ fontWeight: 'bold', color: '#555' }}>
-                              {module.difficulty && (
-                                <span>Difficulty: {module.difficulty}</span>
-                              )}
-                            </span>
-                            <button 
-                              onClick={(e) => purchaseModule(module.module_id || module.id, e)}
-                              style={{
-                                padding: '8px 16px',
-                                backgroundColor: (module.price === 0 || module.price === '0' || module.price === '0.00') ? '#4CAF50' : '#2196F3',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              {(module.price === 0 || module.price === '0' || module.price === '0.00') ? 'Enroll Now' : 'Purchase'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (              // Purchased modules
-              <div className="training-module-grid">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h2>My Training Modules</h2>
-                  <button
-                    onClick={() => setShowModuleStore(true)}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#2196F3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <span style={{ fontSize: '18px' }}>+</span> Purchase New Modules
-                  </button>
-                </div>
-                
-                {purchasedModules.length === 0 ? (
-                  <div className="no-modules-container" style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-                    <p style={{ marginBottom: '15px', fontSize: '16px' }}>You haven't enrolled in any modules yet.</p>
-                    <button
-                      onClick={() => setShowModuleStore(true)}
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginTop: '12px'
-                      }}
-                    >
-                      Browse Available Modules
-                    </button>
-                  </div>
-                ) : (
-                  <div className="module-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                    {purchasedModules.map((module, index) => (
-                      <div
-                        key={index}
-                        className="training-module-card"
-                        style={{ 
-                          border: '1px solid #ddd', 
-                          borderRadius: '8px', 
-                          overflow: 'hidden',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                          transition: 'transform 0.3s, box-shadow 0.3s',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => startTraining(module.id || module.module_id, null)}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                        }}
-                      >
-                        <div className="training-module-image-container" style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
-                          <img 
-                            src={getModuleImage(module.name || module.module_name || '')} 
-                            alt={module.name || module.module_name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                          {(module.module_status === 'completed' || module.status === 'completed') && (
-                            <div className="training-module-badge completed" style={{ 
-                              position: 'absolute', 
-                              top: '10px', 
-                              right: '10px',
-                              backgroundColor: '#4CAF50',
-                              color: 'white',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: 'bold'
-                            }}>
-                              Completed
-                            </div>
-                          )}
-                          {(module.module_status === 'in progress' || module.status === 'in progress') && (
-                            <div className="training-module-badge in-progress" style={{ 
-                              position: 'absolute', 
-                              top: '10px', 
-                              right: '10px',
-                              backgroundColor: '#FF9800',
-                              color: 'white',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: 'bold'
-                            }}>
-                              In Progress
-                            </div>
-                          )}
-                        </div>
-                        <div className="training-module-content" style={{ padding: '16px' }}>
-                          <h3 className="training-module-title" style={{ margin: '0 0 8px 0' }}>{module.name || module.module_name}</h3>
-                          <p className="training-module-description" style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#666' }}>{module.description || 'No description available.'}</p>
-                          
-                          {module.completion_percentage !== undefined && (
-                            <div className="progress-bar" style={{ 
-                              height: '8px', 
-                              backgroundColor: '#f0f0f0', 
-                              borderRadius: '4px',
-                              marginBottom: '12px',
-                              overflow: 'hidden'
-                            }}>
-                              <div 
-                                style={{
-                                  width: `${module.completion_percentage}%`,
-                                  height: '100%',
-                                  backgroundColor: '#4CAF50',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                              <p style={{ fontSize: '12px', textAlign: 'center', marginTop: '4px' }}>
-                                {module.completion_percentage}% Complete
-                              </p>
-                            </div>
-                          )}
-                          
-                          <button 
-                            className="training-module-button"
-                            onClick={(e) => startTraining(module.id || module.module_id, e)}
+                    )}{" "}
+                    {!isPurchased && (
+                        <div
                             style={{
-                              padding: '8px 16px',
-                              backgroundColor: (module.module_status === 'completed' || module.status === 'completed') ? '#2196F3' : 
-                                              (module.module_status === 'in progress' || module.status === 'in progress') ? '#FF9800' : '#4CAF50',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              width: '100%',
-                              cursor: 'pointer',
-                              fontWeight: 'bold',
-                              transition: 'background-color 0.3s, transform 0.2s'
+                                display: "inline-block",
+                                padding: "4px 8px",
+                                backgroundColor: isFree ? "#4CAF50" : "#2E7D32",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                                fontWeight: "bold",
                             }}
-                          >
-                            {(module.module_status === 'completed' || module.status === 'completed') ? 'Review Module' : 
-                             (module.module_status === 'in progress' || module.status === 'in progress') ? 'Continue Module' : 'Start Module'}
-                          </button>
+                        >
+                            {isFree
+                                ? "FREE"
+                                : `RM ${parseFloat(module.price).toFixed(2)}`}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    )}
+                </div>
+                <div style={{ padding: "16px" }}>
+                    <h3 style={{ margin: "0 0 8px 0" }}>
+                        {module.name || module.module_name}
+                    </h3>
+                    <p
+                        style={{
+                            margin: "0 0 16px 0",
+                            fontSize: "14px",
+                            color: "#666",
+                        }}
+                    >
+                        {module.description || "No description available."}
+                    </p>
+                    {isPurchased &&
+                        module.completion_percentage !== undefined && (
+                            <div
+                                className="progress-bar"
+                                style={{
+                                    height: "8px",
+                                    backgroundColor: "#f0f0f0",
+                                    borderRadius: "4px",
+                                    marginBottom: "12px",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: `${module.completion_percentage}%`,
+                                        height: "100%",
+                                        backgroundColor: "#4CAF50",
+                                        borderRadius: "4px",
+                                    }}
+                                />
+                                <p
+                                    style={{
+                                        fontSize: "12px",
+                                        textAlign: "center",
+                                        marginTop: "4px",
+                                    }}
+                                >
+                                    {module.completion_percentage}% Complete
+                                </p>
+                            </div>
+                        )}{" "}
+                    <div style={{ marginTop: "16px" }}>
+                        {module.difficulty && (
+                            <div
+                                style={{
+                                    marginBottom: "12px",
+                                    fontWeight: "bold",
+                                    color: "#555",
+                                }}
+                            >
+                                Difficulty: {module.difficulty}
+                            </div>
+                        )}
+                        <button
+                            onClick={(e) =>
+                                isPurchased
+                                    ? startTraining(
+                                          module.id || module.module_id,
+                                          e
+                                      )
+                                    : purchaseModule(
+                                          module.module_id || module.id,
+                                          e,
+                                          module.is_compulsory
+                                      )
+                            }
+                            disabled={
+                                !isPurchased &&
+                                !module.is_compulsory &&
+                                !hasAllCompulsoryModules
+                            }
+                            style={{
+                                width: "100%",
+                                padding: "12px 16px",
+                                backgroundColor: isPending
+                                    ? "#ffeeba" // Lighter yellow for pending button
+                                    : !isPurchased &&
+                                      !module.is_compulsory &&
+                                      !hasAllCompulsoryModules
+                                    ? "#ccc"
+                                    : bgColor,
+                                color: isPending ? "#856404" : "white", // Dark yellow text for pending
+                                border: "none",
+                                borderRadius: "8px",
+                                cursor:
+                                    isPending ||
+                                    (!isPurchased &&
+                                        !module.is_compulsory &&
+                                        !hasAllCompulsoryModules)
+                                        ? "not-allowed"
+                                        : "pointer",
+                                fontWeight: "600",
+                                fontSize: "14px",
+                                transition: "all 0.2s ease-in-out",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            }}
+                        >
+                            {isPending
+                                ? "Payment Pending Approval"
+                                : isPurchased
+                                ? status === "completed"
+                                    ? "Review Module"
+                                    : status === "in progress"
+                                    ? "Continue Module"
+                                    : "Start Module"
+                                : !module.is_compulsory &&
+                                  !hasAllCompulsoryModules
+                                ? "Complete Required Modules First"
+                                : isFree
+                                ? "Enroll Now"
+                                : "Purchase"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="training-main-content">
+            <div className="page-title-card">
+                <h1>Training Modules</h1>
+                <p>
+                    Welcome to the Park Guide Training Program. These modules
+                    are designed to enhance your skills and knowledge as a
+                    professional park guide.
+                </p>
+            </div>
+
+            <div className="training-header">
+                {" "}
+                <div
+                    className="module-view-toggle"
+                    style={{ display: "flex", gap: "1px" }}
+                >
+                    <button
+                        onClick={() => setActiveView("ongoing")}
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor:
+                                activeView === "ongoing"
+                                    ? "#2E7D32"
+                                    : "#f0f0f0",
+                            color: activeView === "ongoing" ? "white" : "#333",
+                            border: "none",
+                            borderRadius: "4px 0 0 4px",
+                            cursor: "pointer",
+                            flex: 1,
+                        }}
+                    >
+                        Ongoing Modules
+                    </button>
+                    <button
+                        onClick={() => setActiveView("completed")}
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor:
+                                activeView === "completed"
+                                    ? "#2E7D32"
+                                    : "#f0f0f0",
+                            color:
+                                activeView === "completed" ? "white" : "#333",
+                            border: "none",
+                            borderRadius: "0",
+                            cursor: "pointer",
+                            flex: 1,
+                        }}
+                    >
+                        Completed Modules
+                    </button>
+                    <button
+                        onClick={() => setActiveView("available")}
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor:
+                                activeView === "available"
+                                    ? "#2E7D32"
+                                    : "#f0f0f0",
+                            color:
+                                activeView === "available" ? "white" : "#333",
+                            border: "none",
+                            borderRadius: "0 4px 4px 0",
+                            cursor: "pointer",
+                            flex: 1,
+                        }}
+                    >
+                        Available Modules
+                    </button>
+                </div>
+            </div>
+
+            {loading ? (
+                <div style={{ textAlign: "center", padding: "2rem" }}>
+                    <p>Loading modules...</p>
+                </div>
+            ) : error ? (
+                <div
+                    style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        color: "red",
+                    }}
+                >
+                    <p>Error: {error}</p>
+                </div>
+            ) : (
+                <>
+                    {" "}
+                    {activeView === "available" ? (
+                        <div
+                            className="training-module-store"
+                            style={{ marginTop: "2rem" }}
+                        >
+                            {!hasAllCompulsoryModules && (
+                                <div
+                                    style={{
+                                        backgroundColor: "#fff3cd",
+                                        border: "1px solid #ffeeba",
+                                        color: "#856404",
+                                        padding: "1rem",
+                                        marginBottom: "1rem",
+                                        borderRadius: "4px",
+                                    }}
+                                >
+                                    <h3
+                                        style={{
+                                            marginBottom: "0.5rem",
+                                            fontWeight: "bold",
+                                        }}
+                                    >
+                                        Complete Required Modules First
+                                    </h3>
+                                    <p>
+                                        Please complete these compulsory modules
+                                        before purchasing additional modules:
+                                    </p>
+                                    <ul
+                                        style={{
+                                            marginTop: "0.5rem",
+                                            marginLeft: "1.5rem",
+                                            listStyle: "disc",
+                                        }}
+                                    >
+                                        {missingCompulsoryModules.map(
+                                            (module, index) => (
+                                                <li key={index}>
+                                                    {module.name ||
+                                                        module.module_name}
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {availableModules.length === 0 ? (
+                                <p
+                                    style={{
+                                        textAlign: "center",
+                                        padding: "2rem",
+                                        backgroundColor: "#f9f9f9",
+                                        borderRadius: "8px",
+                                    }}
+                                >
+                                    No additional modules available at this
+                                    time.
+                                </p>
+                            ) : (
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns:
+                                            "repeat(auto-fill, minmax(280px, 1fr))",
+                                        gap: "20px",
+                                    }}
+                                >
+                                    {availableModules.map((module) =>
+                                        renderModuleCard(module)
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ) : activeView === "completed" ? (
+                        <div
+                            className="training-module-grid"
+                            style={{ marginTop: "2rem" }}
+                        >
+                            {completedModules.length === 0 ? (
+                                <div
+                                    style={{
+                                        textAlign: "center",
+                                        padding: "2rem",
+                                        backgroundColor: "#f9f9f9",
+                                        borderRadius: "8px",
+                                    }}
+                                >
+                                    <p
+                                        style={{
+                                            marginBottom: "15px",
+                                            fontSize: "16px",
+                                        }}
+                                    >
+                                        You haven't completed any modules yet.
+                                    </p>
+                                    <button
+                                        onClick={() => setActiveView("ongoing")}
+                                        style={{
+                                            padding: "10px 20px",
+                                            backgroundColor: "#2E7D32",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            marginTop: "12px",
+                                        }}
+                                    >
+                                        View Ongoing Modules
+                                    </button>
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns:
+                                            "repeat(auto-fill, minmax(280px, 1fr))",
+                                        gap: "20px",
+                                    }}
+                                >
+                                    {completedModules.map((module) =>
+                                        renderModuleCard(module, true)
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div
+                            className="training-module-grid"
+                            style={{ marginTop: "2rem" }}
+                        >
+                            {ongoingModules.length === 0 ? (
+                                <div
+                                    style={{
+                                        textAlign: "center",
+                                        padding: "2rem",
+                                        backgroundColor: "#f9f9f9",
+                                        borderRadius: "8px",
+                                    }}
+                                >
+                                    <p
+                                        style={{
+                                            marginBottom: "15px",
+                                            fontSize: "16px",
+                                        }}
+                                    >
+                                        You haven't enrolled in any modules yet.
+                                    </p>{" "}
+                                    <button
+                                        onClick={() =>
+                                            setActiveView("available")
+                                        }
+                                        style={{
+                                            padding: "10px 20px",
+                                            backgroundColor: "#4CAF50",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            marginTop: "12px",
+                                        }}
+                                    >
+                                        Browse Available Modules
+                                    </button>
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns:
+                                            "repeat(auto-fill, minmax(280px, 1fr))",
+                                        gap: "20px",
+                                    }}
+                                >
+                                    {ongoingModules.map((module) =>
+                                        renderModuleCard(module, true)
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
-          </>
-        )}
-      </div>
-  );
+        </div>
+    );
 };
 
 export default ParkguideTraining;

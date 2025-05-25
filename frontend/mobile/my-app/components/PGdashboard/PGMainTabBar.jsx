@@ -65,13 +65,6 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                 color={props.color}
             />
         ),
-        quiz: (props) => (
-            <Ionicons
-                name={props.focused ? "help-circle" : "help-circle-outline"}
-                size={24}
-                color={props.color}
-            />
-        ),
         profile: (props) => (
             <Ionicons
                 name={props.focused ? "person" : "person-outline"}
@@ -103,7 +96,6 @@ const PGMainTabBar = ({ state, descriptors, navigation }) => {
                         "module-marketplace",
                         "edit-profile",
                         "payment",
-                        "quiz",
                     ].includes(route.name) ||
                     options.href === null
                 ) {

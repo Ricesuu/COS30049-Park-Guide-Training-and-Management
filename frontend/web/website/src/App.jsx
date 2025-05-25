@@ -3,6 +3,7 @@ import "./App.css";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { AnimatePresence } from "framer-motion";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 
 // 🔐 Auth Pages
@@ -35,23 +36,27 @@ import ParkGuideLayout from "./pages/park_guide/ParkGuideLayout";
 import ParkguideDashboard from "./pages/park_guide/parkguideDashboard";
 import ParkguideTraining from "./pages/park_guide/parkguideTraining";
 import ParkguideCert from "./pages/park_guide/parkguideCert";
-import ParkguidePlantInfo from "./pages/park_guide/parkguidePlantInfo";
-import ParkguideIdentification from "./pages/park_guide/parkguideIdentification";
 import ParkguidePerformance from "./pages/park_guide/parkguidePerformance";
 import ParkguideModule from "./pages/park_guide/parkguideModule";
 import ParkguideQuiz from "./pages/park_guide/parkguideQuiz";
-import ParkguidePayment from "./pages/park_guide/parkguidePayment";
 
 
 // Import the landing page
 import LandingPage from "./pages/index";
 
-// Iport the module purchasing page
+// Import the module purchasing page
 import ModulePurchase from "./pages/modules/ModulePurchase";
 
 
 function AppRoutes() {
   const location = useLocation();
+  const { loading, user, userRole } = useAuth();
+
+  // If the auth context is still loading, show nothing or a loading spinner
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   const isAuthRoute = [
     "/login",
     "/register",
@@ -81,20 +86,28 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
-    );
-  }
+    );  }
+
+  // Function to protect routes based on role
+  const ProtectedRoute = ({ element, allowedRoles }) => {
+    if (!user) return <Navigate to="/login" replace />;
+    if (allowedRoles && !allowedRoles.includes(userRole)) return <Navigate to="/unauthorized" replace />;
+    return element;
+  };
+
   return (
     <Routes location={location} key={location.pathname}>
-      {" "}
-      {/* Visitor Section */}
+      {/* Visitor Section - Public Routes */}
       <Route path="/visitor" element={<VisitorLandingPage />} />
       <Route path="/visitor/about" element={<AboutPage />} />
       <Route path="/visitor/contact" element={<ContactPage />} />
       <Route path="/visitor/feedback" element={<FeedbackPage />} />
       <Route path="/visitor/map" element={<MapPage />} />
       <Route path="/visitor/info" element={<InfoPage />} />
-      {/* Admin Section */}
-      <Route path="/admin" element={<AdminLayout />}>
+      
+      {/* Admin Section - Protected Routes */}
+      <Route path="/admin" 
+        element={<ProtectedRoute element={<AdminLayout />} allowedRoles={["admin"]} />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="iot-hub" element={<IoTHub />} />
         <Route path="park-guides" element={<ParkGuides />} /> 
@@ -104,24 +117,23 @@ function AppRoutes() {
         <Route path="course-manager" element={<CourseManager />} />
         <Route path="quiz-editor" element={<QuizEditor />} />
       </Route>
-      {/* Park Guide Section */}
-      <Route path="/park_guide" element={<ParkGuideLayout />}>
+      
+      {/* Park Guide Section - Protected Routes */}
+      <Route path="/park_guide" 
+        element={<ProtectedRoute element={<ParkGuideLayout />} allowedRoles={["park_guide"]} />}>
         <Route path="dashboard" element={<ParkguideDashboard />} />
         <Route path="training" element={<ParkguideTraining />} />
         <Route path="certifications" element={<ParkguideCert />} />
-        <Route path="plants" element={<ParkguidePlantInfo />} />
-        <Route path="identify" element={<ParkguideIdentification />} />
         <Route path="performance" element={<ParkguidePerformance />} />        
         <Route path="module" element={<ParkguideModule />} />
         <Route path="quiz" element={<ParkguideQuiz />} />
-        <Route path="payment" element={<ParkguidePayment />} />
       </Route>
-
-      {/* Catch-all route redirects to the landing page */}
-      <Route path="*" element={<Navigate to="/" replace />} />
 
       {/* Module Purchase Section */}
       <Route path="/modules/purchase/:moduleId" element={<ModulePurchase />} />
+
+      {/* Catch-all route redirects to the landing page */}
+      <Route path="*" element={<Navigate to="/" replace />} />
 
     </Routes>
   );
@@ -129,7 +141,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <AppRoutes />
       <ToastContainer
         position="top-center"
@@ -143,6 +155,6 @@ export default function App() {
         pauseOnHover
         theme="colored"
       />
-    </>
+    </AuthProvider>
   );
 }

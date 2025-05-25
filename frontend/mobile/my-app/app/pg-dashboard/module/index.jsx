@@ -8,19 +8,14 @@ import ModuleList from "../../../components/PGdashboard/Module/ModuleList";
 import ModuleDetailModal from "../../../components/PGdashboard/Module/ModuleDetailModal";
 
 // Import Services
-import {
-    fetchUserModules,
-    submitComment,
-} from "../../../services/moduleService";
+import { fetchUserModules } from "../../../services/moduleService";
 
 const ModuleIndex = () => {
     const [selectedModule, setSelectedModule] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
-    const [comment, setComment] = useState("");
     const [userModules, setUserModules] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const videoRef = useRef(null);
     const router = useRouter();
@@ -60,11 +55,9 @@ const ModuleIndex = () => {
         setSelectedModule(module);
         setModalVisible(true);
     };
-
     const closeModal = () => {
         setSelectedModule(null);
         setModalVisible(false);
-        setComment("");
     };
 
     const handleFullScreen = async () => {
@@ -75,34 +68,8 @@ const ModuleIndex = () => {
     const handleBrowseModules = () => {
         // Navigate to module marketplace page
         console.log("Navigating to module marketplace...");
-        router.push("/pg-dashboard/marketplace/");
+        router.push("/pg-dashboard/marketplace");
     };
-
-    const handleSubmitComment = async () => {
-        if (!comment.trim()) {
-            Alert.alert("Error", "Please enter a comment before submitting.");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            await submitComment(selectedModule.id, comment);
-            Alert.alert(
-                "Success",
-                "Your comment has been submitted successfully."
-            );
-            setComment(""); // Clear comment field after submission
-        } catch (error) {
-            console.error("Error submitting comment:", error);
-            Alert.alert(
-                "Error",
-                "Failed to submit your comment. Please try again."
-            );
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     const handleRefresh = () => {
         setRefreshing(true);
         loadUserModules();
@@ -117,16 +84,11 @@ const ModuleIndex = () => {
                 refreshing={refreshing}
                 onModulePress={openModal}
                 onBrowseModules={handleBrowseModules}
-            />
-
+            />{" "}
             <ModuleDetailModal
                 visible={modalVisible}
                 module={selectedModule}
                 onClose={closeModal}
-                onCommentChange={setComment}
-                commentValue={comment}
-                onCommentSubmit={handleSubmitComment}
-                isSubmitting={isSubmitting}
             />
         </ModuleContainer>
     );

@@ -39,6 +39,20 @@ const styles = StyleSheet.create({
         padding: 20,
         flex: 1,
     },
+    paymentPending: {
+        backgroundColor: "#F59E0B",
+        padding: 4,
+        borderRadius: 8,
+        position: "absolute",
+        top: 8,
+        right: 8,
+        zIndex: 1,
+    },
+    paymentPendingText: {
+        color: "white",
+        fontSize: 12,
+        fontWeight: "bold",
+    },
 });
 
 export default Dashboard;

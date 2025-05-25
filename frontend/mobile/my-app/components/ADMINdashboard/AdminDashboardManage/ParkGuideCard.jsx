@@ -1,27 +1,30 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 
-const ParkGuideCard = ({ guide, onSuspend, onDelete }) => {
+const ParkGuideCard = ({ guide = null }) => {
     const router = useRouter();
 
-    const handleDelete = () => {
-        Alert.alert(
-            "Confirm Delete",
-            `Are you sure you want to delete ${guide.name}?`,
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel",
-                },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => onDelete(guide.id),
-                },
-            ]
+    // Early return if guide is null or undefined
+    if (!guide) {
+        return (
+            <View
+                className="bg-white p-4 rounded-lg shadow mb-3"
+                style={{ elevation: 5 }}
+            >
+                <Text className="text-gray-500">No guide data available</Text>
+            </View>
         );
-    };
+    }
+
+    // Add a guard clause for when guide is undefined
+    if (!guide) {
+        return (
+            <View className="bg-white p-4 rounded-lg shadow mb-3">
+                <Text className="text-gray-500">No guide data available</Text>
+            </View>
+        );
+    }
 
     const handleViewDetails = () => {
         router.push(`/admin-dashboard/manage/guide-detail?id=${guide.id}`);
@@ -76,51 +79,6 @@ const ParkGuideCard = ({ guide, onSuspend, onDelete }) => {
                 >
                     <Text className="text-blue-600 font-semibold text-center">
                         Details
-                    </Text>
-                </TouchableOpacity>
-
-                {/* Suspend/Activate button - Only show for Active or Suspended guides */}
-                {guide.status !== "Training" && (
-                    <TouchableOpacity
-                        className={`${
-                            guide.status === "Active"
-                                ? "bg-red-100"
-                                : "bg-green-100"
-                        } px-4 py-2 rounded-lg`}
-                        onPress={() => onSuspend(guide.id)}
-                    >
-                        <Text
-                            className={`${
-                                guide.status === "Active"
-                                    ? "text-red-600"
-                                    : "text-green-600"
-                            } font-semibold text-center`}
-                        >
-                            {guide.status === "Active" ? "Suspend" : "Activate"}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Certify button - Only show for fully trained guides */}
-                {guide.status === "Training" &&
-                    guide.certification_status === "pending_review" && (
-                        <TouchableOpacity
-                            className="bg-green-100 px-4 py-2 rounded-lg"
-                            onPress={() => onSuspend(guide.id)}
-                        >
-                            <Text className="text-green-600 font-semibold text-center">
-                                Certify
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-
-                {/* Delete button */}
-                <TouchableOpacity
-                    className="bg-red-600 px-4 py-2 rounded-lg"
-                    onPress={handleDelete}
-                >
-                    <Text className="text-white font-semibold text-center">
-                        Delete
                     </Text>
                 </TouchableOpacity>
             </View>

@@ -30,11 +30,9 @@ export async function POST(request, { params }) {
             );
         }
 
-        const userId = users[0].user_id;
-
-        // Check if module exists and is free
+        const userId = users[0].user_id; // Check if module exists and is free
         const [modules] = await connection.execute(
-            `SELECT module_id, module_name, is_premium, price 
+            `SELECT module_id, module_name, price 
        FROM TrainingModules 
        WHERE module_id = ?`,
             [moduleId]
@@ -48,9 +46,8 @@ export async function POST(request, { params }) {
 
         const moduleData = modules[0];
 
-        // Check if it's actually a free module
+        // Check if it's a free module based on price
         if (
-            moduleData.is_premium &&
             moduleData.price !== 0 &&
             moduleData.price !== "0" &&
             moduleData.price !== "0.00"
@@ -74,7 +71,9 @@ export async function POST(request, { params }) {
             return NextResponse.json({
                 message: "You are already enrolled in this module",
             });
-        } // Create a "free" payment record with an empty BLOB for receipt_image (since it can't be NULL)
+        } 
+        
+        // Create a "free" payment record with an empty BLOB for receipt_image (since it can't be NULL)
         const [paymentResult] = await connection.execute(
             `INSERT INTO PaymentTransactions 
        (user_id, uid, paymentPurpose, paymentMethod, amountPaid, receipt_image, paymentStatus, transaction_date, module_id) 
@@ -83,7 +82,7 @@ export async function POST(request, { params }) {
                 userId,
                 uid,
                 `Free Module: ${moduleData.module_name}`,
-                "free",
+                "debit", // Using 'debit' instead of 'free' to match ENUM values
                 0,
                 moduleId,
             ]

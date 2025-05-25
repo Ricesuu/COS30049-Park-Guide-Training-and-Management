@@ -3,10 +3,15 @@ import { getConnection } from "@/lib/db";
 import { assertUser } from "@/lib/assertUser";
 
 // GET: Check the purchase status of a module for the current user
-export async function GET(request, { params }) {
-  let connection;
-  try {
-    const moduleId = params.id;
+export async function GET(request, context) {
+  let connection;    try {
+    // Get moduleId from params safely - await the params in Next.js 14
+    const params = await context.params;
+    const moduleId = params?.id;
+    
+    if (!moduleId) {
+      return NextResponse.json({ error: "Module ID is required" }, { status: 400 });
+    }
     
     // Authenticate the user
     const { uid, role } = await assertUser(request);
@@ -24,9 +29,10 @@ export async function GET(request, { params }) {
     }
     
     const userId = users[0].user_id;
-      // Get module info
+
+    // Get module info including price and compulsory status
     const [modules] = await connection.execute(
-      `SELECT module_id, module_name, price, is_premium 
+      `SELECT module_id, module_name, price, is_compulsory 
        FROM TrainingModules 
        WHERE module_id = ?`,
       [moduleId]
@@ -38,8 +44,8 @@ export async function GET(request, { params }) {
     
     const moduleInfo = modules[0];
     
-    // If module is not premium, it's accessible without purchase
-    if (!moduleInfo.is_premium) {
+    // If module is free (price is 0), it's accessible without purchase
+    if (moduleInfo.price === 0 || moduleInfo.price === "0" || moduleInfo.price === "0.00") {
       return NextResponse.json({ 
         status: "free", 
         module: moduleInfo
@@ -52,7 +58,7 @@ export async function GET(request, { params }) {
               pt.payment_id, pt.paymentStatus, pt.transaction_date
        FROM ModulePurchases mp
        JOIN PaymentTransactions pt ON mp.payment_id = pt.payment_id
-       WHERE mp.user_id = ? AND mp.module_id = ?
+       WHERE mp.user_id = ? AND mp.module_id = ? AND mp.is_active = TRUE
        ORDER BY mp.purchase_date DESC
        LIMIT 1`,
       [userId, moduleId]
@@ -84,7 +90,8 @@ export async function GET(request, { params }) {
           ...purchase,
           module: moduleInfo
         }
-      });    } else if (purchase.status === 'active') {
+      });
+    } else if (purchase.status === 'active' && purchase.paymentStatus === 'approved') {
       return NextResponse.json({
         status: "active",
         purchase: {

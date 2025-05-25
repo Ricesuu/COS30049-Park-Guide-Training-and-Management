@@ -14,10 +14,10 @@ export async function GET(request, { params }) {
                 { status: 401 }
             );
         }
-
+        
         // Get the guide ID from the URL parameter
-        const guideId = params.id;
-        if (!guideId) {
+        const id = params.id;
+        if (!id) {
             return NextResponse.json(
                 { error: "Guide ID is required" },
                 { status: 400 }
@@ -42,8 +42,7 @@ export async function GET(request, { params }) {
                 c.guide_id = ?
             ORDER BY 
                 c.issued_date DESC
-        `,
-            [guideId]
+        `,            [id]
         );
 
         // If no rows are returned, return an empty array instead of a 404

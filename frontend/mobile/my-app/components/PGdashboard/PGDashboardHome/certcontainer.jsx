@@ -1,30 +1,74 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { formatDate } from "../../../utils/formatHelpers";
 
 const CertContainer = ({ certifications }) => {
+    console.log("CertContainer received certifications:", certifications);
+
+    const getCertificationStatus = (cert) => {
+        if (!cert.expiry_date) return "ongoing";
+        const expiryDate = new Date(cert.expiry_date);
+        const now = new Date();
+
+        if (expiryDate < now) return "expired";
+
+        // Check if expiring in next 30 days
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        if (expiryDate <= thirtyDaysFromNow) return "expiring";
+
+        return "active";
+    };
+
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "active":
+                return { color: "rgb(22, 163, 74)" }; // Green
+            case "expiring":
+                return { color: "#f59e0b" }; // Amber
+            case "expired":
+                return { color: "#dc2626" }; // Red
+            case "ongoing":
+                return { color: "#3b82f6" }; // Blue
+            default:
+                return { color: "#666" };
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Certifications & Licenses</Text>
+            <Text style={styles.title}>Certifications & Licenses</Text>{" "}
             {certifications && certifications.length > 0 ? (
-                certifications.map((cert, index) => (
-                    <View key={index} style={styles.certItem}>
-                        <Image source={cert.image} style={styles.certImage} />{" "}
-                        <View style={styles.certDetails}>
-                            <Text style={styles.certName}>
-                                {cert.name || "Unknown Certification"}
-                            </Text>
-                            <Text style={styles.certExpiry}>
-                                Expiry:{" "}
-                                {formatDate(cert.expiryDate, "No expiry date")}
-                            </Text>
-                        </View>
-                    </View>
-                ))
+                certifications
+                    .filter((cert) => cert.status === "completed")
+                    .map((cert, index) => {
+                        const status = getCertificationStatus(cert);
+                        const statusStyle = getStatusStyles(status);
+
+                        return (
+                            <View
+                                key={index}
+                                style={[
+                                    styles.certItem,
+                                    status === "expired" &&
+                                        styles.certItemExpired,
+                                ]}
+                            >
+                                {" "}
+                                <View style={styles.certDetails}>
+                                    <Text style={styles.certName}>
+                                        {cert.module_name ||
+                                            cert.name ||
+                                            "Unknown Certification"}
+                                    </Text>
+                                </View>
+                            </View>
+                        );
+                    })
             ) : (
                 <View style={styles.noCertsContainer}>
                     <Text style={styles.noCertsText}>
-                        No certifications available
+                        Complete training modules to earn certifications
                     </Text>
                 </View>
             )}
@@ -34,7 +78,6 @@ const CertContainer = ({ certifications }) => {
 
 const styles = StyleSheet.create({
     container: {
-        alignItems: "center", // Center content
         padding: 20,
         backgroundColor: "white",
         borderRadius: 10,
@@ -44,59 +87,60 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 4,
         marginVertical: 10,
-        width: "100%", // Match the width of ProfileView
+        width: "100%",
     },
     title: {
         fontSize: 18,
         fontWeight: "bold",
-        marginBottom: 10,
-        textAlign: "center",
-        color: "#333",
+        marginBottom: 15,
+        color: "rgb(22, 163, 74)",
     },
     certItem: {
         flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10,
-        padding: 10,
-        backgroundColor: "#f9f9f9",
+        marginBottom: 15,
+        padding: 12,
+        backgroundColor: "#f9fafb",
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: "#ddd",
-        width: "100%",
+        borderColor: "#e5e7eb",
     },
-    certImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 5,
-        marginRight: 10,
+    certItemExpired: {
+        borderColor: "#dc2626",
+        backgroundColor: "#fee2e2",
     },
     certDetails: {
         flex: 1,
     },
     certName: {
         fontSize: 16,
-        fontWeight: "bold",
-        color: "#555",
+        fontWeight: "600",
+        color: "#333",
+        marginBottom: 4,
+    },
+    certStatus: {
+        fontSize: 14,
+        fontWeight: "500",
+        marginBottom: 4,
+    },
+    certDate: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 2,
     },
     certExpiry: {
         fontSize: 14,
-        color: "#888",
+        color: "#666",
     },
     noCertsContainer: {
-        padding: 20,
+        padding: 15,
         alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#f9f9f9",
+        backgroundColor: "#f9fafb",
         borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#ddd",
-        width: "100%",
-        marginVertical: 10,
     },
     noCertsText: {
-        fontSize: 16,
-        color: "#888",
-        fontStyle: "italic",
+        fontSize: 14,
+        color: "#666",
+        textAlign: "center",
     },
 });
 

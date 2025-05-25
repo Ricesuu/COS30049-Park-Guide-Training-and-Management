@@ -19,7 +19,7 @@ const CertificationApproval = () => {
         if (!isRefreshing) setLoading(true);
         try {
             const response = await fetchData(
-                "/guide-training-progress/pending-certifications"
+                "/park-guides/pending-certifications"
             );
             setPendingCertifications(response || []);
         } catch (error) {
@@ -75,13 +75,10 @@ const CertificationApproval = () => {
                         {item.first_name} {item.last_name}
                     </Text>
                     <Text className="text-gray-500 text-xs">{item.email}</Text>
-                </View>
+                </View>{" "}
                 <View>
                     <Text className="text-sm text-gray-600">
-                        Completed Modules: {item.completed_modules}
-                    </Text>
-                    <Text className="text-sm text-gray-600">
-                        Training Status: {item.training_status}
+                        Requested Park: {item.requested_park_name}
                     </Text>
                 </View>
             </View>

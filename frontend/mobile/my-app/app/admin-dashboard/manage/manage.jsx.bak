@@ -1,0 +1,459 @@
+import React, { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    FlatList,
+    ActivityIndicator,
+    RefreshControl,
+    Alert,
+    TextInput,
+    TouchableOpacity,
+    LogBox,
+} from "react-native";
+
+// Ignore specific warnings
+LogBox.ignoreLogs(["Text strings must be rendered within a <Text> component"]);
+import { Picker } from "@react-native-picker/picker";
+import ParkGuideCard from "../../../components/ADMINdashboard/AdminDashboardManage/ParkGuideCard";
+import AddGuideButton from "../../../components/ADMINdashboard/AdminDashboardManage/GuideButtons";
+import { fetchData } from "../../../src/api/api"; // Import fetchData utility
+import { API_URL } from "../../../src/constants/constants"; // Import API_URL
+
+const Manage = () => {
+    const [guides, setGuides] = useState([]);
+    const [filteredGuides, setFilteredGuides] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [parks, setParks] = useState([]);
+    const [selectedPark, setSelectedPark] = useState("all");
+    const [selectedStatus, setSelectedStatus] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState("name");
+
+    // Helper function to convert certification_status to display status    const getStatusFromCertification = (certificationStatus, hasRequestedPark) => {
+        if (!certificationStatus) return "Training";
+
+        switch (certificationStatus.toLowerCase()) {
+            case "certified":
+                return "Active";
+            case "suspended":
+                return "Suspended";
+            case "rejected":
+                return "Rejected";
+            case "pending_review":
+                return "Ready for Certification";
+            case "pending":
+                return hasRequestedPark ? "Pending Approval" : "Training";
+            default:
+                return "Training";
+        }
+    };
+
+    // Function to fetch park guide data with user details
+    const fetchGuides = async (isRefreshing = false) => {
+        try {
+            console.log("Fetching all park guides...");
+            const parkGuidesResponse = await fetchData("/park-guides"); // Fetch data from the ParkGuides table
+
+            // Also fetch training progress to determine which guides are ready for certification
+            const trainingProgressResponse = await fetchData(
+                "/guide-training-progress"
+            );
+
+            // The API already joins with Users table, so we have user information in the response
+            const guidesWithUserInfo = parkGuidesResponse.map((guide) => {
+                // Check if guide has completed all required training
+                const guideTrainingModules = trainingProgressResponse.filter(
+                    (progress) => progress.guide_id === guide.guide_id
+                );
+
+                // If guide has 'pending' status and has completed modules, mark as ready for certification
+                const hasCompletedTraining = guideTrainingModules.some(
+                    (module) => module.status === "completed"
+                );                // Set a special certification status for guides ready to be certified
+                let certificationStatus =
+                    guide.certification_status || "pending";
+                if (certificationStatus === "pending" && hasCompletedTraining) {
+                    certificationStatus = "pending_review";
+                }
+
+                // Check for requested park assignment
+                const hasRequestedPark = guide.requested_park_id != null;
+
+                return {
+                    id: guide.guide_id.toString(),
+                    name: `${guide.first_name || "Unknown"} ${
+                        guide.last_name || "User"
+                    }`,
+                    role: "Park Guide",
+                    status: getStatusFromCertification(certificationStatus, hasRequestedPark),
+                    certification_status: certificationStatus,
+                    license_expiry_date: guide.license_expiry_date,
+                    user_id: guide.user_id,
+                    guide_id: guide.guide_id,
+                    email: guide.email || "unknown@example.com",
+                    park: guide.assigned_park || "",
+                    user_status: guide.user_status,
+                };
+            });
+
+            setGuides(guidesWithUserInfo);
+            setFilteredGuides(guidesWithUserInfo);
+            setError(null);
+        } catch (err) {
+            console.error("Error fetching guides data:", err);
+            setError("Failed to load guides data. Please try again later.");
+        } finally {
+            setLoading(false);
+            if (isRefreshing) {
+                setRefreshing(false);
+            }
+        }
+    };
+
+    // Function to fetch parks
+    const fetchParks = async () => {
+        try {
+            console.log("Fetching parks...");
+            const parksResponse = await fetchData("/parks");
+            setParks(parksResponse);
+        } catch (err) {
+            console.error("Error fetching parks data:", err);
+            setError("Failed to load parks data. Please try again later.");
+        }
+    };
+
+    // Handle pull-to-refresh
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchGuides(true);
+        fetchParks();
+    };
+
+    // Filter guides based on selected park, status, and search query
+    const filterGuides = () => {
+        let filtered = guides;
+
+        if (selectedPark !== "all") {
+            filtered = filtered.filter((guide) => guide.park === selectedPark);
+        }
+
+        if (selectedStatus !== "all") {
+            filtered = filtered.filter(
+                (guide) => guide.status === selectedStatus
+            );
+        }
+
+        if (searchQuery) {
+            filtered = filtered.filter((guide) =>
+                guide.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        setFilteredGuides(filtered);
+    };
+
+    // Fetch guides and parks when the component mounts
+    useEffect(() => {
+        fetchGuides();
+        fetchParks();
+    }, []);
+
+    useEffect(() => {
+        filterGuides();
+    }, [selectedPark, selectedStatus, searchQuery]);
+
+    const handleSuspend = async (id) => {
+        try {
+            const guideToUpdate = guides.find((guide) => guide.id === id);
+            if (!guideToUpdate) return;
+
+            // Determine the new status based on current status
+            let newStatus;
+            let actionText;
+            let successText;
+
+            if (guideToUpdate.status === "Active") {
+                newStatus = "suspended";
+                actionText = "suspend";
+                successText = "suspended";
+            } else if (guideToUpdate.status === "Suspended") {
+                newStatus = "certified";
+                actionText = "activate";
+                successText = "activated";
+            } else if (guideToUpdate.status === "Training") {
+                newStatus = "certified";
+                actionText = "certify";
+                successText = "certified";
+            }
+
+            // Show confirmation dialog using Alert
+            Alert.alert(
+                "Confirm Action",
+                `Are you sure you want to ${actionText} this guide?`,
+                [
+                    {
+                        text: "Cancel",
+                        style: "cancel",
+                    },
+                    {
+                        text:
+                            actionText.charAt(0).toUpperCase() +
+                            actionText.slice(1),
+                        style: "destructive",
+                        onPress: async () => {
+                            try {
+                                // Update guide status in the API
+                                const response = await fetch(
+                                    `${API_URL}/api/park-guides/${guideToUpdate.guide_id}`,
+                                    {
+                                        method: "PUT",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            certification_status: newStatus,
+                                        }),
+                                    }
+                                );
+
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    console.error(
+                                        "Server response:",
+                                        errorData
+                                    );
+                                    throw new Error(
+                                        "Failed to update guide status"
+                                    );
+                                }
+
+                                const result = await response.json();
+                                console.log("Success:", result);
+
+                                // Update local state with the new status
+                                setGuides((prev) =>
+                                    prev.map((guide) =>
+                                        guide.id === id
+                                            ? {
+                                                  ...guide,
+                                                  status:
+                                                      newStatus === "certified"
+                                                          ? "Active"
+                                                          : newStatus ===
+                                                            "suspended"
+                                                          ? "Suspended"
+                                                          : "Training",
+                                                  certification_status:
+                                                      newStatus,
+                                              }
+                                            : guide
+                                    )
+                                );
+
+                                filterGuides();
+
+                                // Show success message
+                                Alert.alert(
+                                    "Success",
+                                    `Guide has been successfully ${successText}.`
+                                );
+                            } catch (err) {
+                                console.error(
+                                    "Error updating guide status:",
+                                    err
+                                );
+                                setError(
+                                    "Failed to update guide status. Please try again later."
+                                );
+                            }
+                        },
+                    },
+                ]
+            );
+        } catch (err) {
+            console.error("Error updating guide status:", err);
+            setError("Failed to update guide status. Please try again later.");
+        }
+    };
+    const handleDelete = async (id) => {
+        try {
+            console.log(`Deleting guide with ID ${id}`);
+            const response = await fetch(`${API_URL}/api/park-guides/${id}`, {
+                method: "DELETE",
+                headers: {},
+            });
+
+            const responseText = await response.text();
+            console.log("Raw response:", responseText);
+
+            if (!response.ok) {
+                throw new Error(
+                    `Delete failed with status ${response.status}: ${responseText}`
+                );
+            }
+
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.warn("Could not parse response as JSON:", e);
+            }
+
+            // Update local state
+            setGuides((prev) => prev.filter((guide) => guide.id !== id));
+
+            filterGuides();
+
+            Alert.alert("Success", "Guide has been successfully deleted");
+        } catch (error) {
+            console.error("Delete operation failed:", error);
+            Alert.alert("Error", "Failed to delete guide. Please try again.");
+        }
+    };
+
+    return (
+        <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+            <Text
+                style={{
+                    fontSize: 24,
+                    color: "white",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    paddingVertical: 20,
+                    backgroundColor: "rgb(22 163 74)",
+                }}
+            >
+                Manage Park Guides
+            </Text>{" "}
+            {/* Filters Row */}
+            <View style={{ flexDirection: "row", padding: 10 }}>
+                {/* Park Filter */}
+                <View style={{ flex: 1, marginRight: 5 }}>
+                    <Picker
+                        selectedValue={selectedPark}
+                        onValueChange={(itemValue) => {
+                            setSelectedPark(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                        <Picker.Item label="All Parks" value="all" />
+                        {parks.map((park) => (
+                            <Picker.Item
+                                key={park.park_id}
+                                label={park.park_name}
+                                value={park.park_name}
+                            />
+                        ))}
+                    </Picker>
+                </View>
+
+                {/* Status Filter */}
+                <View style={{ flex: 1, marginLeft: 5 }}>
+                    <Picker
+                        selectedValue={selectedStatus}
+                        onValueChange={(itemValue) => {
+                            setSelectedStatus(itemValue);
+                            filterGuides();
+                        }}
+                    >
+                <Picker.Item label="All Statuses" value="all" />
+                        <Picker.Item label="Active" value="Active" />
+                        <Picker.Item label="Training" value="Training" />
+                        <Picker.Item label="Suspended" value="Suspended" />
+                        <Picker.Item label="Ready for Certification" value="Ready for Certification" />
+                        <Picker.Item label="Pending Approval" value="Pending Approval" />
+                    </Picker>
+                </View>
+            </View>
+            {/* Search Bar */}
+            <View style={{ padding: 10 }}>
+                <TextInput
+                    placeholder="Search by guide name"
+                    value={searchQuery}
+                    onChangeText={(text) => {
+                        setSearchQuery(text);
+                        filterGuides();
+                    }}
+                    style={{
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                        borderRadius: 5,
+                        padding: 10,
+                    }}
+                />
+            </View>
+            {/* Loading state */}
+            {loading ? (
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                >
+                    <ActivityIndicator size="large" color="rgb(22 163 74)" />
+                    <Text style={{ marginTop: 10 }}>Loading guides...</Text>
+                </View>
+            ) : error ? (
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 20,
+                    }}
+                >
+                    <Text style={{ color: "red", textAlign: "center" }}>
+                        {error}
+                    </Text>
+                </View>
+            ) : filteredGuides.length === 0 ? (
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: 20,
+                    }}
+                >
+                    <Text style={{ textAlign: "center" }}>
+                        No guides found matching your filters.
+                    </Text>
+                </View>
+            ) : (
+                /* List of Park Guides */
+                <FlatList
+                    data={filteredGuides}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <ParkGuideCard
+                            guide={item}
+                            onSuspend={handleSuspend}
+                            onDelete={handleDelete}
+                        />
+                    )}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["rgb(22 163 74)"]} // Android
+                            tintColor="rgb(22 163 74)" // iOS
+                        />
+                    }
+                    contentContainerStyle={{ padding: 10 }}
+                    ListFooterComponent={
+                        <View style={{ marginTop: 10, marginBottom: 100 }}>
+                            <AddGuideButton
+                                onPress={() => console.log("Add new guide")}
+                            />
+                        </View>
+                    }
+                />
+            )}
+        </View>
+    );
+};
+
+export default Manage;

@@ -47,18 +47,20 @@ export const assertUser = async (req, allowedRoles = []) => {
             const err = new Error("Account not approved");
             err.status = 403;
             throw err;
-        } // 4. Check if role is allowed (case-insensitive comparison)
-        const userRoleLower = role.toLowerCase();
-        const allowedRolesLower = allowedRoles.map((r) => r.toLowerCase());
+        }        // 4. Check if role is allowed (case-insensitive comparison)
+        if (allowedRoles.length > 0) {
+            const userRoleLower = role.toLowerCase().replace(/[_\s-]/g, '');
+            const allowedRolesLower = allowedRoles.map((r) => r.toLowerCase().replace(/[_\s-]/g, ''));
 
-        if (!allowedRolesLower.includes(userRoleLower)) {
-            const err = new Error(
-                `Insufficient role permissions: ${role} is not in [${allowedRoles.join(
-                    ", "
-                )}]`
-            );
-            err.status = 403;
-            throw err;
+            if (!allowedRolesLower.includes(userRoleLower)) {
+                const err = new Error(
+                    `Insufficient role permissions: ${role} is not in [${allowedRoles.join(
+                        ", "
+                    )}]`
+                );
+                err.status = 403;
+                throw err;
+            }
         }
 
         // ✅ Auth success
