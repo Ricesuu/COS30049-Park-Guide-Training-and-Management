@@ -56,7 +56,7 @@ export default function ParkGuides() {
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || "Certification failed");
 
-            await fetchGuide(); // Refresh park guide data
+            await fetchGuide(); 
         } catch (err) {
             console.error("Certify error:", err);
             alert("Error: " + err.message);
@@ -76,8 +76,8 @@ export default function ParkGuides() {
             const result = await res.json();
             if (!res.ok) throw new Error(result.error || "Approval failed");
 
-            await fetchGuides(); // Refresh user data
-            await fetchGuide(); //Refresh park guide table
+            await fetchGuides(); 
+            await fetchGuide(); 
         } catch (err) {
             console.error("Error approving user:", err);
             setError(err.message);
