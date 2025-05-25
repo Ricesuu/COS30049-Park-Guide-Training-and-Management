@@ -17,6 +17,17 @@ export async function POST(request) {
             );
         }
 
+        // Convert to integers to ensure proper type handling
+        const guideid = parseInt(guide_id, 10);
+        const parkid = parseInt(requested_park_id, 10);
+
+        if (isNaN(guideid) || isNaN(parkid)) {
+            return NextResponse.json(
+                { error: "Invalid guide_id or park_id format" },
+                { status: 400 }
+            );
+        }
+
         connection = await getConnection();
 
         // Update the park guide's certification status to 'pending'
@@ -25,7 +36,7 @@ export async function POST(request) {
              SET certification_status = 'pending',
                  requested_park_id = ?
              WHERE guide_id = ?`,
-            [requested_park_id, guide_id]
+            [parkid, guideid]
         );
 
         return NextResponse.json({

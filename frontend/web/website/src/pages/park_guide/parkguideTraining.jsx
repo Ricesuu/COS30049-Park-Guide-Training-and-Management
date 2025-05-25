@@ -253,21 +253,10 @@ const ParkguideTraining = () => {
 
         navigate(`/modules/purchase/${moduleId}`);
     };
-    const renderModuleCard = (module, isPurchased = false) => {
-        // Ensure we're using a standardized status value
-        const status = (
-            module.module_status ||
-            module.status ||
-            ""
-        ).toLowerCase();
-        // Check if payment is pending approval
-        const isPending =
-            module.paymentStatus === "pending" ||
-            module.approval_status === "pending";
 
-        const bgColor = isPending
-            ? "#FFF3CD" // Yellow background for pending modules
-            : isPurchased
+    const renderModuleCard = (module, isPurchased = false) => {
+        const status = module.module_status || module.status;
+        const bgColor = isPurchased
             ? status === "completed"
                 ? "#4CAF50"
                 : status === "in progress"
@@ -288,9 +277,6 @@ const ParkguideTraining = () => {
                     isPurchased ? "training-module-card" : "store-module-card"
                 }
                 style={{
-                    // Fixed dimensions for consistent card sizes
-                    width: "100%",
-                    minHeight: "320px",
                     border: "1px solid #ddd",
                     borderRadius: "8px",
                     overflow: "hidden",
@@ -305,27 +291,20 @@ const ParkguideTraining = () => {
                             ? 0.7
                             : 1,
                 }}
-                onClick={(e) => {
-                    // Don't allow clicks if payment is pending
-                    if (isPending) {
-                        e.preventDefault();
-                        return;
-                    }
-
+                onClick={(e) =>
                     isPurchased
                         ? startTraining(module.id || module.module_id, e)
                         : purchaseModule(
                               module.module_id || module.id,
                               e,
                               module.is_compulsory
-                          );
-                }}
+                          )
+                }
                 onMouseOver={(e) => {
                     if (
-                        !isPending &&
-                        (isPurchased ||
-                            module.is_compulsory ||
-                            hasAllCompulsoryModules)
+                        isPurchased ||
+                        module.is_compulsory ||
+                        hasAllCompulsoryModules
                     ) {
                         e.currentTarget.style.transform = "translateY(-5px)";
                         e.currentTarget.style.boxShadow =
@@ -450,21 +429,19 @@ const ParkguideTraining = () => {
                             style={{
                                 width: "100%",
                                 padding: "12px 16px",
-                                backgroundColor: isPending
-                                    ? "#ffeeba" // Lighter yellow for pending button
-                                    : !isPurchased &&
-                                      !module.is_compulsory &&
-                                      !hasAllCompulsoryModules
-                                    ? "#ccc"
-                                    : bgColor,
-                                color: isPending ? "#856404" : "white", // Dark yellow text for pending
+                                backgroundColor:
+                                    !isPurchased &&
+                                    !module.is_compulsory &&
+                                    !hasAllCompulsoryModules
+                                        ? "#ccc"
+                                        : bgColor,
+                                color: "white",
                                 border: "none",
                                 borderRadius: "8px",
                                 cursor:
-                                    isPending ||
-                                    (!isPurchased &&
-                                        !module.is_compulsory &&
-                                        !hasAllCompulsoryModules)
+                                    !isPurchased &&
+                                    !module.is_compulsory &&
+                                    !hasAllCompulsoryModules
                                         ? "not-allowed"
                                         : "pointer",
                                 fontWeight: "600",
@@ -473,9 +450,7 @@ const ParkguideTraining = () => {
                                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                             }}
                         >
-                            {isPending
-                                ? "Payment Pending Approval"
-                                : isPurchased
+                            {isPurchased
                                 ? status === "completed"
                                     ? "Review Module"
                                     : status === "in progress"
