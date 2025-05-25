@@ -16,7 +16,7 @@ export async function GET(request) {
             `[IoTMonitoring GET] Filtering by park: ${parkId || "all"}`
         );
 
-        let query = "SELECT * FROM IoTMonitoring";
+        let query = "SELECT * FROM IoTMonitoring ORDER BY recorded_at DESC LIMIT 500";
         let params = [];
 
         // Filter by park if specified
