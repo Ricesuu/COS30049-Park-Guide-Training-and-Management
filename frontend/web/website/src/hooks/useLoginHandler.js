@@ -1,7 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, browserLocalPersistence, setPersistence } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  browserLocalPersistence,
+  setPersistence,
+} from "firebase/auth";
 import { auth } from "../Firebase";
 import { toast } from "react-toastify";
+import { API_URL } from "../config/apiConfig";
 
 // Show error toast
 const showError = (message) => {
@@ -11,7 +16,7 @@ const showError = (message) => {
 // Check backend login status (lockout, approval)
 const checkLockStatus = async (email) => {
   try {
-    const res = await fetch("http://localhost:3000/api/users/check-login-attempts", {
+    const res = await fetch(`${API_URL}/api/users/check-login-attempts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -49,7 +54,7 @@ const checkLockStatus = async (email) => {
 // Record a failed login attempt
 const recordFailedLogin = async (email) => {
   try {
-    const res = await fetch("http://localhost:3000/api/users/record-failed-login", {
+    const res = await fetch(`${API_URL}/api/users/record-failed-login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -64,19 +69,25 @@ const recordFailedLogin = async (email) => {
 // Fetch user role/status using ID token
 const getUserRole = async (token) => {
   try {
-    const res = await fetch("http://localhost:3000/api/users/login", {
+    const res = await fetch(`${API_URL}/api/users/login`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
       const errorData = await res.json();
-      return { error: true, message: errorData.message || "Failed to fetch user info" };
+      return {
+        error: true,
+        message: errorData.message || "Failed to fetch user info",
+      };
     }
 
     return await res.json();
   } catch (err) {
     console.error("Role fetch error:", err);
-    return { error: true, message: "Exception occurred while fetching user info" };
+    return {
+      error: true,
+      message: "Exception occurred while fetching user info",
+    };
   }
 };
 
@@ -93,7 +104,12 @@ export const useLoginHandler = () => {
 
     try {
       // Store auth persistence preference
-      await setPersistence(auth, browserLocalPersistence);      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await setPersistence(auth, browserLocalPersistence);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       // Force a fresh token on login
       const token = await userCredential.user.getIdToken(true);
 
@@ -112,7 +128,9 @@ export const useLoginHandler = () => {
       }
 
       if (userData.status !== "approved") {
-        showError("Your account is still pending approval. Please wait for admin approval.");
+        showError(
+          "Your account is still pending approval. Please wait for admin approval."
+        );
         await auth.signOut();
         return;
       }
@@ -146,7 +164,9 @@ export const useLoginHandler = () => {
         const failData = await recordFailedLogin(email);
         if (failData.remainingAttempts !== undefined) {
           showError(
-            `Invalid password. ${failData.remainingAttempts} attempt${failData.remainingAttempts !== 1 ? "s" : ""} left.`
+            `Invalid password. ${failData.remainingAttempts} attempt${
+              failData.remainingAttempts !== 1 ? "s" : ""
+            } left.`
           );
         } else if (failData.lockedUntil) {
           showError("Too many failed login attempts. Try again later.");

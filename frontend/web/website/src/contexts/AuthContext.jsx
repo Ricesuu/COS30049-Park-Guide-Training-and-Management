@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../Firebase";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config/apiConfig";
 
 const AuthContext = createContext();
 
@@ -11,11 +12,10 @@ export function AuthProvider({ children }) {
   const [userRole, setUserRole] = useState(null);
   const [userStatus, setUserStatus] = useState(null);
   const navigate = useNavigate();
-
   // Function to get user role and status
   const getUserRole = async (token) => {
     try {
-      const res = await fetch("http://localhost:3000/api/users/login", {
+      const res = await fetch(`${API_URL}/api/users/login`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
           // User is signed in
           const token = await currentUser.getIdToken();
           const userData = await getUserRole(token);
-          
+
           if (userData.status !== "approved") {
             await auth.signOut();
             setUser(null);
@@ -56,15 +56,31 @@ export function AuthProvider({ children }) {
 
           // Redirect based on role if on login page
           if (window.location.pathname === "/login") {
-            navigate(userData.role === "admin" ? "/admin/dashboard" : "/park_guide/dashboard");
+            navigate(
+              userData.role === "admin"
+                ? "/admin/dashboard"
+                : "/park_guide/dashboard"
+            );
           }
         } else {
           // User is signed out
           setUser(null);
           setUserRole(null);
           setUserStatus(null);
-            // Redirect to login if not on public routes
-          const publicRoutes = ["/", "/login", "/register", "/forgot_password", "/reset_password", "/visitor", "/visitor/about", "/visitor/contact", "/visitor/feedback", "/visitor/map", "/visitor/info"];
+          // Redirect to login if not on public routes
+          const publicRoutes = [
+            "/",
+            "/login",
+            "/register",
+            "/forgot_password",
+            "/reset_password",
+            "/visitor",
+            "/visitor/about",
+            "/visitor/contact",
+            "/visitor/feedback",
+            "/visitor/map",
+            "/visitor/info",
+          ];
           if (!publicRoutes.includes(window.location.pathname)) {
             navigate("/login");
           }
@@ -84,10 +100,14 @@ export function AuthProvider({ children }) {
     user,
     loading,
     userRole,
-    userStatus
+    userStatus,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {
