@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
-import { getConnection } from '@/lib/db';
+import { NextResponse } from "next/server";
+import { getConnection } from "@/lib/db";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const guide_id = searchParams.get('guide_id');
-
+  const guide_id = searchParams.get("guide_id");
   if (!guide_id || isNaN(guide_id)) {
-    return NextResponse.json(
-      { error: 'Please provide valid guide id' },
+    const errorResponse = NextResponse.json(
+      { error: "Please provide valid guide id" },
       { status: 400 }
     );
+    errorResponse.headers.set("Access-Control-Allow-Origin", "*");
+    return errorResponse;
   }
 
   const connection = await getConnection();
@@ -28,12 +29,13 @@ export async function GET(request) {
       WHERE pg.guide_id = ?`,
       [guide_id]
     );
-
     if (guideInfo.length === 0) {
-      return NextResponse.json(
-        { error: 'Failed to find this park guide！' },
+      const errorResponse = NextResponse.json(
+        { error: "Failed to find this park guide！" },
         { status: 404 }
       );
+      errorResponse.headers.set("Access-Control-Allow-Origin", "*");
+      return errorResponse;
     }
 
     // 2. fetch feedback
@@ -50,15 +52,16 @@ export async function GET(request) {
       return feedbacks.reduce((sum, f) => sum + f[field], 0) / feedbacks.length;
     };
 
-    const language = calculateAverage('language_rating');
-    const knowledge = calculateAverage('knowledge_rating');
-    const organization = calculateAverage('organization_rating');
-    const engagement = calculateAverage('engagement_rating');
-    const safety = calculateAverage('safety_rating');
+    const language = calculateAverage("language_rating");
+    const knowledge = calculateAverage("knowledge_rating");
+    const organization = calculateAverage("organization_rating");
+    const engagement = calculateAverage("engagement_rating");
+    const safety = calculateAverage("safety_rating");
 
-    const total = feedbacks.length > 0
-      ? (language + knowledge + organization + engagement + safety) / 5
-      : 0;
+    const total =
+      feedbacks.length > 0
+        ? (language + knowledge + organization + engagement + safety) / 5
+        : 0;
 
     const averages = {
       language,
@@ -66,26 +69,27 @@ export async function GET(request) {
       organization,
       engagement,
       safety,
-      total
-    };
-
-    // 4. return results
-    return NextResponse.json({
+      total,
+    }; // 4. return results
+    const response = NextResponse.json({
       success: true,
       data: {
         guide_info: guideInfo[0],
         feedbacks,
         averages,
-        feedback_count: feedbacks.length
-      }
+        feedback_count: feedbacks.length,
+      },
     });
-
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    return response;
   } catch (error) {
-    console.error('Failed to fetch data:', error);
-    return NextResponse.json(
-      { error: 'Server Error' },
+    console.error("Failed to fetch data:", error);
+    const errorResponse = NextResponse.json(
+      { error: "Server Error" },
       { status: 500 }
     );
+    errorResponse.headers.set("Access-Control-Allow-Origin", "*");
+    return errorResponse;
   } finally {
     connection.release();
   }
@@ -95,9 +99,9 @@ export function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
   });
 }
