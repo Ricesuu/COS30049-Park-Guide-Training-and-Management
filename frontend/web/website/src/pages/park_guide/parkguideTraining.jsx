@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_URL } from "../../config/apiConfig";
 import "../../ParkGuideStyle.css";
 import { auth } from "../../Firebase";
-import { API_URL } from "../../config/apiConfig";
 
 const ParkguideTraining = () => {
   const navigate = useNavigate();
@@ -42,7 +43,6 @@ const ParkguideTraining = () => {
         return null;
       }
     };
-
     const fetchGuideInfo = async (token) => {
       try {
         const guideResponse = await fetch(`${API_URL}/api/park-guides/user`, {
@@ -72,14 +72,15 @@ const ParkguideTraining = () => {
         if (!currentToken) return;
 
         // Fetch guide info first
-        const guideData = await fetchGuideInfo(currentToken);
-
-        // Fetch user's purchased modules
-        const modulesResponse = await fetch("/api/training-modules/user", {
-          headers: {
-            Authorization: `Bearer ${currentToken}`,
-          },
-        });
+        const guideData = await fetchGuideInfo(currentToken); // Fetch user's purchased modules
+        const modulesResponse = await fetch(
+          `${API_URL}/api/training-modules/user`,
+          {
+            headers: {
+              Authorization: `Bearer ${currentToken}`,
+            },
+          }
+        );
 
         let purchasedModulesData = [];
         if (modulesResponse.ok) {
@@ -88,7 +89,7 @@ const ParkguideTraining = () => {
 
           // Get certifications
           const certsResponse = await fetch(
-            `/api/certifications/user/${guideData.guide_id}`,
+            `${API_URL}/api/certifications/user/${guideData.guide_id}`,
             {
               headers: {
                 Authorization: `Bearer ${currentToken}`,
@@ -134,11 +135,9 @@ const ParkguideTraining = () => {
 
           setCompletedModules(completed);
           setOngoingModules(ongoing);
-          setPurchasedModules(updatedPurchasedModules);
-
-          // Fetch available modules for purchase
+          setPurchasedModules(updatedPurchasedModules); // Fetch available modules for purchase
           const availableModulesResponse = await fetch(
-            "/api/training-modules/available",
+            `${API_URL}/api/training-modules/available`,
             {
               headers: {
                 Authorization: `Bearer ${currentToken}`,

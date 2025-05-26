@@ -118,14 +118,15 @@ const ParkguideCert = () => {
         }
 
         const guideData = await guideResponse.json();
-        setParkGuideInfo(guideData);
-
-        // Get all modules to check which ones are compulsory
-        const modulesResponse = await fetch("/api/training-modules/available", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        setParkGuideInfo(guideData); // Get all modules to check which ones are compulsory
+        const modulesResponse = await fetch(
+          `${API_URL}/api/training-modules/available`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (!modulesResponse.ok) {
           throw new Error("Failed to fetch module information");
@@ -134,11 +135,9 @@ const ParkguideCert = () => {
         const modulesData = await modulesResponse.json();
         const compulsoryModuleIds = new Set(
           modulesData.filter((m) => m.is_compulsory).map((m) => m.id)
-        );
-
-        // Now fetch certifications using guide_id
+        ); // Now fetch certifications using guide_id
         const certsResponse = await fetch(
-          `/api/certifications/user/${guideData.guide_id}`,
+          `${API_URL}/api/certifications/user/${guideData.guide_id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -308,10 +307,9 @@ const ParkguideCert = () => {
         guide_id: parkGuideInfo.guide_id,
         requested_park_id: parkId,
       });
-
       const token = await auth.currentUser.getIdToken();
       const response = await fetch(
-        "/api/park-guides/license-approval-request",
+        `${API_URL}/api/park-guides/license-approval-request`,
         {
           method: "POST",
           headers: {
