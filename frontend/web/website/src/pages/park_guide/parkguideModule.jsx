@@ -4,6 +4,28 @@ import "../../ParkGuideStyle.css";
 import "../../ModuleStyle.css";
 import { auth } from "../../Firebase";
 
+// Helper function to convert YouTube URL to embed URL
+const getYouTubeEmbedUrl = (url) => {
+    if (!url) return "";
+    
+    // Handle different YouTube URL formats
+    let videoId = "";
+    
+    if (url.includes("youtube.com/watch")) {
+        // Standard YouTube URL: https://www.youtube.com/watch?v=VIDEO_ID
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        videoId = urlParams.get('v');
+    } else if (url.includes("youtu.be/")) {
+        // Shortened YouTube URL: https://youtu.be/VIDEO_ID
+        videoId = url.split("youtu.be/")[1].split("?")[0];
+    } else if (url.includes("youtube.com/embed/")) {
+        // Already an embed URL
+        return url;
+    }
+    
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+};
+
 const ParkguideModule = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -157,14 +179,20 @@ const ParkguideModule = () => {
                 </div>
             )}
             {error && <div className="error-message">{error}</div>}{!loading && !error && (
-                <div className="module-details">
-
-                    {module.video_url && (
+                <div className="module-details">                    {module.video_url && (
                         <div className="video-section">
                             <h3>Course Video</h3>
-                            <video controls src={module.video_url}>
-                                Your browser does not support the video tag.
-                            </video>
+                            <div className="video-container">
+                                <iframe
+                                    src={getYouTubeEmbedUrl(module.video_url)}
+                                    title="Course Video"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    width="100%"
+                                    height="400"
+                                ></iframe>
+                            </div>
                         </div>
                     )}
 
