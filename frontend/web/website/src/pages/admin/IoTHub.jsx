@@ -8,19 +8,20 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { API_URL } from "../../config/apiConfig";
 
 export default function IoTHub() {
   const [sensorData, setSensorData] = useState({});
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     async function fetchData() {
       try {
-        const sensorRes = await fetch("/api/iot-monitoring");
-        const alertsRes = await fetch("/api/active-alerts");
+        const sensorRes = await fetch(`${API_URL}/api/iot-monitoring`);
+        const alertsRes = await fetch(`${API_URL}/api/active-alerts`);
 
-        if (!sensorRes.ok || !alertsRes.ok) throw new Error("Failed to fetch data");
+        if (!sensorRes.ok || !alertsRes.ok)
+          throw new Error("Failed to fetch data");
 
         const sensorJson = await sensorRes.json();
         const alertsJson = await alertsRes.json();
@@ -48,7 +49,8 @@ export default function IoTHub() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="p-8 text-green-900">Loading IoT data...</div>;
+  if (loading)
+    return <div className="p-8 text-green-900">Loading IoT data...</div>;
 
   return (
     <div className="p-8 bg-green-50 min-h-screen text-green-900">
@@ -60,24 +62,41 @@ export default function IoTHub() {
           </p>
         </div>
 
-        
         {alerts.length > 0 && (
           <div className="bg-red-100 border border-red-300 p-4 rounded-xl mb-6">
-            <h2 className="text-xl font-bold text-red-800 mb-2">⚠️ Active Alerts</h2>
-            {alerts.map(alert => (
+            <h2 className="text-xl font-bold text-red-800 mb-2">
+              ⚠️ Active Alerts
+            </h2>
+            {alerts.map((alert) => (
               <div key={alert.alert_id} className="mb-1 text-red-700">
-                {alert.message} (Sensor: {alert.sensor_type}, Value: {alert.recorded_value})
+                {alert.message} (Sensor: {alert.sensor_type}, Value:{" "}
+                {alert.recorded_value})
               </div>
             ))}
           </div>
         )}
 
-        
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
-          <SensorCard title=" Temperature (°C)" data={sensorData.temperature || []} color="#047857" />
-          <SensorCard title=" Soil Moisture (%)" data={sensorData["soil moisture"] || []} color="#0f766e" />
-          <SensorCard title=" Humidity (%)" data={sensorData.humidity || []} color="#2563eb" />
-          <SensorCard title=" Motion Activity" data={sensorData.motion || []} color="#92400e" />
+          <SensorCard
+            title=" Temperature (°C)"
+            data={sensorData.temperature || []}
+            color="#047857"
+          />
+          <SensorCard
+            title=" Soil Moisture (%)"
+            data={sensorData["soil moisture"] || []}
+            color="#0f766e"
+          />
+          <SensorCard
+            title=" Humidity (%)"
+            data={sensorData.humidity || []}
+            color="#2563eb"
+          />
+          <SensorCard
+            title=" Motion Activity"
+            data={sensorData.motion || []}
+            color="#92400e"
+          />
         </div>
       </div>
     </div>

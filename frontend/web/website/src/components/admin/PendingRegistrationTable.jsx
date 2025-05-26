@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../../config/apiConfig";
 
 export default function PendingRegistrationTable() {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -9,11 +10,11 @@ export default function PendingRegistrationTable() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const res = await fetch("/api/users");
+        const res = await fetch(`${API_URL}/api/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
 
         const data = await res.json();
-        const filtered = data.filter(user => user.status === "pending");
+        const filtered = data.filter((user) => user.status === "pending");
         setPendingUsers(filtered);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -52,8 +53,11 @@ export default function PendingRegistrationTable() {
             </tr>
           </thead>
           <tbody>
-            {pendingUsers.map(user => (
-              <tr key={user.uid} className="border-t border-amber-200 hover:bg-amber-100">
+            {pendingUsers.map((user) => (
+              <tr
+                key={user.uid}
+                className="border-t border-amber-200 hover:bg-amber-100"
+              >
                 <td className="px-4 py-2">
                   {user.first_name} {user.last_name}
                 </td>
@@ -67,4 +71,3 @@ export default function PendingRegistrationTable() {
     </div>
   );
 }
-

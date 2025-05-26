@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
 } from "recharts";
+import { API_URL } from "../../config/apiConfig";
 
 export default function IoTGraphs() {
   const [data, setData] = useState({
     temperature: [],
     humidity: [],
     soil_moisture: [],
-    motion: []
+    motion: [],
   });
-
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/iot-monitoring");
+      const res = await fetch(`${API_URL}/api/iot-monitoring`);
       const raw = await res.json();
 
       const grouped = {
@@ -23,15 +29,18 @@ export default function IoTGraphs() {
         motion: [],
       };
 
-      raw.reverse().forEach(item => {
+      raw.reverse().forEach((item) => {
         const entry = {
-            time: new Date(item.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            value: parseFloat(item.recorded_value),
+          time: new Date(item.recorded_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          value: parseFloat(item.recorded_value),
         };
         if (grouped[item.sensor_type]) {
-            grouped[item.sensor_type].push(entry);
+          grouped[item.sensor_type].push(entry);
         }
-    });
+      });
 
       setData(grouped);
     } catch (err) {
@@ -41,15 +50,23 @@ export default function IoTGraphs() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000); 
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-      <SensorChart title=" Temperature (°C)" data={data.temperature} color="#047857" />
+      <SensorChart
+        title=" Temperature (°C)"
+        data={data.temperature}
+        color="#047857"
+      />
       <SensorChart title=" Humidity (%)" data={data.humidity} color="#2563eb" />
-      <SensorChart title=" Soil Moisture (%)" data={data.soil_moisture} color="#0f766e" />
+      <SensorChart
+        title=" Soil Moisture (%)"
+        data={data.soil_moisture}
+        color="#0f766e"
+      />
       <SensorChart title=" Motion" data={data.motion} color="#92400e" />
     </div>
   );
@@ -79,4 +96,3 @@ function SensorChart({ title, data, color }) {
     </div>
   );
 }
-
