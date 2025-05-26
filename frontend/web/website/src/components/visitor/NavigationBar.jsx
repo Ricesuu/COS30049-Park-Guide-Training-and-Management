@@ -177,7 +177,7 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
         {/* Right side of navbar */}
         <div className="flex items-center space-x-6">
           <div className="cursor-pointer">
-            <FaSearch className="w-5 h-5 text-white hover:text-gray-300 transition-colors" />
+            
           </div>
           {/* Conditional login/logout button */}{" "}
           {!isLoggedIn ? (
