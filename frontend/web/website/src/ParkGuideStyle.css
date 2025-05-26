@@ -21,67 +21,69 @@ body {
   overflow: visible; /* Let content overflow naturally */
 }
 
-/* Sidebar Styling */
+/* Legacy Sidebar Styling - DEPRECATED (now using Tailwind classes) */
+/*
 .sidebar {
-  position: fixed; /* Fix the sidebar to the side */
+  position: fixed;
   top: 0;
   left: 0;
-  height: 100vh; /* Full height of the viewport */
-  width: 18rem; /* Sidebar width (288px) */
+  height: 100vh;
+  width: 18rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem; /* 24px */
-  background: linear-gradient(135deg, #7CC242, #5AAE2E); /* Gradient for a modern look */
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #7CC242, #5AAE2E);
   color: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000; /* Ensure it stays above other content */
+  z-index: 1000;
   overflow-y: hidden;
 }
 
 .sidebar img {
-  width: 80%; /* Larger logo */
-  height: auto; /* Maintain aspect ratio */
-  margin-bottom: 2rem; /* 32px */
+  width: 80%;
+  height: auto;
+  margin-bottom: 2rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  object-fit: contain; /* Preserve aspect ratio */
-  border-radius: 8px; /* Slightly rounded corners */
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .sidebar button {
   display: inline-block;
-  width: 90%; /* Wider buttons */
+  width: 90%;
   background: white;
   color: #333;
   text-align: center;
-  padding: 0.75rem 0; /* 12px top/bottom */
-  margin-bottom: 1rem; /* 16px */
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
   border: none;
-  border-radius: 8px; /* Rounded corners */
+  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  font-size: 1rem; /* Slightly larger text */
+  font-size: 1rem;
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .sidebar button:hover {
-  background: #f3f4f6; /* Light gray hover effect */
-  transform: translateY(-2px); /* Subtle lift effect */
+  background: #f3f4f6;
+  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar button.bg-red-500 {
-  background: linear-gradient(135deg, #f56565, #e53e3e); /* Gradient for red button */
+  background: linear-gradient(135deg, #f56565, #e53e3e);
   color: white;
 }
 
 .sidebar button.bg-red-500:hover {
-  background: linear-gradient(135deg, #e53e3e, #c53030); /* Darker red on hover */
+  background: linear-gradient(135deg, #e53e3e, #c53030);
 }
+*/
 
-/* All main content areas */
+/* Main content areas - Updated for new layout structure */
 .dashboard-main-content,
 .training-main-content,
 .cert-main-content,
@@ -89,18 +91,16 @@ body {
 .quiz-main-content,
 .payment-main-content,
 .performance-main-content {
-  margin-left: 20rem;
   padding: 2rem;
-  width: calc(100% - 20rem);
+  width: 100%;
   overflow: visible; /* Remove container scrolling */
 }
 
 /* Enhanced Dashboard Styling */
 .dashboard-main-content {
-  margin-left: 20rem;
   padding: 2rem;
   box-sizing: border-box;
-  width: calc(100% - 20rem);
+  width: 100%;
   min-height: 100vh;
   background: linear-gradient(to bottom right, #f3f4f6, #ffffff);
   display: flex;
@@ -110,9 +110,8 @@ body {
 
 /* Performance Page Styling */
 .performance-main-content {
-  margin-left: 20rem;
   padding: 2rem;
-  width: calc(100% - 20rem);
+  width: 100%;
   min-height: 100vh;
   background: linear-gradient(to bottom right, #f3f4f6, #ffffff);
   display: flex;
@@ -569,9 +568,8 @@ body {
 
 /* Certification Detail Page Specific Styles */
 .certification-detail-content {
-  margin-left: 20rem;
   padding: 2rem;
-  width: calc(100% - 20rem);
+  width: 100%;
   min-height: 100vh;
   background-color: #f9fafb;
 }

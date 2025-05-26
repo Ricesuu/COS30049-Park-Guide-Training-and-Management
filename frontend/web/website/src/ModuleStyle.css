@@ -1,8 +1,7 @@
 /* Module Page Styling */
 .module-content {
-  margin-left: 20rem;
   padding: 2.5rem;
-  width: calc(100% - 20rem);
+  width: 100%;
   min-height: 100vh;
   background: linear-gradient(135deg, #f9fafb, #ffffff);
   display: flex;
