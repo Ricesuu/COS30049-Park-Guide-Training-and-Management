@@ -1,8 +1,8 @@
 // parkguideDashboard.jsx
 import React, { useState, useEffect } from "react";
-import { API_URL } from "../../config/apiConfig";
 import "../../ParkGuideStyle.css";
 import { auth } from "../../Firebase";
+import { API_URL } from "../../config/apiConfig";
 
 // Helper function that is used in the component
 const formatDateString = (dateString) => {
@@ -55,6 +55,7 @@ const Dashboard = () => {
         }
 
         const token = await user.getIdToken();
+
         // Fetch user data
         const userResponse = await fetch(`${API_URL}/api/users/profile`, {
           headers: {
@@ -67,7 +68,9 @@ const Dashboard = () => {
         }
 
         const userData = await userResponse.json();
-        setUserData(userData); // Get guide data
+        setUserData(userData);
+
+        // Get guide data
         const guideResponse = await fetch(`${API_URL}/api/park-guides/user`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -77,11 +80,33 @@ const Dashboard = () => {
         if (!guideResponse.ok) {
           throw new Error("Failed to fetch guide data");
         }
-
         const guideData = await guideResponse.json();
-        setGuideData(guideData); // Get modules from guide training progress
+
+        // If guide has an assigned park, fetch the park details
+        if (
+          guideData.assigned_park &&
+          guideData.assigned_park !== "Unassigned"
+        ) {
+          const parkResponse = await fetch(
+            `/api/parks/${guideData.assigned_park}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (parkResponse.ok) {
+            const parkData = await parkResponse.json();
+            guideData.assigned_park = parkData.park_name;
+          }
+        }
+
+        setGuideData(guideData);
+
+        // Get modules from guide training progress
         const modulesResponse = await fetch(
-          `${API_URL}/api/guide-training-progress/user`,
+          "/api/guide-training-progress/user",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -111,9 +136,11 @@ const Dashboard = () => {
                 : 0,
           }));
         }
-        setModules(formattedModules); // Get certifications using guide_id
+        setModules(formattedModules);
+
+        // Get certifications using guide_id
         const certsResponse = await fetch(
-          `${API_URL}/api/certifications/user/${guideData.guide_id}`,
+          `/api/certifications/user/${guideData.guide_id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -198,23 +225,51 @@ const Dashboard = () => {
                 <span className="info-value">
                   {guideData?.guide_id || "Not Available"}
                 </span>
-              </div>
+              </div>{" "}
               <div className="user-info-item">
                 <span className="info-label">Park:</span>
                 <span className="info-value">
-                  {guideData?.assigned_park || "Unassigned"}
+                  {guideData?.certification_status?.toLowerCase() ===
+                  "not applicable"
+                    ? "None"
+                    : guideData?.assigned_park || "Unassigned"}
                 </span>
-              </div>
+              </div>{" "}
               <div className="user-info-item">
-                <span className="info-label">Certification Status:</span>
+                <span className="info-label">License Status:</span>
                 <span
                   className={`info-value status-${
                     guideData?.certification_status?.toLowerCase() || "pending"
                   }`}
                 >
-                  {guideData?.certification_status || "Pending"}
+                  {guideData?.certification_status
+                    ? guideData.certification_status
+                        .split(" ")
+                        .map(
+                          (word) =>
+                            word.charAt(0).toUpperCase() +
+                            word.slice(1).toLowerCase()
+                        )
+                        .join(" ")
+                    : "No License"}
                 </span>
               </div>
+              {guideData?.certification_status?.toLowerCase() !==
+                "not applicable" &&
+                guideData?.license_expiry_date && (
+                  <div className="user-info-item">
+                    <span className="info-label">License Expiry:</span>
+                    <span className="info-value">
+                      {new Date(
+                        guideData.license_expiry_date
+                      ).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                )}
               {userData && (
                 <div className="user-info-item">
                   <span className="info-label">Email:</span>
@@ -424,7 +479,13 @@ const Dashboard = () => {
                           gap: "0.5rem",
                         }}
                       >
-                        <span style={{ fontWeight: "500" }}>Issued:</span>
+                        <span
+                          style={{
+                            fontWeight: "500",
+                          }}
+                        >
+                          Issued:
+                        </span>
                         {formatDateString(cert.issued_date)}
                       </p>
                       <p
@@ -438,7 +499,13 @@ const Dashboard = () => {
                           gap: "0.5rem",
                         }}
                       >
-                        <span style={{ fontWeight: "500" }}>Expires:</span>
+                        <span
+                          style={{
+                            fontWeight: "500",
+                          }}
+                        >
+                          Expires:
+                        </span>
                         {formatDateString(cert.expiry_date)}
                       </p>
                     </div>
