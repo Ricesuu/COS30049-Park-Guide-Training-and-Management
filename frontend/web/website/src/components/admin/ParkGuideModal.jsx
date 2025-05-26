@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
 
 export default function ParkGuideModal({ guide, onClose }) {
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [parks, setParks] = useState({});
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
-        fetchTransactions();
         fetchParks();
         return () => (document.body.style.overflow = "auto");
     }, []);
@@ -26,47 +23,10 @@ export default function ParkGuideModal({ guide, onClose }) {
             console.error("Error fetching parks:", err);
         }
     };
-    const fetchTransactions = async () => {
-        try {
-            const res = await fetch(
-                `/api/payment-transactions?user_id=${guide.user_id}`
-            );
-            if (!res.ok) throw new Error("Failed to fetch transactions");
-            const data = await res.json();
-            setTransactions(data);
-        } catch (err) {
-            console.error("Transaction fetch error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const approveTransaction = async (payment_id) => {
-        try {
-            const res = await fetch(`/api/payment-transactions/${payment_id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ paymentStatus: "approved" }),
-            });
-
-            if (!res.ok) throw new Error("Failed to approve transaction");
-
-            // Update UI
-            setTransactions((prev) =>
-                prev.map((tx) =>
-                    tx.payment_id === payment_id
-                        ? { ...tx, paymentStatus: "approved" }
-                        : tx
-                )
-            );
-        } catch (err) {
-            console.error("Approve error:", err);
-        }
-    };
 
     return (
         <div
-            className="fixed inset-0 bg-gray-300 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-transparent backdrop-blur-sm z-50 flex items-center justify-center"
             onClick={onClose}
         >
             <div
@@ -112,62 +72,6 @@ export default function ParkGuideModal({ guide, onClose }) {
                                 : "N/A"}
                         </p>
                     </div>
-                </div>
-
-                <div className="mt-6">
-                    <h3 className="text-xl font-semibold text-green-800 mb-2">
-                        Transactions
-                    </h3>
-                    {loading ? (
-                        <p className="text-gray-500">Loading transactions...</p>
-                    ) : transactions.length === 0 ? (
-                        <p className="text-gray-500">No transactions found.</p>
-                    ) : (
-                        <ul className="space-y-3">
-                            {transactions.map((tx) => (
-                                <li
-                                    key={tx.payment_id}
-                                    className="bg-gray-100 p-4 rounded-lg border"
-                                >
-                                    <p>
-                                        <strong>Purpose:</strong>{" "}
-                                        {tx.paymentPurpose}
-                                    </p>
-                                    <p>
-                                        <strong>Amount:</strong> $
-                                        {tx.amountPaid}
-                                    </p>
-                                    <p>
-                                        <strong>Status:</strong>{" "}
-                                        {tx.paymentStatus}
-                                    </p>
-                                    <p>
-                                        <strong>Method:</strong>{" "}
-                                        {tx.paymentMethod}
-                                    </p>
-                                    <p>
-                                        <strong>Date:</strong>{" "}
-                                        {new Date(
-                                            tx.transaction_date
-                                        ).toLocaleString()}
-                                    </p>
-
-                                    {tx.paymentStatus !== "approved" && (
-                                        <button
-                                            onClick={() =>
-                                                approveTransaction(
-                                                    tx.payment_id
-                                                )
-                                            }
-                                            className="mt-2 px-4 py-1 bg-green-700 text-white rounded hover:bg-green-600"
-                                        >
-                                            Approve Payment
-                                        </button>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
                 </div>
             </div>
 
