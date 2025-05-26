@@ -304,7 +304,7 @@ export default function AdminAssignCourses() {
             ) : (
               <tr>
                 <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                  No pending guides found
+                  No certified guides found
                 </td>
               </tr>
             )}
