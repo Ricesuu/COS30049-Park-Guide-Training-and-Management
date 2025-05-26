@@ -14,6 +14,7 @@ import { BiLoaderAlt } from "react-icons/bi";
 import NavigationBar from "../../components/visitor/NavigationBar";
 import Footer from "../../components/visitor/Footer";
 import ChatbotWidget from "../../components/visitor/ChatbotWidget";
+import { API_URL } from "../../config/apiConfig";
 
 /***********************************************************************
  * CONTACT PAGE COMPONENT
@@ -187,7 +188,7 @@ const ContactPage = () => {
     setIsSubmitting(true);
     try {
       // Send form data to the backend API
-      const response = await fetch(`http://localhost:3000/api/contact`, {
+      const response = await fetch(`${API_URL}/api/contact`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

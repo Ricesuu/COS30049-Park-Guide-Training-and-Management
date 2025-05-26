@@ -8,6 +8,7 @@
  ***********************************************************************/
 import React, { useState, useEffect, useCallback } from "react";
 import { FaQuoteLeft, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { API_URL } from "../../config/apiConfig";
 
 const TestimonialsCarousel = () => {
   const [testimonials, setTestimonials] = useState([]);
@@ -18,13 +19,12 @@ const TestimonialsCarousel = () => {
   /******************************************************************
    * DATA FETCHING
    * Fetches testimonial data from the API and processes it
-   ******************************************************************/  useEffect(() => {
+   ******************************************************************/ useEffect(() => {
     const fetchTestimonials = async () => {
       try {
-        setLoading(true);
-        // First try to fetch from API
+        setLoading(true); // First try to fetch from API
         try {
-          const response = await fetch("/api/visitor-feedback");
+          const response = await fetch(`${API_URL}/api/visitor-feedback`);
           if (response.ok) {
             const data = await response.json();
             // Process the data to match our display format
@@ -59,36 +59,41 @@ const TestimonialsCarousel = () => {
             id: 1,
             visitor_name: "John Smith",
             rating: 5,
-            comment: "The training program was exceptional! I learned so much about native plants and wildlife.",
-            date_submitted: "2024-04-15"
+            comment:
+              "The training program was exceptional! I learned so much about native plants and wildlife.",
+            date_submitted: "2024-04-15",
           },
           {
             id: 2,
             visitor_name: "Emma Johnson",
             rating: 4,
-            comment: "Great experience overall. The plant identification module was particularly helpful.",
-            date_submitted: "2024-03-22"
+            comment:
+              "Great experience overall. The plant identification module was particularly helpful.",
+            date_submitted: "2024-03-22",
           },
           {
             id: 3,
             visitor_name: "Michael Chen",
             rating: 5,
-            comment: "The certification process was straightforward and the training materials were comprehensive.",
-            date_submitted: "2024-05-01"
-          }
+            comment:
+              "The certification process was straightforward and the training materials were comprehensive.",
+            date_submitted: "2024-05-01",
+          },
         ];
         setTestimonials(fallbackData);
       } catch (err) {
         setError(err.message);
         console.error("Error in testimonials component:", err);
         // Set minimum fallback data even if everything fails
-        setTestimonials([{
-          id: 1,
-          visitor_name: "Park Visitor",
-          rating: 5,
-          comment: "Great experience at the park!",
-          date_submitted: new Date().toISOString()
-        }]);
+        setTestimonials([
+          {
+            id: 1,
+            visitor_name: "Park Visitor",
+            rating: 5,
+            comment: "Great experience at the park!",
+            date_submitted: new Date().toISOString(),
+          },
+        ]);
       } finally {
         setLoading(false);
       }

@@ -4,6 +4,7 @@ import Footer from "../../components/visitor/Footer";
 import StarRating from "../../components/visitor/StarRating";
 import ChatbotWidget from "../../components/visitor/ChatbotWidget";
 import { motion } from "framer-motion";
+import { API_URL } from "../../config/apiConfig";
 
 const FeedbackPage = () => {
   const [guides, setGuides] = useState([]);
@@ -26,15 +27,17 @@ const FeedbackPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({
-    ticketNo: false
+    ticketNo: false,
   });
   useEffect(() => {
     const fetchGuides = async () => {
       try {
-        const response = await fetch("/api/park-guides");
+        const response = await fetch(`${API_URL}/api/park-guides`);
         if (!response.ok) throw new Error("Failed to fetch guides");
         const data = await response.json();
-        setGuides(data.filter(guide => guide.certification_status === "certified"));
+        setGuides(
+          data.filter((guide) => guide.certification_status === "certified")
+        );
       } catch (err) {
         console.error("Error fetching guides:", err);
         setError("Failed to load park guides.");
@@ -43,7 +46,7 @@ const FeedbackPage = () => {
           { guide_id: "1", first_name: "John", last_name: "Smith" },
           { guide_id: "2", first_name: "Maria", last_name: "Garcia" },
           { guide_id: "3", first_name: "David", last_name: "Chen" },
-          { guide_id: "4", first_name: "Sarah", last_name: "Johnson" }
+          { guide_id: "4", first_name: "Sarah", last_name: "Johnson" },
         ]);
       }
     };
@@ -67,9 +70,12 @@ const FeedbackPage = () => {
     }
 
     // Validate ticket number format (SWXXXXX)
-    if (name === 'ticketNo') {
+    if (name === "ticketNo") {
       const isValid = /^SW\d{5}$/.test(value);
-      setFieldErrors(prev => ({ ...prev, ticketNo: value !== '' && !isValid }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        ticketNo: value !== "" && !isValid,
+      }));
     }
 
     setFormData({ ...formData, [name]: value });
@@ -77,16 +83,21 @@ const FeedbackPage = () => {
 
   const handleRatingChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
-  };  const handleSubmit = async (e) => {
+  };
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
     // Check if all ratings have been provided
     const missingRatings = [];
-    if (formData.languageRating === 0) missingRatings.push("Language Proficiency");
-    if (formData.knowledgeRating === 0) missingRatings.push("Knowledge & Expertise");
-    if (formData.organizationRating === 0) missingRatings.push("Organization Skills");
-    if (formData.engagementRating === 0) missingRatings.push("Engagement Level");
+    if (formData.languageRating === 0)
+      missingRatings.push("Language Proficiency");
+    if (formData.knowledgeRating === 0)
+      missingRatings.push("Knowledge & Expertise");
+    if (formData.organizationRating === 0)
+      missingRatings.push("Organization Skills");
+    if (formData.engagementRating === 0)
+      missingRatings.push("Engagement Level");
     if (formData.safetyRating === 0) missingRatings.push("Safety Awareness");
 
     if (missingRatings.length > 0) {
@@ -104,7 +115,7 @@ const FeedbackPage = () => {
 
     try {
       try {
-        const response = await fetch("/api/visitor-feedback", {
+        const response = await fetch(`${API_URL}/api/visitor-feedback`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -126,7 +137,7 @@ const FeedbackPage = () => {
             feedback: formData.feedback,
           }),
         });
-  
+
         if (response.ok) {
           setSubmitted(true);
           setFormData({
@@ -150,7 +161,7 @@ const FeedbackPage = () => {
       } catch (apiErr) {
         console.error("API Error:", apiErr);
       }
-      
+
       // If API call fails, still show success to the user
       console.log("Using fallback success behavior since API is unavailable");
       setSubmitted(true);
@@ -170,7 +181,6 @@ const FeedbackPage = () => {
         safetyRating: 0,
         feedback: "",
       });
-      
     } catch (err) {
       setError("Failed to submit feedback. Please try again.");
       console.error("Error submitting feedback:", err);
@@ -268,7 +278,8 @@ const FeedbackPage = () => {
                       >
                         Telephone
                       </label>
-                      <input                        type="tel"
+                      <input
+                        type="tel"
                         id="telephone"
                         name="telephone"
                         value={formData.telephone}
@@ -316,7 +327,8 @@ const FeedbackPage = () => {
                     >
                       Ticket Number
                     </label>
-                    <input                      type="text"
+                    <input
+                      type="text"
                       id="ticketNo"
                       name="ticketNo"
                       value={formData.ticketNo}
@@ -325,10 +337,16 @@ const FeedbackPage = () => {
                       className={`w-full px-4 py-2 border rounded-md 
                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                         hover:border-green-300 transition-all duration-300 ease-in-out
-                        bg-white hover:bg-green-50/30 ${fieldErrors.ticketNo ? 'border-red-500' : 'border-gray-300'}`}
+                        bg-white hover:bg-green-50/30 ${
+                          fieldErrors.ticketNo
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
                     />
                     {fieldErrors.ticketNo && (
-                      <p className="mt-1 text-sm text-red-500">Invalid ticket number format.</p>
+                      <p className="mt-1 text-sm text-red-500">
+                        Invalid ticket number format.
+                      </p>
                     )}
                   </div>
                   <div className="mb-4">
@@ -350,7 +368,9 @@ const FeedbackPage = () => {
                         bg-white [&>option]:bg-white"
                     >
                       <option value="">Select a park</option>
-                      <option value="Bako National Park">Bako National Park</option>
+                      <option value="Bako National Park">
+                        Bako National Park
+                      </option>
                       <option value="Semenggoh Wildlife Centre">
                         Semenggoh Wildlife Centre
                       </option>
@@ -408,7 +428,9 @@ const FeedbackPage = () => {
                     </select>
                   </div>
 
-                  <h3 className="text-lg font-semibold mb-2 mt-6">Guide Ratings</h3>
+                  <h3 className="text-lg font-semibold mb-2 mt-6">
+                    Guide Ratings
+                  </h3>
                   <hr className="mb-4" />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -416,12 +438,15 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Language Proficiency
                       </label>
-                      <StarRating                        name="languageRating"
+                      <StarRating
+                        name="languageRating"
                         value={formData.languageRating}
                         onChange={handleRatingChange}
                       />
                       {formData.languageRating === 0 && (
-                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's language proficiency</p>
+                        <p className="mt-1 text-sm text-amber-600">
+                          Please rate the guide's language proficiency
+                        </p>
                       )}
                     </div>
 
@@ -429,12 +454,15 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Knowledge & Expertise
                       </label>
-                      <StarRating                        name="knowledgeRating"
+                      <StarRating
+                        name="knowledgeRating"
                         value={formData.knowledgeRating}
                         onChange={handleRatingChange}
                       />
                       {formData.knowledgeRating === 0 && (
-                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's knowledge and expertise</p>
+                        <p className="mt-1 text-sm text-amber-600">
+                          Please rate the guide's knowledge and expertise
+                        </p>
                       )}
                     </div>
 
@@ -442,12 +470,15 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Organization Skills
                       </label>
-                      <StarRating                        name="organizationRating"
+                      <StarRating
+                        name="organizationRating"
                         value={formData.organizationRating}
                         onChange={handleRatingChange}
                       />
                       {formData.organizationRating === 0 && (
-                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's organization skills</p>
+                        <p className="mt-1 text-sm text-amber-600">
+                          Please rate the guide's organization skills
+                        </p>
                       )}
                     </div>
 
@@ -455,12 +486,15 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Engagement Level
                       </label>
-                      <StarRating                        name="engagementRating"
+                      <StarRating
+                        name="engagementRating"
                         value={formData.engagementRating}
                         onChange={handleRatingChange}
                       />
                       {formData.engagementRating === 0 && (
-                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's engagement level</p>
+                        <p className="mt-1 text-sm text-amber-600">
+                          Please rate the guide's engagement level
+                        </p>
                       )}
                     </div>
 
@@ -468,12 +502,15 @@ const FeedbackPage = () => {
                       <label className="block text-gray-700 font-medium mb-2">
                         Safety Awareness
                       </label>
-                      <StarRating                        name="safetyRating"
+                      <StarRating
+                        name="safetyRating"
                         value={formData.safetyRating}
                         onChange={handleRatingChange}
                       />
                       {formData.safetyRating === 0 && (
-                        <p className="mt-1 text-sm text-amber-600">Please rate the guide's safety awareness</p>
+                        <p className="mt-1 text-sm text-amber-600">
+                          Please rate the guide's safety awareness
+                        </p>
                       )}
                     </div>
                   </div>
@@ -529,7 +566,7 @@ const FeedbackPage = () => {
       </section>
       <Footer />
       <div style={{ position: "fixed", bottom: 0, right: 0, zIndex: 9999 }}>
-      <ChatbotWidget  />
+        <ChatbotWidget />
       </div>
     </motion.div>
   );
