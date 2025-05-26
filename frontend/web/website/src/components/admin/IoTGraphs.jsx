@@ -29,7 +29,7 @@ export default function IoTGraphs() {
         motion: [],
       };
 
-      raw.reverse().forEach((item) => {
+      raw.forEach((item) => {
         const entry = {
           time: new Date(item.recorded_at).toLocaleTimeString([], {
             hour: "2-digit",
@@ -40,6 +40,11 @@ export default function IoTGraphs() {
         if (grouped[item.sensor_type]) {
           grouped[item.sensor_type].push(entry);
         }
+      });
+
+      // Reverse each sensor array so oldest is first
+      Object.keys(grouped).forEach((key) => {
+        grouped[key].reverse();
       });
 
       setData(grouped);
