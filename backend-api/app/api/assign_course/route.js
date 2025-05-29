@@ -96,12 +96,14 @@ export async function POST(request) {
         if (guideInfo.length === 0) {
             throw new Error("Guide not found");
         }
-
         for (const moduleRow of guideInfo) {
             await sendEmail({
                 to: moduleRow.email,
                 template: "moduleAssignment",
-                data: [moduleRow.first_name, moduleRow.module_name],
+                data: {
+                    firstName: moduleRow.first_name,
+                    moduleName: moduleRow.module_name,
+                },
             });
         }
 
@@ -135,21 +137,28 @@ export async function DELETE(request) {
     }
 
     const connection = await getConnection();
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    });
-
     try {
         await connection.beginTransaction();
 
-        const [moduleDetails] = await connection.query(
-            `SELECT tm.module_id, tm.module_code, tm.module_name
-       FROM GuideTrainingProgress gtp
-       JOIN TrainingModules tm ON gtp.module_id = tm.module_id
-       WHERE gtp.guide_id = ? AND gtp.status = 'in progress'`,
+        // First check if the guide exists and get guide info
+        const [guideInfo] = await connection.execute(
+            `SELECT pg.guide_id, u.email, u.first_name 
+             FROM ParkGuides pg
+             JOIN Users u ON pg.user_id = u.user_id 
+             WHERE pg.guide_id = ?`,
+            [guide_id]
+        );
+
+        if (guideInfo.length === 0) {
+            throw new Error("Guide not found");
+        }
+
+        // Get modules that are being deleted
+        const [moduleDetails] = await connection.execute(
+            `SELECT tm.module_id, tm.module_code, tm.module_name 
+             FROM GuideTrainingProgress gtp
+             JOIN TrainingModules tm ON gtp.module_id = tm.module_id 
+             WHERE gtp.guide_id = ? AND gtp.status = 'in progress'`,
             [guide_id]
         );
 
@@ -161,62 +170,25 @@ export async function DELETE(request) {
             });
         }
 
+        // Remove from GuideTrainingProgress
         await connection.execute(
             `DELETE FROM GuideTrainingProgress 
-       WHERE guide_id = ? AND status = 'in progress'`,
+             WHERE guide_id = ? AND status = 'in progress'`,
             [guide_id]
         );
 
-        const [rows] = await connection.execute(
-            `SELECT u.email, u.first_name 
-       FROM ParkGuides pg
-       JOIN Users u ON pg.user_id = u.user_id
-       WHERE pg.guide_id = ?`,
-            [guide_id]
-        );
-
-        if (rows.length === 0) {
-            throw new Error("Guide not found");
-        }
-
-        const { email, first_name } = rows[0];
-
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: "pgthelanguage@gmail.com",
-                pass: "cfnowrkgnrogjkvz",
+        // Send email notification
+        const moduleNames = moduleDetails.map((m) => m.module_name).join(", ");
+        await sendEmail({
+            to: guideInfo[0].email,
+            template: "moduleRemoval",
+            data: {
+                firstName: guideInfo[0].first_name,
+                courseNames: moduleNames,
             },
         });
 
-        const moduleListHTML = moduleDetails
-            .map(
-                (module) =>
-                    `<li>${module.module_code}: ${module.module_name}</li>`
-            )
-            .join("");
-
-        const mailOptions = {
-            from: '"Sarawak Forestry Corporation" <pgthelanguage@gmail.com>',
-            to: email,
-            subject: "Training Modules Cancelled",
-            html: `
-        <p>Dear ${first_name},</p>
-        <p>The following training modules have been <strong>cancelled</strong> from your assignments:</p>
-        <ul>
-          ${moduleListHTML}
-        </ul>
-        <p>If you have any questions, please contact your supervisor.</p>
-        <p>Regards,</p>
-        <p>Sarawak Forestry Corporation</p>
-        <p>${formattedDate}</p>
-      `,
-        };
-
-        await transporter.sendMail(mailOptions);
-
         await connection.commit();
-
         return NextResponse.json({
             success: true,
             message:
@@ -304,9 +276,9 @@ export async function PUT(request) {
         if (rows.length === 0) {
             throw new Error("Guide not found");
         }
-
         const { email, first_name } = rows[0];
 
+        // Get added and removed module details
         const [addedModules] = await connection.query(
             `SELECT module_code, module_name 
        FROM TrainingModules 
@@ -321,48 +293,30 @@ export async function PUT(request) {
             modulesToRemove
         );
 
-        const addedListHTML =
-            addedModules.length > 0
-                ? `<p>The following training modules have been <strong>added</strong> to your assignments:</p><ul>` +
-                  addedModules
-                      .map((m) => `<li>${m.module_code}: ${m.module_name}</li>`)
-                      .join("") +
-                  `</ul>`
-                : "";
+        // Send email about module updates
+        const updateMessage = [
+            ...(addedModules.length > 0
+                ? [
+                      "Added: " +
+                          addedModules.map((m) => m.module_name).join(", "),
+                  ]
+                : []),
+            ...(removedModules.length > 0
+                ? [
+                      "Removed: " +
+                          removedModules.map((m) => m.module_name).join(", "),
+                  ]
+                : []),
+        ].join(" | ");
 
-        const removedListHTML =
-            removedModules.length > 0
-                ? `<p>The following training modules have been <strong>removed</strong> from your assignments:</p><ul>` +
-                  removedModules
-                      .map((m) => `<li>${m.module_code}: ${m.module_name}</li>`)
-                      .join("") +
-                  `</ul>`
-                : "";
-
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: "pgthelanguage@gmail.com",
-                pass: "cfnowrkgnrogjkvz",
+        await sendEmail({
+            to: email,
+            template: "moduleAssignment",
+            data: {
+                firstName: first_name,
+                moduleName: "Course updates: " + updateMessage,
             },
         });
-
-        const mailOptions = {
-            from: '"Sarawak Forestry Corporation" <pgthelanguage@gmail.com>',
-            to: email,
-            subject: "Training Modules Updated",
-            html: `
-        <p>Dear ${first_name},</p>
-        ${addedListHTML}
-        ${removedListHTML}
-        <p>If you have any questions, please contact your supervisor.</p>
-        <p>Regards,</p>
-        <p>Sarawak Forestry Corporation</p>
-        <p>${formattedDate}</p>
-      `,
-        };
-
-        await transporter.sendMail(mailOptions);
 
         await connection.commit();
 

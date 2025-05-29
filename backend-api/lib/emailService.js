@@ -90,6 +90,18 @@ const emailTemplates = {
             Best regards,
             Park Guide Training Team
         `,
+    }), // Module removal emails
+    moduleRemoval: (data) => ({
+        subject: "Training Modules Removed",
+        body: `
+            Dear ${data.firstName},
+            
+            The following training modules have been removed from your assignments:
+            ${data.courseNames}
+            
+            Best regards,
+            Park Guide Training Team
+        `,
     }),
 
     // Certification emails
@@ -157,6 +169,22 @@ const emailTemplates = {
             
             This email is to inform you that your park guide profile has been deleted from our system.
             If you believe this was done in error, please contact our support team.
+            
+            Best regards,
+            Park Guide Training Team
+        `,
+    }),
+
+    // Course removal email
+    courseRemoval: (data) => ({
+        subject: "Course Assignment Update",
+        body: `
+            Dear ${data.firstName},
+            
+            This email is to inform you that the following course(s) have been removed from your assignments:
+            ${data.courseNames}
+            
+            If you have any questions, please contact your administrator.
             
             Best regards,
             Park Guide Training Team
