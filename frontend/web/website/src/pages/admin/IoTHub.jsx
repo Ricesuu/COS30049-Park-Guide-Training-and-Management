@@ -84,13 +84,13 @@ export default function IoTHub() {
     <div className="p-8 bg-green-50 min-h-screen text-green-900">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2">📡 IoT Monitoring Hub</h1>
+          <h1 className="text-4xl font-bold mb-2"> IoT Monitoring Hub</h1>
           <p className="text-green-700 text-lg">
             Track environmental conditions and device performance in real-time.
           </p>
         </div>
 
-        {/* Alerts Section */}
+       
         {unacknowledgedAlerts.length > 0 && (
           <div className="bg-red-100 border border-red-300 p-4 rounded-xl mb-6">
             <h2 className="text-xl font-bold text-red-800 mb-2">⚠️ Active Alerts</h2>

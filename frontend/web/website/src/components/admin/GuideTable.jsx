@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import ParkGuideModal from "./ParkGuideModal";
 import TransactionApprovalTable from "./TransactionApprovalTable";
+import CertificationApprovalTable from "./CertificationApprovalTable";
 
-export default function GuideTable({ guides, onCertify, onDelete }) {
+export default function GuideTable({ guides, onCertify, onDelete, certificationLoading }) {
     const [selectedGuide, setSelectedGuide] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [guideToDelete, setGuideToDelete] = useState(null);
     const [parks, setParks] = useState({});
     const [activeTab, setActiveTab] = useState("certification");
     const [deleteLoading, setDeleteLoading] = useState(null); // NEW
+    const [certifying, setCertifying] = useState(null); // NEW
 
     const capitalizeFirstLetter = (string) => {
         if (!string) return "";
@@ -89,76 +91,13 @@ export default function GuideTable({ guides, onCertify, onDelete }) {
                         <h2 className="text-xl font-semibold p-4 border-b bg-green-50 text-green-900">
                             Certification Approval
                         </h2>
-                        {certificationGuides.length === 0 ? (
-                            <div className="p-4 text-green-800">
-                                No guides pending certification.
-                            </div>
-                        ) : (
-                            <table className="min-w-full text-sm text-left">
-                                <thead className="bg-green-200 text-green-800">
-                                    <tr>
-                                        <th className="px-4 py-2">ID</th>
-                                        <th className="px-4 py-2">Name</th>
-                                        <th className="px-4 py-2">Email</th>
-                                        <th className="px-4 py-2">Status</th>
-                                        <th className="px-4 py-2">License Status</th>
-                                        <th className="px-4 py-2">License Expiry</th>
-                                        <th className="px-4 py-2">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-green-900">
-                                    {certificationGuides.map((guide) => (
-                                        <tr
-                                            key={guide.guide_id}
-                                            onClick={() =>
-                                                handleRowClick(guide.guide_id)
-                                            }
-                                            className="border-b cursor-pointer hover:bg-green-50 transition"
-                                        >
-                                            <td className="px-4 py-2">
-                                                {guide.guide_id}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                {guide.first_name} {guide.last_name}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                {guide.email}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                {capitalizeFirstLetter(
-                                                    guide.user_status
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                {capitalizeFirstLetter(
-                                                    guide.certification_status
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                {guide.license_expiry_date
-                                                    ? new Date(
-                                                          guide.license_expiry_date
-                                                      ).toLocaleDateString()
-                                                    : ""}
-                                            </td>
-                                            <td
-                                                className="px-4 py-2"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <button
-                                                    onClick={() =>
-                                                        onCertify(guide.guide_id)
-                                                    }
-                                                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                                                >
-                                                    Approve
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
+                        <CertificationApprovalTable
+                          guides={guides}
+                          onCertify={handleCertify}
+                          loading={certificationLoading}
+                          certifying={certifying}
+                          onRowClick={handleRowClick}
+                        />
                     </>
                 );
             case "guides":
@@ -236,6 +175,15 @@ export default function GuideTable({ guides, onCertify, onDelete }) {
                 );
             default:
                 return null;
+        }
+    };
+
+    const handleCertify = async (guideId) => {
+        setCertifying(guideId);
+        try {
+            await onCertify(guideId);
+        } finally {
+            setCertifying(null);
         }
     };
 
