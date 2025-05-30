@@ -9,6 +9,12 @@ export default function Dashboard() {
     alerts: 0,
   });
 
+  const [plantSummary, setPlantSummary] = useState({
+    total: 0,
+    newest: null,
+    families: [],
+  });
+
   useEffect(() => {
     async function fetchDashboardData() {
       try {
@@ -22,6 +28,23 @@ export default function Dashboard() {
 
         const alertsRes = await fetch("/api/active-alerts");
         const alerts = await alertsRes.json();
+
+        const plantsRes = await fetch("/api/plants");
+        const plantsData = await plantsRes.json();
+        const plantArray = Array.isArray(plantsData) ? plantsData : plantsData.data || [];
+
+        const total = plantArray.length;
+        const newest = plantArray.reduce((latest, p) =>
+          !latest || new Date(p.created_at) > new Date(latest.created_at) ? p : latest,
+          null
+        );
+        const families = [...new Set(plantArray.map(p => p.family))];
+
+        setPlantSummary({
+          total,
+          newest,
+          families,
+        });
 
         setCounts({
           registrations: pendingUsers,
@@ -46,9 +69,18 @@ export default function Dashboard() {
         <SummaryCard title="Licenses Renewal" value={counts.licenses} color="yellow" />
         <SummaryCard title="Registrations Approval" value={counts.registrations} color="blue" />
         <SummaryCard title="Alerts" value={counts.alerts} color="red" />
+        <SummaryCard
+          title="Total Plants"
+          value={plantSummary.total}
+          color="green"
+        />
+        <SummaryCard
+          title="Plant Families"
+          value={plantSummary.families.length}
+          color="green"
+        />
       </div>
 
-      
       <div className="bg-white p-6 rounded-2xl shadow border border-green-200">
         <h3 className="text-lg font-semibold text-green-900 mb-4">IoT Sensor Activity</h3>
         <IoTGraphs />
@@ -58,6 +90,15 @@ export default function Dashboard() {
         <h3 className="text-lg font-semibold text-green-900 mb-4">Registration Approval</h3>
         <PendingRegistrationTable />
       </div>
+
+      {plantSummary.families.length > 0 && (
+        <div className="bg-white rounded-2xl shadow p-4 border-l-4 border-green-500 mt-4">
+          <h3 className="text-sm text-gray-500 mb-2">Plant Families</h3>
+          <div className="text-green-900 text-sm">
+            {plantSummary.families.join(", ")}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -67,6 +108,7 @@ function SummaryCard({ title, value, color }) {
     yellow: "border-yellow-500 text-yellow-800",
     blue: "border-blue-500 text-blue-800",
     red: "border-red-500 text-red-800",
+    green: "border-green-500 text-green-800",
   };
 
   return (

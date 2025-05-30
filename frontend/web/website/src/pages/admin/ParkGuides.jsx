@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import GuideTable from "../../components/admin/GuideTable";
 import { Check, X } from "lucide-react";
 
+
 export default function ParkGuides() {
     const [guides, setGuides] = useState([]);
     const [guide, setGuide] = useState([]);
     const [loading, setLoading] = useState(true); // Initial data load
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(null); // For approve/reject (stores UID)
-    const [certifyLoading, setCertifyLoading] = useState(null); // For certify (stores guideId)
+    const [certifyLoading, setCertifyLoading] = useState(null);
 
     useEffect(() => {
         fetchGuides();
@@ -179,7 +180,9 @@ export default function ParkGuides() {
             <GuideTable
                 guides={guide}
                 onCertify={handleCertify}
-                onDelete={fetchGuide} // This will refresh the table after delete
+                onDelete={fetchGuide}
+                certificationLoading={certifyLoading}
+                certifying={certifyLoading}
             />
         </div>
     );
