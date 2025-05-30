@@ -233,7 +233,6 @@ const HomePage = () => {
                     />
                 </>
             )}
-            <LogoutButton />
         </Dashboard>
     );
 };

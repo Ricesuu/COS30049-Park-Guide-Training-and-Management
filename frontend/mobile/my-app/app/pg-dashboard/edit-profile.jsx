@@ -37,7 +37,7 @@ const EditProfile = () => {
     const fetchUserProfile = async () => {
         try {
             setIsLoading(true);
-            const token = await AsyncStorage.getItem("userToken");
+            const token = await AsyncStorage.getItem("authToken");
 
             if (!token) {
                 throw new Error("Authentication required");
@@ -68,7 +68,6 @@ const EditProfile = () => {
     const handleInputChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
-
     const handleSubmit = async () => {
         // Validate form data
         if (!formData.first_name.trim() || !formData.last_name.trim()) {
@@ -81,7 +80,7 @@ const EditProfile = () => {
 
         try {
             setIsSubmitting(true);
-            const token = await AsyncStorage.getItem("userToken");
+            const token = await AsyncStorage.getItem("authToken");
 
             if (!token) {
                 throw new Error("Authentication required");
@@ -113,10 +112,20 @@ const EditProfile = () => {
             );
         } catch (error) {
             console.error("Error updating profile:", error);
-            Alert.alert(
-                "Update Failed",
-                "Failed to update profile. Please try again."
-            );
+            let errorMessage = "Failed to update profile. Please try again.";
+
+            if (error.message === "Authentication required") {
+                errorMessage = "Your session has expired. Please log in again.";
+                // Redirect to login after alert
+                Alert.alert("Session Expired", errorMessage, [
+                    {
+                        text: "OK",
+                        onPress: () => router.replace("/"),
+                    },
+                ]);
+            } else {
+                Alert.alert("Update Failed", errorMessage);
+            }
         } finally {
             setIsSubmitting(false);
         }
