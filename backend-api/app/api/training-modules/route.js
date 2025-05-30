@@ -24,11 +24,11 @@ export async function GET() {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { module_name, description, duration } = body;
+        const { module_name, description, duration, price } = body;
         const connection = await getConnection();
         const [result] = await connection.execute(
-            "INSERT INTO TrainingModules (module_name, description, duration) VALUES (?, ?, ?)",
-            [module_name, description, duration]
+            "INSERT INTO TrainingModules (module_name, description, duration, price) VALUES (?, ?, ?, ?)",
+            [module_name, description, duration, price || 0.0]
         );
         return NextResponse.json(
             {
