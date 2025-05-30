@@ -93,7 +93,7 @@ A comprehensive system for training and managing park guides, featuring AI-power
 
 ```bash
 cd backend-api
-npm install
+npm install concurrently --save-dev
 npm run build
 ```
 
