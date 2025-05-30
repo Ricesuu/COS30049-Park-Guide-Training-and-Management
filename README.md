@@ -21,8 +21,10 @@ A comprehensive system for training and managing park guides, featuring AI-power
     -   FastAPI (Python)
     -   MySQL Database
 -   **AI/ML**:
-    -   ONNX Runtime
-    -   Cohere AI
+    -   ONNX Runtime for model inference
+    -   Cohere AI for text embeddings or NLP tasks
+    -   Python Libraries: `fastapi`, `uvicorn`, `sentence-transformers`
+    -   Node.js Packages: `onnxruntime-node`, `sharp`, `@qdrant/js-client-rest`, `nodemailer`, `concurrently`
 -   **IoT**:
     -   MQTT Protocol
     -   Real-time Monitoring
