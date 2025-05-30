@@ -105,31 +105,43 @@ const NavigationBar = ({ isLoggedIn, userRole, logoutUser }) => {
               </a>
             </li>
             <li>
-              {" "}
               <a
                 href="#"
                 onClick={goToInfo}
-                className="text-gray-300 hover:text-white pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:w-0 after:bg-green-500 after:left-0 after:bottom-0 hover:after:w-full after:transition-all after:duration-300 text-sm md:text-base"
+                className={`${
+                  location.pathname === "/visitor/info"
+                    ? "text-white font-medium after:w-full"
+                    : "text-gray-300 hover:text-white after:w-0 hover:after:w-full"
+                } 
+                  text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:bg-green-500 after:left-0 after:bottom-0 after:transition-all after:duration-300`}
               >
                 Info
               </a>
             </li>
             <li>
-              {" "}
               <a
                 href="#"
                 onClick={goToMap}
-                className="text-gray-300 hover:text-white pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:w-0 after:bg-green-500 after:left-0 after:bottom-0 hover:after:w-full after:transition-all after:duration-300 text-sm md:text-base"
+                className={`${
+                  location.pathname === "/visitor/map"
+                    ? "text-white font-medium after:w-full"
+                    : "text-gray-300 hover:text-white after:w-0 hover:after:w-full"
+                } 
+                  text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:bg-green-500 after:left-0 after:bottom-0 after:transition-all after:duration-300`}
               >
                 Map
               </a>
             </li>
             <li>
-              {" "}
               <a
                 href="#"
                 onClick={goToFeedback}
-                className="text-gray-300 hover:text-white pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:w-0 after:bg-green-500 after:left-0 after:bottom-0 hover:after:w-full after:transition-all after:duration-300 text-sm md:text-base"
+                className={`${
+                  location.pathname === "/visitor/feedback"
+                    ? "text-white font-medium after:w-full"
+                    : "text-gray-300 hover:text-white after:w-0 hover:after:w-full"
+                } 
+                  text-sm md:text-base pb-0.5 block relative after:content-[''] after:absolute after:h-0.5 after:bg-green-500 after:left-0 after:bottom-0 after:transition-all after:duration-300`}
               >
                 Feedback
               </a>
