@@ -14,8 +14,8 @@ A comprehensive system for training and managing park guides, featuring AI-power
 ## **💻 Technology Stack**
 
 -   **Frontend**:
-    -   Web: React, Vite
-    -   Mobile: React Native
+    -   Web: React, Vite, TailwindCSS
+    -   Mobile: React Native, Expo, TailwindCSS
 -   **Backend**:
     -   Next.js
     -   FastAPI (Python)
